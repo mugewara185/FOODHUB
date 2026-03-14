@@ -29,7 +29,7 @@
 
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import type { Restaurant } from "@/features/restaurant/type";
+import type { Restaurant } from "../../../features/restaurant/type";
 
 const RestaurantCard = ({ id, name, image, location, cuisines, rating }: Restaurant) => {
   const navigate = useNavigate();

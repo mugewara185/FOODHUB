@@ -27,8 +27,8 @@ import {
   Restaurant,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type CartItem, type Restaurant as RestaurantType } from '../types/food';
-import { MOCK_RESTAURANTS } from '../constants/food';
+import { type CartItem, type Restaurant as RestaurantType } from '../../../types/food';
+import { MOCK_RESTAURANTS } from '../../../constants/food';
 
 // Mock cart data
 const MOCK_CART_ITEMS: CartItem[] = [

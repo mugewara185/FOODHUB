@@ -48,9 +48,9 @@ import {
   MenuBook,
   RestaurantMenu,
 } from '@mui/icons-material';
-import FoodItemCard from '../features/food/components/FoodItemCard';
-import { type FoodItem, type Restaurant, type CartItem } from '../types/food';
-import { MOCK_RESTAURANTS, MOCK_FOOD_ITEMS, FOOD_CATEGORIES } from '../constants/food';
+import FoodItemCard from '../../../features/food/components/FoodItemCard';
+import { type FoodItem, type Restaurant, type CartItem } from '../../../types/food';
+import { MOCK_RESTAURANTS, MOCK_FOOD_ITEMS, FOOD_CATEGORIES } from '../../../constants/food';
 
 // Mock reviews data
 const MOCK_REVIEWS = [

@@ -1,8 +1,8 @@
 import React from 'react'
-
+import Cart_V from './V/Cart'
 const index = () => {
   return (
-    <div>index</div>
+    <Cart_V />  
   )
 }
 

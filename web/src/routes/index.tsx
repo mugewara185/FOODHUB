@@ -8,10 +8,10 @@ import Signup from '../pages/Auth/Signup';
 import ForgotPassword from '../pages/Auth/ForgotPassword';
 import ResetPassword from '../pages/Auth/ResetPassword';
 import Profile from '../pages/Profile';
-import RestaurantDetail from '../pages/RestaurantDetail';
+import RestaurantDetail from '../pages/RestaurantDetails/versions/RestaurantDetail_V4';
 import Checkout from '../pages/Checkout';
 import Cart from '../pages/Cart';
-// import Restaurants from '../pages/Restaurants';
+import Restaurants from '../pages/restaurantListings';
 // import Orders from '../pages/Orders';
 // import OrderDetail from '../pages/OrderDetail';
 // import Search from '../pages/Search';
@@ -24,9 +24,9 @@ const AppRoutes: React.FC = () => {
         {/* Public Routes */}
         <Route index element={<Home />} />
         <Route path="login" element={
-          <ProtectedRoute requireAuth={false}>
+          // <ProtectedRoute requireAuth={false}>
             <Login />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         } />
         <Route path="signup" element={
           <ProtectedRoute requireAuth={false}>
@@ -46,19 +46,19 @@ const AppRoutes: React.FC = () => {
         
         {/* Protected Routes */}
         <Route path="profile" element={
-          <ProtectedRoute>
+          // <ProtectedRoute>
             <Profile />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         } />
         <Route path="cart" element={
-          <ProtectedRoute>
+          // <ProtectedRoute>
             <Cart />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         } />
         <Route path="checkout" element={
-          <ProtectedRoute>
+          // <ProtectedRoute>
             <Checkout />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         } />
         {/* <Route path="orders" element={
           <ProtectedRoute>
@@ -68,7 +68,7 @@ const AppRoutes: React.FC = () => {
         {/* ... other protected routes */}
         
         {/* Public Routes */}
-        {/* <Route path="restaurants" element={<Restaurants />} /> */}
+        <Route path="restaurants" element={<Restaurants />} />
         <Route path="restaurants/:id" element={<RestaurantDetail />} />
         {/* <Route path="search" element={<Search />} /> */}
         

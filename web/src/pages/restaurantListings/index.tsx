@@ -1,11 +1,9 @@
 import React from 'react'
-// import Home_V from './Home_V'
-import Home from './V/Home'
-
+import Restaurants from './V/Restaurants'
 const index = () => {
   return (
     <div>
-      <Home/>
+        <Restaurants />
     </div>
   )
 }
