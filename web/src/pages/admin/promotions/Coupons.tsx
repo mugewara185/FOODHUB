@@ -32,6 +32,7 @@ import {
   Divider,
   Alert,
   LinearProgress,
+  Avatar,
 } from '@mui/material';
 import {
   Add,

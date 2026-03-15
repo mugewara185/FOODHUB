@@ -24,7 +24,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import OrdersList from '../pages/admin/orders/OrdersList';
 import RestaurantsList from '../pages/admin/restaurants/RestaurantsList';
 import AddRestaurant from '../pages/admin/restaurants/AddRestaurants';
-import {promotions, reports, settings, users} from '../pages/admin';
+import {Promotions, Reports, Settings, Users} from '../pages/admin';
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
@@ -33,6 +33,10 @@ const AppRoutes: React.FC = () => {
         <Route path='orders' element={<OrdersList />} />
         <Route path='restaurants' element={<RestaurantsList />} />
         <Route path='restaurants/add' element={<AddRestaurant />} />
+        <Route path='promotions' element={<Promotions />} />
+        <Route path='reports' element={<Reports />} />
+        <Route path='settings' element={<Settings />} />
+        <Route path='users' element={<Users />} />
       </Route>
 
       <Route path="/" element={<MainLayout />}>
