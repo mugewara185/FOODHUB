@@ -1,6 +1,6 @@
 import React from "react";
 import {AuthProvider} from './contexts/AuthContext';
-import AppRoutes from "./routes";
+import AppRoutes from "./app/routes";
 
 const App:React.FC =()=>{
   // console.log('%c<App/>','color:orange')
