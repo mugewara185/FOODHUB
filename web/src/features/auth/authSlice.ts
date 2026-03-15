@@ -1,17 +1,21 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type{ PayloadAction } from "@reduxjs/toolkit";
-import type { User } from "@/data/types";
+import type { User } from "../../data/types";
 
 type AuthState = {
   user: User | null;
   isLoggedIn: boolean;
-  loading: boolean;
+  loading?: boolean;
+  isAuthenticated: boolean;
+
 };
 
 const initialState: AuthState = {
   user: null,
   isLoggedIn: false,
-  loading: false,
+  // loading: false,
+  isAuthenticated: false,
+
 };
 
 const authSlice = createSlice({

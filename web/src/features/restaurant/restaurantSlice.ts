@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type{ PayloadAction } from "@reduxjs/toolkit";
-import type { Restaurant } from "@/data/types";
+import type { Restaurant } from "../../data/types";
 
 export type RestaurantState = {
   items: Restaurant[];

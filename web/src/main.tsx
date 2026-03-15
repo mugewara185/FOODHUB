@@ -1,11 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+
+import { Provider } from 'react-redux';
+import {store} from './app/store';
+
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 // import {AuthProvider} from './contexts/AuthContext';
 import App from './App';
-// import theme from './appp/theme';
+import theme from './appp/theme';
 import foodtheme from './appp/foodTheme';
 import './index.css';
 
@@ -28,11 +32,13 @@ import '@fontsource/poppins/700.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      {/* <ThemeProvider theme={theme}> */}
-      <ThemeProvider theme={foodtheme}>
+      <ThemeProvider theme={theme}>
+      {/* <ThemeProvider theme={foodtheme}> */}
         <CssBaseline />
         {/* <AuthProvider> */}
-          <App />
+          <Provider store={store}>
+            <App />
+          </Provider>
         {/* </AuthProvider> */}
       </ThemeProvider>
     </BrowserRouter>
