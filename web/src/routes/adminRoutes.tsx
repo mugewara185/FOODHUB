@@ -1,8 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
-import Dashboard from '../ADMINpages/Dashboard';
-import Courses from '../ADMINpages/Courses';
+import Dashboard from '../pages/ADMINpages/Dashboard';
+import Courses from '../pages/ADMINpages/Courses';
 // import Profile from '../pages/Profile';
 // import Settings from '../pages/Settings';
 // import NotFound from '../pages/NotFound';

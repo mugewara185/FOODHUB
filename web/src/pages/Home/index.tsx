@@ -1,6 +1,6 @@
 import React from 'react'
-// import Home_V from './Home_V'
-import Home from './V/Home'
+import Home from './V/Home_V'
+// import Home from './V/Home'
 
 const index = () => {
   return (

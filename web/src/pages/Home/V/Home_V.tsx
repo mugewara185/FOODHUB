@@ -21,10 +21,10 @@ import {
   Timer,
   DeliveryDining,
 } from '@mui/icons-material';
-import { CUISINES, MOCK_RESTAURANTS } from '../constants/food';
-import { type Restaurant } from '../types/food';
+import { CUISINES, MOCK_RESTAURANTS } from '../../../constants/food';
+import { type Restaurant } from '../../../types/food';
 import { useNavigate } from 'react-router-dom';
-import RestaurantCard from '../features/restaurants/components/RestaurantCard/RestaurantCard';
+import RestaurantCard from '../../../features/restaurants/components/RestaurantCard/Restaurants_Card';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
