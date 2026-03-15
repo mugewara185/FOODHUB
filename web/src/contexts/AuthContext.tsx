@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import  type { AuthContextType, AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData, UpdateProfileData } from '../types/auth';
-import { STORAGE_KEYS } from '../constants/food';
+import { STORAGE_KEYS } from '../core/constants/food';
 
 // Mock user data
 const MOCK_USER: AuthUser = {
