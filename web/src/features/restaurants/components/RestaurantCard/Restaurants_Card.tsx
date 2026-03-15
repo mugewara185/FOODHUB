@@ -20,13 +20,13 @@ import {
 import { type Restaurant } from '../../../../types/food';
 import { useNavigate } from 'react-router-dom';
 
-interface RestaurantCardProps {
+interface RestaurantsCardProps {
   restaurant: Restaurant;
   isFavorite?: boolean;
   onToggleFavorite?: (id: string) => void;
 }
 
-const RestaurantCard: React.FC<RestaurantCardProps> = ({
+const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
   restaurant,
   isFavorite = false,
   onToggleFavorite,
@@ -223,4 +223,4 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
   );
 };
 
-export default RestaurantCard;
+export default RestaurantsCard;

@@ -48,7 +48,7 @@ const RestaurantCard = ({ id, name, image, location, cuisines, rating }: Restaur
       <div className="p-4">
         <h3 className="font-bold text-lg">{name}</h3>
         <p className="text-sm text-gray-500">{location}</p>
-        <p className="text-sm">{cuisines.join(", ")}</p>
+        <p className="text-sm">{cuisines?.join(", ")}</p>
         <p className="text-yellow-600 font-medium mt-1">⭐ {rating}</p>
       </div>
     </motion.div>
