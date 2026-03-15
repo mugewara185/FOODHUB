@@ -35,7 +35,7 @@ import {
   Settings,
   Login, Logout
 } from '@mui/icons-material';
-import { APP_NAME } from '../../constants/food';
+import { APP_NAME } from '../../core/constants/food';
 
 import { useAuth } from '../../contexts/AuthContext';
 

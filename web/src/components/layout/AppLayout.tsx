@@ -25,7 +25,7 @@ import {
   ExitToApp,
   ChevronLeft,
 } from '@mui/icons-material';
-import { ROUTE_PATHS } from '../../constants';
+import { ROUTE_PATHS } from '../../core/constants';
 
 const drawerWidth = 280;
 
