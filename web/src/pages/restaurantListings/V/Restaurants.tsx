@@ -46,8 +46,8 @@ import {
 } from '@mui/icons-material';
 // import RestaurantCard from '../../../features/restaurant/components/RestaurantCard';
 import RestaurantCard from '../../../features/restaurants/components/RestaurantCard/Restaurants_Card';
-import { MOCK_RESTAURANTS, CUISINES, DELIVERY_TIMES } from '../../../constants/food';
-import { type Restaurant } from '../../../types/food';
+import { MOCK_RESTAURANTS, CUISINES, DELIVERY_TIMES } from '../../../core/constants/food';
+import { type Restaurant } from '../../../data/types/food';
 
 const Restaurants: React.FC = () => {
   const theme = useTheme();

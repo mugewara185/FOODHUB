@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff, Lock, ArrowBack, CheckCircle } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { type ResetPasswordData } from '../../types/auth';
+import { type ResetPasswordData } from '../../data/types/auth';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();

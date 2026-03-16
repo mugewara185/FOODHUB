@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { Email, ArrowBack, CheckCircle } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { type ForgotPasswordData } from '../../types/auth';
+import { type ForgotPasswordData } from '../../data/types/auth';
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();

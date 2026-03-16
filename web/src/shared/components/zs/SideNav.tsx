@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { useUI } from "../../app/providers/UIProvider";
+import { useUI } from "../../../app/providers/UIProvider";
 import { navLinks } from "@/config/navigation"
-import { cn } from "../../utils/cn";
+import { cn } from "../../../core/utils/cn";
 import {SidebarClose, PanelLeftOpen,} from "lucide-react"
 
 const SideNav = () => {

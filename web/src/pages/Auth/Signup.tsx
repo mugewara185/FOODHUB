@@ -27,7 +27,7 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { type SignupData } from '../../types/auth';
+import { type SignupData } from '../../data/types/auth';
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();

@@ -11,8 +11,8 @@ import {
   CardActions,
 } from '@mui/material';
 import { PlayCircle, Schedule, CheckCircle } from '@mui/icons-material';
-import { type Course } from '../../types';
-import { formatDuration, getProgressColor } from '../../utils';
+import { type Course } from '../../../data/types';
+import { formatDuration, getProgressColor } from '../../../core/utils';
 
 interface CourseCardProps {
   course: Course;

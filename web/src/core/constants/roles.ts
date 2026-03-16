@@ -1,4 +1,4 @@
-import { Role, Permission, UserRole } from '../../types/auth';
+import { Role, Permission, UserRole } from '../../data/types/auth';
 
 export const PERMISSIONS: Record<Permission, string> = {
   view_dashboard: 'View Dashboard',

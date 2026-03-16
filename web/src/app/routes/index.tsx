@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from '../../features/auth/protectedRoute';
   //user routes
-import MainLayout from '../../components/layout/MainLayout';
+import MainLayout from '../../shared/layout/MainLayout';
 import Home from '../../pages/Home';
 import Login from '../../pages/Auth/Login';
 import Signup from '../../pages/Auth/Signup';
@@ -19,18 +19,18 @@ import Orders from '../../pages/Orders';
 // import Search from '../pages/Search';
 // import NotFound from '../pages/NotFound';
   //admin routes
-import AdminLayout from '../../components/layout/AdminLayout';
+import AdminLayout from '../../shared/layout/AdminLayout';
 import AdminDashboard from '../../pages/admin/AdminDashboard';
 import OrdersList from '../../pages/admin/orders/OrdersList';
 import RestaurantsList from '../../pages/admin/restaurants/RestaurantsList';
 import AddRestaurant from '../../pages/admin/restaurants/AddRestaurants';
 import {Promotions, Reports, Settings, Users} from '../../pages/admin';
 import OrderTracking from '../../pages/Orders/OrderTracking';
-import PartnerLayout from '../../components/layout/PartnerLayout';
+import PartnerLayout from '../../shared/layout/PartnerLayout';
 import PartnerDashboard from '../../pages/_deliveryPartner/PartnerDashboard';
 import AvailableOrders from '../../pages/_deliveryPartner/AvailableOrdders';
 import ActiveDelivery from '../../pages/_deliveryPartner/ActiveDelivery';
-import OwnerLayout from '../../components/layout/OwnerLayout';
+import OwnerLayout from '../../shared/layout/OwnerLayout';
 import OwnerDashboard from '../../pages/_ownerPages/DashBoard';
 // import OrderTracking from '../pages/Orders/OrderTracking/index';
 const AppRoutes: React.FC = () => {

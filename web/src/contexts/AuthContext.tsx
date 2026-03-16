@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
-import  type { AuthContextType, AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData, UpdateProfileData } from '../types/auth';
+import  type { AuthContextType, AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData, UpdateProfileData } from '../data/types/auth';
 import { STORAGE_KEYS } from '../core/constants/food';
 
 // Mock user data

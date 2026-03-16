@@ -18,7 +18,7 @@ import {
   Brightness4,
   Brightness7,
 } from '@mui/icons-material';
-import { useThemeMode } from '../../hooks';
+import { useThemeMode } from '../hooks';
 
 interface HeaderProps {
   title?: string;

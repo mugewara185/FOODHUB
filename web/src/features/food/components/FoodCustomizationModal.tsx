@@ -23,7 +23,7 @@ import {
   Close,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type FoodItem, type Addon, type Variant } from '../../../types/food';
+import { type FoodItem, type Addon, type Variant } from '../../../data/types/food';
 
 interface FoodCustomizationModalProps {
   open: boolean;

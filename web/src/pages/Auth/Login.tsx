@@ -28,8 +28,8 @@ import {
   ArrowBack,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { type LoginCredentials } from '../../types/auth';
-import { ROUTE_PATHS } from '../../constants/food';
+import { type LoginCredentials } from '../../data/types/auth';
+import { ROUTE_PATHS } from '../../core/constants/food';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();

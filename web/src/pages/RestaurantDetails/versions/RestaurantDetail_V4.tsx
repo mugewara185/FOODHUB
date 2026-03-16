@@ -49,8 +49,9 @@ import {
   RestaurantMenu,
 } from '@mui/icons-material';
 import FoodItemCard from '../../../features/food/components/FoodItemCard';
-import { type FoodItem, type Restaurant, type CartItem } from '../../../types/food';
-import { MOCK_RESTAURANTS, MOCK_FOOD_ITEMS, FOOD_CATEGORIES } from '../../../constants/food';
+import { type FoodItem, type Restaurant, type CartItem } from '../../../data/types/food';
+import { MOCK_RESTAURANTS, MOCK_FOOD_ITEMS, FOOD_CATEGORIES } from '../../../core/constants/food';
+import Map from '../../../shared/components/maps/Map';
 
 // Mock reviews data
 const MOCK_REVIEWS = [
@@ -325,6 +326,54 @@ const RestaurantDetail: React.FC = () => {
           </Paper>
         </Container>
       </Box>
+
+    {/* Location & Map */}
+    <Accordion>
+      <AccordionSummary expandIcon={<ExpandMore />}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <LocationOn />
+          <Typography variant="h6">Location & Directions</Typography>
+        </Box>
+      </AccordionSummary>
+      <AccordionDetails>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              Restaurant Location
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              {restaurant.address}
+            </Typography>
+            
+            <Button
+              variant="outlined"
+              startIcon={<LocationOn />}
+              fullWidth
+              onClick={() => {
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${restaurant.location.lat},${restaurant.location.lng}`);
+              }}
+            >
+              Get Directions
+            </Button>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ height: 200, borderRadius: 2, overflow: 'hidden' }}>
+              <Map
+                center={restaurant.location}
+                markers={[{
+                  id: restaurant.id,
+                  position: restaurant.location,
+                  type: 'restaurant',
+                  title: restaurant.name,
+                }]}
+                height="100%"
+                zoom={15}
+              />
+            </Box>
+          </Grid>
+        </Grid>
+      </AccordionDetails>
+    </Accordion>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Grid container spacing={4}>

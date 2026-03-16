@@ -47,7 +47,8 @@ import {
   Edit,
   Delete,
 } from '@mui/icons-material';
-import { type Address } from '../types/food';
+import { type Address } from '../data/types/food';
+import LocationPicker from '../shared/components/maps/LocationPicker';
 
 // Mock addresses
 const MOCK_ADDRESSES: Address[] = [
@@ -95,6 +96,8 @@ const Checkout: React.FC = () => {
     type: 'home',
     isDefault: false,
   });
+  const [deliveryLocation, setDeliveryLocation] = useState<Location | null>(null);
+
 
   // Handle next step
   const handleNext = () => {
@@ -263,7 +266,17 @@ const Checkout: React.FC = () => {
                       Continue
                     </Button>
                   </Box>
-                </StepContent>
+                {/* </StepContent> */}
+                {/* <StepContent> */}
+                <LocationPicker
+                  onLocationSelect={(location) => {
+                    setDeliveryLocation(location);
+                    // Save location to form data
+                  }}
+                  height="400px"
+                />
+                {/* ... rest of the address step */}
+              </StepContent>
               </Step>
 
               {/* Step 2: Payment Method */}

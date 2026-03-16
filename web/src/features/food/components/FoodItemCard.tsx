@@ -18,7 +18,7 @@ import {
   Favorite,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type FoodItem } from '../../../types/food';
+import { type FoodItem } from '../../../data/types/food';
 import FoodCustomizationModal from './FoodCustomizationModal';
 
 interface FoodItemCardProps {

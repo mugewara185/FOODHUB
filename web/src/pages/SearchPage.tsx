@@ -25,7 +25,7 @@ import {
 } from '@mui/icons-material';
 import RestaurantCard from '../components/restaurant/RestaurantCard';
 import FoodItemCard from '../components/food/FoodItemCard';
-import { MOCK_RESTAURANTS, MOCK_FOOD_ITEMS } from '../constants/food';
+import { MOCK_RESTAURANTS, MOCK_FOOD_ITEMS } from '../core/constants/food';
 
 interface TabPanelProps {
   children?: React.ReactNode;

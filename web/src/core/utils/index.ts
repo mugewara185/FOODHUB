@@ -1,5 +1,5 @@
 // Utility functions
-import { type Course } from '../types';
+import { type Course } from '../../data/types';
 
 /**
  * Format time in minutes to readable string

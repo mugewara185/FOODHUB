@@ -14,7 +14,7 @@ import {
   Delete,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type CartItem } from '../../types/food';
+import { type CartItem } from '../../data/types/food';
 
 interface CartItemProps {
   item: CartItem;
