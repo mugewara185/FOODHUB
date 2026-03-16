@@ -9,8 +9,8 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 // import {AuthProvider} from './contexts/AuthContext';
 import App from './App';
-import theme from './appp/theme';
-import foodtheme from './appp/foodTheme';
+import theme from './shared/styles/theme';
+import foodtheme from './shared/styles/foodTheme';
 import './index.css';
 
 // import '@fontsource/roboto/300.css';
