@@ -18,7 +18,10 @@
     "@mui/x-date-pickers": "^8.27.2",
     "@react-google-maps/api": "^2.20.8",
     "@reduxjs/toolkit": "^2.11.2",
+    "@sentry/react": "^10.43.0",
+    "@sentry/tracing": "^7.120.4",
     "@types/geolib": "^2.0.3",
+    "@types/uuid": "^10.0.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.36.0",
     "geolib": "^3.3.4",
@@ -28,7 +31,10 @@
     "react-router-dom": "^7.13.0",
     "recharts": "^3.8.0",
     "redux": "^5.0.1",
-    "socket.io-client": "^4.8.3"
+    "sentry": "^0.15.0",
+    "socket.io-client": "^4.8.3",
+    "uuid": "^13.0.0",
+    "web-vitals": "^5.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
