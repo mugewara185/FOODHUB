@@ -1,1 +1,3 @@
-export {default as store} from './V/StoreV1';
+export * from './V/Store_V';
+export {default} from './V/Store_V';
+export * from './hooks';

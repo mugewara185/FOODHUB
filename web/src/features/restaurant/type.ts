@@ -1,1 +1,1 @@
-export type {Restaurant} from "@/data/types";
+export type {Restaurant} from "../../data/types";

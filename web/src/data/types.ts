@@ -1,12 +1,20 @@
-export type Restaurant = {
+export interface Restaurant {
   id: string;
   name: string;
-  location: string;
-  cuisines: string[];
+  location?: string;
+  description: string;
+  cuisine: string[];
   rating: number;
+  deliveryTime: string;
+  deliveryFee: number;
+  minOrder: number;
   image: string;
-};
-
+  bannerImage?: string;
+  address: string;
+  isOpen: boolean;
+  isFeatured: boolean;
+  tags: string[];
+}
 export type MenuItem = {
   restaurantId: string;
   id: string;

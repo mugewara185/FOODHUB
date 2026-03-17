@@ -1,58 +1,73 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Grid,
   Typography,
   Box,
   Button,
-  Chip,
   Card,
   CardContent,
-  IconButton,
-  Stack,
   Paper,
   InputBase,
+  IconButton,
+  Stack,
 } from '@mui/material';
 import {
   Search,
   NavigateNext,
   LocalOffer,
-  Star,
   Timer,
   DeliveryDining,
+  Star,
 } from '@mui/icons-material';
-import { CUISINES, MOCK_RESTAURANTS } from '../../../core/constants/food';
-import { type Restaurant } from '../../../data/types/food';
-import { useNavigate } from 'react-router-dom';
-import RestaurantCard from '../../../features/restaurants/components/RestaurantCard/Restaurants_Card';
+import { useAppDispatch, useAppSelector } from '../../../app/store/';
+import { 
+  fetchRestaurants, 
+  selectFeaturedRestaurants,
+  selectAllRestaurants,
+  selectRestaurantLoading,
+  filterByCuisine,
+} from '../../../features/restaurant/restaurantSlice';
+import RestaurantCard from '../../../features/restaurant/components/RestaurantCard';
+import { showToast } from '../../../features/ui/uiSlice';
+import { CUISINES } from '../../../core/constants/food';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [selectedCuisine, setSelectedCuisine] = useState<string>('all');
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const dispatch = useAppDispatch();
+  
+  const featuredRestaurants = useAppSelector(selectFeaturedRestaurants);
+  const allRestaurants = useAppSelector(selectAllRestaurants);
+  const loading = useAppSelector(selectRestaurantLoading);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
-  // Filter restaurants based on selected cuisine
-  const filteredRestaurants = selectedCuisine === 'all'
-    ? MOCK_RESTAURANTS
-    : MOCK_RESTAURANTS.filter(restaurant => 
-        restaurant.cuisine.includes(selectedCuisine)
-      );
+  // Fetch restaurants on component mount
+  useEffect(() => {
+    dispatch(fetchRestaurants())
+      .unwrap()
+      .then((restaurants) => {
+        // console.log(...restaurants.slice(0,2));
+        // console.log('restaurants[0]:',restaurants[0]);
+      })
+      .catch((error) => {
+        dispatch(showToast({
+          message: String(error) || 'Failed to load restaurants',
+          type: 'error'
+        }));
+      });
+  }, [dispatch]);
 
-  const featuredRestaurants = MOCK_RESTAURANTS.filter(r => r.isFeatured);
-  const topRatedRestaurants = [...MOCK_RESTAURANTS]
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 6);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
 
-  const handleToggleFavorite = (restaurantId: string) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(restaurantId)) {
-        newFavorites.delete(restaurantId);
-      } else {
-        newFavorites.add(restaurantId);
-      }
-      return newFavorites;
-    });
+  const handleCuisineClick = (cuisine: string) => {
+    dispatch(filterByCuisine(cuisine));
+    navigate(`/restaurants?cuisine=${cuisine}`);
   };
 
   const handleViewAll = (type: string) => {
@@ -84,6 +99,7 @@ const Home: React.FC = () => {
               {/* Search Bar */}
               <Paper
                 component="form"
+                onSubmit={handleSearch}
                 sx={{
                   p: '2px 4px',
                   display: 'flex',
@@ -92,39 +108,23 @@ const Home: React.FC = () => {
                   bgcolor: 'white',
                   maxWidth: 600,
                 }}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  navigate('/search');
-                }}
               >
-                <IconButton sx={{ p: '10px' }} type="submit">
-                  <Search />
-                </IconButton>
                 <InputBase
                   sx={{ ml: 1, flex: 1 }}
-                  placeholder="Search for restaurants, cuisines, or dishes..."
-                  inputProps={{ 'aria-label': 'search food' }}
+                  placeholder="Search for restaurants or dishes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <Button
-                  variant="contained"
-                  sx={{
-                    borderRadius: 2,
-                    px: 3,
-                    textTransform: 'none',
-                    bgcolor: 'primary.dark',
-                    '&:hover': { bgcolor: 'primary.dark' },
-                  }}
-                  type="submit"
-                >
-                  Search
-                </Button>
+                <IconButton type="submit" sx={{ p: '10px' }} color="primary">
+                  <Search />
+                </IconButton>
               </Paper>
 
               {/* Quick Stats */}
               <Stack direction="row" spacing={4} sx={{ mt: 4 }}>
                 <Box>
                   <Typography variant="h4" fontWeight={700}>
-                    500+
+                    {allRestaurants.length}+
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
                     Restaurants
@@ -132,7 +132,7 @@ const Home: React.FC = () => {
                 </Box>
                 <Box>
                   <Typography variant="h4" fontWeight={700}>
-                    10k+
+                    200+
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
                     Dishes
@@ -140,10 +140,10 @@ const Home: React.FC = () => {
                 </Box>
                 <Box>
                   <Typography variant="h4" fontWeight={700}>
-                    25k+
+                    10k+
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Happy Customers
+                    Customers
                   </Typography>
                 </Box>
               </Stack>
@@ -187,16 +187,12 @@ const Home: React.FC = () => {
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.3s',
-                    border: selectedCuisine === cuisine.name ? 2 : 0,
-                    borderColor: 'primary.main',
                     '&:hover': {
                       transform: 'translateY(-4px)',
                       boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
                     },
                   }}
-                  onClick={() => setSelectedCuisine(
-                    selectedCuisine === cuisine.name ? 'all' : cuisine.name
-                  )}
+                  onClick={() => handleCuisineClick(cuisine.name)}
                 >
                   <CardContent>
                     <Typography variant="h3" sx={{ mb: 1 }}>
@@ -231,17 +227,20 @@ const Home: React.FC = () => {
             </Button>
           </Box>
           
-          <Grid container spacing={3}>
-            {featuredRestaurants.map((restaurant) => (
-              <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
-                <RestaurantCard
-                  restaurant={restaurant}
-                  isFavorite={favorites.has(restaurant.id)}
-                  onToggleFavorite={handleToggleFavorite}
-                />
-              </Grid>
-            ))}
-          </Grid>
+          {loading ? (
+            <Typography>Loading restaurants...</Typography>
+          ) : (
+            <Grid container spacing={3}>
+              {featuredRestaurants.map((restaurant) => (
+                // console.log('map:',restaurant),
+                <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
+                  <RestaurantCard
+                    restaurant={restaurant}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Box>
 
         {/* Top Rated Restaurants */}
@@ -264,7 +263,7 @@ const Home: React.FC = () => {
           </Box>
           
           <Grid container spacing={3}>
-            {topRatedRestaurants.map((restaurant) => (
+            {/* {topRatedRestaurants.map((restaurant) => (
               <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
                 <RestaurantCard
                   restaurant={restaurant}
@@ -272,7 +271,7 @@ const Home: React.FC = () => {
                   onToggleFavorite={handleToggleFavorite}
                 />
               </Grid>
-            ))}
+            ))} */}
           </Grid>
         </Box>
 
@@ -308,7 +307,7 @@ const Home: React.FC = () => {
                 description: 'Simple and intuitive ordering process',
               },
             ].map((feature, index) => (
-              <Grid item xs={12} sm={6} md={3} key={index}>
+              <Grid item xs={12} sm={4} key={index}>
                 <Card sx={{ textAlign: 'center', p: 3 }}>
                   <Box sx={{ mb: 2 }}>{feature.icon}</Box>
                   <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -323,7 +322,7 @@ const Home: React.FC = () => {
           </Grid>
         </Box>
 
-        {/* App Download Banner */}
+                {/* App Download Banner */}
         <Paper
           sx={{
             bgcolor: 'primary.light',

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
 import { Provider } from 'react-redux';
-import {store} from './app/store';
+import store from './app/store';
 
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -44,3 +44,46 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </React.StrictMode>,
 );
+
+
+
+// V2
+// import React from 'react';
+// import ReactDOM from 'react-dom/client';
+// import { BrowserRouter } from 'react-router-dom';
+// import { AppProviders } from './app/providers/AppProviders';
+// import { RouteConfig } from './app/routes/RouteConfig';
+// import { reportWebVitals } from './core/utils/webVitals';
+// import * as Sentry from '@sentry/react';
+// import { APP_CONFIG } from './core/config/app.config';
+
+// // Initialize Sentry for error tracking
+// if (APP_CONFIG.enableAnalytics) {
+//   Sentry.init({
+//     dsn: APP_CONFIG.sentryDsn,
+//     environment: APP_CONFIG.environment,
+//     tracesSampleRate: 1.0,
+//   });
+// }
+
+// // Register service worker for PWA
+// if ('serviceWorker' in navigator && APP_CONFIG.environment === 'production') {
+//   window.addEventListener('load', () => {
+//     navigator.serviceWorker.register('/sw.js');
+//   });
+// }
+
+// const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+
+// root.render(
+//   <React.StrictMode>
+//     <BrowserRouter>
+//       <AppProviders>
+//         <RouteConfig />
+//       </AppProviders>
+//     </BrowserRouter>
+//   </React.StrictMode>
+// );
+
+// // Performance monitoring
+// reportWebVitals(console.log);
