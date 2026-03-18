@@ -1,2 +1,2 @@
-export * from './V/restaurantSliceV2';
-export { default } from './V/restaurantSliceV2';
+export * from './V/restaurantSlice_V';
+export { default } from './V/restaurantSlice_V';

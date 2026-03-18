@@ -9,7 +9,7 @@ import Signup from '../../pages/Auth/Signup';
 import ForgotPassword from '../../pages/Auth/ForgotPassword';
 import ResetPassword from '../../pages/Auth/ResetPassword';
 import Profile from '../../pages/Profile';
-import RestaurantDetail from '../../pages/RestaurantDetails/versions/RestaurantDetail_V4';
+import RestaurantDetail from '../../pages/RestaurantDetails/versions/RestaurantDetail_V';
 import Checkout from '../../pages/Checkout';
 import Cart from '../../pages/Cart';
 import Restaurants from '../../pages/restaurantListings';
@@ -66,7 +66,7 @@ const AppRoutes: React.FC = () => {
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="restaurants" element={<Restaurants />} />
-        <Route path="restaurants/:id" element={<RestaurantDetail />} />
+        <Route path="restaurant/:id" element={<RestaurantDetail />} />
         
       {/* Protected Routes */}
         <Route path="profile" element={

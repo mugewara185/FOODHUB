@@ -2,6 +2,7 @@ export interface Restaurant {
   id: string;
   name: string;
   location?: string;
+  geoLocation?: { lat: number; lng: number };
   description: string;
   cuisine: string[];
   rating: number;
@@ -15,6 +16,11 @@ export interface Restaurant {
   isFeatured: boolean;
   isVeg?: boolean;
   tags: string[];
+  contact?: {
+    phone: string;
+    email: string;
+  };
+  openingHours?: { day: string; open: string; close: string }[];
 }
 export interface CartItem {
   id: string;
@@ -44,6 +50,20 @@ export interface FoodItem {
   isBestSeller: boolean;
   isAvailable: boolean;
   rating: number;
+  addons: { id: string; name: string; price: number; isAvailable: boolean }[];
+  variants: { id: string; name: string; price: number }[];
+  ingredients?: string[];
+  dietaryInfo?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
+export interface Category {
+  id: string;
+  name: string;
+  items: FoodItem[];
 }
 
 export type MenuItem = {

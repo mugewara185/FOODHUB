@@ -18,7 +18,7 @@ import {
   Favorite,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type FoodItem } from '../../../data/types/food';
+import { type FoodItem } from '../../../core/types';
 import FoodCustomizationModal from './FoodCustomizationModal';
 
 interface FoodItemCardProps {
@@ -183,7 +183,7 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({
               )}
             </Box>
             <Typography variant="caption" color="text.secondary">
-              {foodItem.dietaryInfo.calories} cal
+              {foodItem?.dietaryInfo && foodItem.dietaryInfo.calories+' kcal'} 
             </Typography>
           </Box>
         </Box>

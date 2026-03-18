@@ -34,6 +34,6 @@ export const generateRestaurants = (count = 60): Restaurant[] =>
     ],
   }));
 
-const getRestaurants = (count = 60) => generateRestaurants(count);
+const getRestaurants = generateRestaurants();
 
 export default getRestaurants;

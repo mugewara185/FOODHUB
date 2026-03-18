@@ -23,8 +23,10 @@ import {
   Close,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type FoodItem, type Addon, type Variant } from '../../../data/types/food';
-
+import { type FoodItem} from '../../../core/types';
+// import { type FoodItem, type Addon, type Variant } from '../../../core/types';
+type Addon = FoodItem['addons'][number];
+type Variant = FoodItem['variants'][number];
 interface FoodCustomizationModalProps {
   open: boolean;
   foodItem: FoodItem;
@@ -32,7 +34,7 @@ interface FoodCustomizationModalProps {
   onAddToCart: (customizedItem: {
     foodItem: FoodItem;
     quantity: number;
-    selectedAddons: Addon[];
+    selectedAddons?: Addon[];
     selectedVariant?: Variant;
     specialInstructions?: string;
   }) => void;
@@ -150,7 +152,7 @@ const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
               />
             )}
             <Typography variant="caption" color="text.secondary">
-              {foodItem.dietaryInfo.calories} cal
+              {foodItem?.dietaryInfo && foodItem.dietaryInfo.calories + ' kcal'}
             </Typography>
           </Stack>
         </Box>

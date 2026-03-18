@@ -101,7 +101,7 @@ export const SORT_OPTIONS = [
 // Mock data for development
 export const MOCK_RESTAURANTS = [
   {
-    id: '1',
+    id: 'r11',
     name: 'Spice Garden',
     description: 'Authentic Indian cuisine with modern twist',
     cuisine: ['Indian', 'North Indian'],

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -16,41 +16,57 @@ import {
   CardContent,
   IconButton,
   Paper,
+  Skeleton,
+  Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Avatar,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   Badge,
   Drawer,
-  TextField,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Avatar,
 } from '@mui/material';
 import {
   ArrowBack,
   FavoriteBorder,
   Favorite,
   Share,
-  Phone,
   LocationOn,
   AccessTime,
   DeliveryDining,
   Star,
-  ExpandMore,
-  Add,
-  Remove,
   ShoppingCart,
-  LocalFireDepartment,
-  CheckCircle,
+  ExpandMore,
   Info,
-  MenuBook,
+  Phone,
   RestaurantMenu,
 } from '@mui/icons-material';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import {
+  fetchRestaurantById,
+  selectSelectedRestaurant,
+  selectMenuCategories,
+  selectRestaurantLoading,
+  selectRestaurantError,
+  clearSelectedRestaurant,
+} from '../../../features/restaurant/restaurantSlice';
+import {
+  addToCart,
+  selectCartItems,
+  selectCartRestaurant,
+  selectCartTotals,
+  selectIsCartEmpty,
+} from '../../../features/cart/cartSlice';
+import {
+  toggleCartDrawer,
+  showToast,
+  selectCartDrawerOpen,
+} from '../../../features/ui/uiSlice';
 import FoodItemCard from '../../../features/food/components/FoodItemCard';
-import { type FoodItem, type Restaurant, type CartItem } from '../../../data/types/food';
-import { MOCK_RESTAURANTS, MOCK_FOOD_ITEMS, FOOD_CATEGORIES } from '../../../core/constants/food';
+import FoodCustomizationModal from '../../../features/food/components/FoodCustomizationModal';
 import Map from '../../../shared/components/maps/Map';
 
 // Mock reviews data
@@ -78,120 +94,125 @@ const MOCK_REVIEWS = [
 const RestaurantDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(0);
+  const dispatch = useAppDispatch();
+  
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [selectedFoodItem, setSelectedFoodItem] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  // Find restaurant by ID
-  const restaurant: Restaurant | undefined = useMemo(() => {
-    return MOCK_RESTAURANTS.find(r => r.id === id) || MOCK_RESTAURANTS[0];
-  }, [id]);
+  // Restaurant selectors
+  const restaurant = useAppSelector(selectSelectedRestaurant);
+  const categories = useAppSelector(selectMenuCategories);
+  const loading = useAppSelector(selectRestaurantLoading);
+  const error = useAppSelector(selectRestaurantError);
+  //cart selectors
+  const cartItems = useAppSelector(selectCartItems);
+  const cartRestaurant = useAppSelector(selectCartRestaurant);
+  const isCartEmpty = useAppSelector(selectIsCartEmpty);
+  const {subtotal, deliveryFee, tax, itemCount, total} = useAppSelector(selectCartTotals)
+  //ui selectors
+  const isCartDrawerOpen = useAppSelector(selectCartDrawerOpen);
 
-  // Get restaurant's food items
-  const restaurantFoodItems: FoodItem[] = useMemo(() => {
-    return MOCK_FOOD_ITEMS.filter(item => item.restaurantId === id);
-  }, [id]);
+  // Fetch restaurant data
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchRestaurantById(id));
+    }
+    return () => {
+      dispatch(clearSelectedRestaurant());
+    };
+  }, [id, dispatch]);
 
-  // Filter food items by category
-  const filteredFoodItems = useMemo(() => {
-    if (selectedCategory === 'all') return restaurantFoodItems;
-    return restaurantFoodItems.filter(item => item.category === selectedCategory);
-  }, [restaurantFoodItems, selectedCategory]);
-
-  // Get unique categories from restaurant's food items
-  const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(restaurantFoodItems.map(item => item.category))];
-    return [{ id: 'all', name: 'All', icon: '🍽️' }, ...uniqueCategories.map(cat => ({
-      id: cat,
-      name: cat,
-      icon: FOOD_CATEGORIES.find(fc => fc.name === cat)?.icon || '🍽️'
-    }))];
-  }, [restaurantFoodItems]);
-
-  // Calculate cart total
-  const cartTotal = useMemo(() => {
-    return cart.reduce((total, item) => {
-      const itemPrice = item.foodItem.price;
-      const addonsPrice = item.selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
-      const variantPrice = item.selectedVariant?.price || 0;
-      return total + (itemPrice + addonsPrice + variantPrice) * item.quantity;
-    }, 0);
-  }, [cart]);
-
-  const cartItemsCount = useMemo(() => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
-  }, [cart]);
+  // Filter items by category
+  const filteredCategories = selectedCategory === 'all'
+    ? categories
+    : categories.filter(cat => cat.id === selectedCategory);
 
   // Handle add to cart
-  const handleAddToCart = (foodItem: FoodItem) => {
-    const existingItemIndex = cart.findIndex(item => item.foodItem.id === foodItem.id);
-    
-    if (existingItemIndex >= 0) {
-      // Update quantity if item exists
-      const updatedCart = [...cart];
-      updatedCart[existingItemIndex].quantity += 1;
-      setCart(updatedCart);
+  const handleAddToCart = (foodItem: any) => {
+    // Check if adding from different restaurant
+    if (!isCartEmpty && cartRestaurant.id !== restaurant?.id) {
+      if (!window.confirm('Your cart contains items from a different restaurant. Do you want to clear it and add this item?')) {
+        return;
+      }
+      // Clear cart logic would go here
+    }
+
+    if (foodItem.addons?.length || foodItem.variants?.length) {
+      setSelectedFoodItem(foodItem);
+      setModalOpen(true);
     } else {
-      // Add new item to cart
-      const newCartItem: CartItem = {
-        id: `${foodItem.id}-${Date.now()}`,
-        foodItem,
+      dispatch(addToCart({
+        foodItemId: foodItem.id,
+        name: foodItem.name,
+        price: foodItem.price,
         quantity: 1,
-        selectedAddons: [],
-        selectedVariant: foodItem.variants?.[0],
-      };
-      setCart([...cart, newCartItem]);
+        image: foodItem.image,
+        restaurantId: restaurant!.id,
+        restaurantName: restaurant!.name,
+        isVeg: foodItem.isVeg,
+      }));
+      
+      dispatch(showToast({
+        message: `${foodItem.name} added to cart`,
+        type: 'success'
+      }));
     }
+  };
+
+  // Handle customized item
+  const handleAddCustomizedItem = (customizedItem: any) => {
+    dispatch(addToCart({
+      foodItemId: customizedItem.foodItem.id,
+      name: customizedItem.foodItem.name,
+      price: customizedItem.foodItem.price + 
+             customizedItem.selectedAddons.reduce((sum: number, a: any) => sum + a.price, 0),
+      quantity: customizedItem.quantity,
+      image: customizedItem.foodItem.image,
+      restaurantId: restaurant!.id,
+      restaurantName: restaurant!.name,
+      isVeg: customizedItem.foodItem.isVeg,
+      specialInstructions: customizedItem.specialInstructions,
+    }));
     
-    // Open cart drawer on mobile
-    if (window.innerWidth < 768) {
-      setCartDrawerOpen(true);
-    }
+    dispatch(showToast({
+      message: `${customizedItem.quantity}x ${customizedItem.foodItem.name} added to cart`,
+      type: 'success'
+    }));
   };
 
-  // Handle update quantity
-  const handleUpdateQuantity = (foodItemId: string, quantity: number) => {
-    if (quantity === 0) {
-      setCart(cart.filter(item => item.foodItem.id !== foodItemId));
-    } else {
-      setCart(cart.map(item => 
-        item.foodItem.id === foodItemId 
-          ? { ...item, quantity } 
-          : item
-      ));
-    }
-  };
-
-  // Handle remove from cart
-  const handleRemoveFromCart = (itemId: string) => {
-    setCart(cart.filter(item => item.id !== itemId));
-  };
-
-  // Handle checkout
-  const handleCheckout = () => {
-    if (cart.length > 0) {
-      navigate('/checkout');
-    }
-  };
-
-  // Handle toggle favorite
-  const handleToggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-  };
-
-  if (!restaurant) {
+  if (loading) {
     return (
-      <Container sx={{ py: 4, textAlign: 'center' }}>
-        <Typography variant="h4">Restaurant not found</Typography>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Skeleton variant="rectangular" height={200} sx={{ mb: 2 }} />
+        <Skeleton variant="text" height={60} />
+        <Skeleton variant="text" height={40} width="60%" />
+        <Skeleton variant="rectangular" height={400} sx={{ mt: 4 }} />
+      </Container>
+    );
+  }
+
+  if (error || !restaurant) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error">
+          {error || 'Restaurant not found'}
+        </Alert>
+        <Button
+          startIcon={<ArrowBack />}
+          onClick={() => navigate(-1)}
+          sx={{ mt: 2 }}
+        >
+          Go Back
+        </Button>
       </Container>
     );
   }
 
   return (
     <Box sx={{ pb: { xs: 7, md: 0 } }}>
-      {/* Restaurant Header Banner */}
+      {/* Header Banner */}
       <Box sx={{ position: 'relative' }}>
         <Box
           sx={{
@@ -212,7 +233,6 @@ const RestaurantDetail: React.FC = () => {
           }}
         />
         
-        {/* Back Button and Actions */}
         <Container maxWidth="lg" sx={{ position: 'relative', mt: -4 }}>
           <Paper
             elevation={4}
@@ -233,14 +253,9 @@ const RestaurantDetail: React.FC = () => {
                     {restaurant.name}
                   </Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Rating
-                      value={restaurant.rating}
-                      readOnly
-                      precision={0.5}
-                      sx={{ '& .MuiRating-icon': { fontSize: 20 } }}
-                    />
+                    <Rating value={restaurant.rating} readOnly precision={0.5} />
                     <Typography variant="h6" color="primary.main" fontWeight={700}>
-                      {restaurant.rating.toFixed(1)}
+                      {restaurant.rating}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       • {restaurant.cuisine.join(', ')}
@@ -250,7 +265,7 @@ const RestaurantDetail: React.FC = () => {
               </Box>
               
               <Stack direction="row" spacing={1}>
-                <IconButton onClick={handleToggleFavorite} size="large">
+                <IconButton onClick={() => setIsFavorite(!isFavorite)} size="large">
                   {isFavorite ? (
                     <Favorite sx={{ color: 'error.main' }} />
                   ) : (
@@ -263,52 +278,35 @@ const RestaurantDetail: React.FC = () => {
               </Stack>
             </Box>
 
-            {/* Restaurant Info Row */}
+            {/* Restaurant Info */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
               <Grid item xs={12} md={4}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <LocationOn color="primary" />
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Address
-                    </Typography>
-                    <Typography variant="body1" fontWeight={500}>
-                      {restaurant.address}
-                    </Typography>
-                  </Box>
+                  <Typography variant="body2">{restaurant.address}</Typography>
                 </Box>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AccessTime color="primary" />
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Delivery Time
-                    </Typography>
-                    <Typography variant="body1" fontWeight={500}>
-                      {restaurant.deliveryTime}
-                    </Typography>
-                  </Box>
+                  <Typography variant="body2">
+                    Delivery: {restaurant.deliveryTime}
+                  </Typography>
                 </Box>
               </Grid>
               <Grid item xs={12} md={4}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <DeliveryDining color="primary" />
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Delivery Fee
-                    </Typography>
-                    <Typography variant="body1" fontWeight={500}>
-                      ₹{restaurant.deliveryFee} • Min ₹{restaurant.minOrder}
-                    </Typography>
-                  </Box>
+                  <Typography variant="body2">
+                    ₹{restaurant.deliveryFee} delivery • Min ₹{restaurant.minOrder}
+                  </Typography>
                 </Box>
               </Grid>
             </Grid>
 
             {/* Tags */}
-            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-              {restaurant.isVeg && (
+            <Stack direction="row" spacing={1}>
+               {restaurant?.isVeg && (
                 <Chip
                   label="🟢 Pure Veg"
                   color="success"
@@ -322,12 +320,14 @@ const RestaurantDetail: React.FC = () => {
                 label={restaurant.isOpen ? '🟢 Open Now' : '🔴 Closed'}
                 color={restaurant.isOpen ? 'success' : 'error'}
               />
+              {restaurant.tags.map((tag) => (
+                <Chip key={tag} label={tag} variant="outlined" />
+              ))}
             </Stack>
           </Paper>
         </Container>
       </Box>
-
-    {/* Location & Map */}
+    {/* /*Location & Map */}
     <Accordion>
       <AccordionSummary expandIcon={<ExpandMore />}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -359,10 +359,10 @@ const RestaurantDetail: React.FC = () => {
           <Grid item xs={12} md={6}>
             <Box sx={{ height: 200, borderRadius: 2, overflow: 'hidden' }}>
               <Map
-                center={restaurant.location}
+                center={restaurant.geoLocation || { lat: 0, lng: 0 }}
                 markers={[{
                   id: restaurant.id,
-                  position: restaurant.location,
+                  position: restaurant.geoLocation || { lat: 0, lng: 0 },
                   type: 'restaurant',
                   title: restaurant.name,
                 }]}
@@ -386,64 +386,66 @@ const RestaurantDetail: React.FC = () => {
                 onChange={(_, newValue) => setSelectedCategory(newValue)}
                 variant="scrollable"
                 scrollButtons="auto"
-                sx={{
-                  '& .MuiTab-root': {
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '1rem',
-                    minHeight: 60,
-                  },
-                }}
               >
+                <Tab label="All" value="all" />
+                {/* dc  */}
                 {categories.map((category) => (
-                  <Tab
+                   <Tab
                     key={category.id}
                     value={category.id}
                     label={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <span>{category.icon}</span>
+                        {/* dev:i: add icon logic here if needed */}
+                        <span>{category?.icon}</span>
                         <span>{category.name}</span>
                       </Box>
                     }
                   />
+                  // <Tab key={category.id} label={category.name} value={category.id} />
                 ))}
               </Tabs>
             </Box>
 
             {/* Food Items */}
-            <Box sx={{ mb: 4 }}>
-              {filteredFoodItems.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <RestaurantMenu sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No items in this category
-                  </Typography>
-                </Box>
-              ) : (
-                <Stack spacing={3}>
-                  {filteredFoodItems.map((foodItem) => {
-                    const cartItem = cart.find(item => item.foodItem.id === foodItem.id);
-                    return (
-                      <FoodItemCard
-                        key={foodItem.id}
-                        foodItem={foodItem}
-                        quantity={cartItem?.quantity || 0}
-                        onAddToCart={handleAddToCart}
-                        onUpdateQuantity={handleUpdateQuantity}
-                      />
-                    );
-                  })}
-                </Stack>
-              )}
-            </Box>
+            {filteredCategories.map((category) => (
+              <Box key={category.id} sx={{ mb: 4 }}>
+                <Typography variant="h5" fontWeight={700} gutterBottom>
+                  {category.name}
+                </Typography>
 
-            {/* Reviews Section */}
+                {category.items.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <RestaurantMenu sx={{ fontSize: 50, color: 'text.secondary', mb: 1 }} />
+                    <Typography variant="body1" color="text.secondary">
+                      No items in this category
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Stack spacing={2}>
+                    {category.items.map((item) => {
+                      const cartItem = cartItems.find(ci => ci.foodItemId === item.id);
+
+                      return (
+                        <FoodItemCard
+                          key={item.id}
+                          foodItem={item}
+                          quantity={cartItem?.quantity || 0}
+                          onAddToCart={() => handleAddToCart(item)}
+                        />
+                      );
+                    })}
+                  </Stack>
+                )}
+              </Box>
+            ))}
+
+            {/* /*Reviews Section */}
             <Box sx={{ mb: 4 }}>
               <Typography variant="h5" fontWeight={700} gutterBottom>
                 Customer Reviews
               </Typography>
               
-              {/* Review Stats */}
+              {/* /*Review Stats */}
               <Card sx={{ mb: 3 }}>
                 <CardContent>
                   <Grid container spacing={2}>
@@ -490,7 +492,7 @@ const RestaurantDetail: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Reviews List */}
+              {/* /*Reviews List */}
               <Stack spacing={3}>
                 {MOCK_REVIEWS.map((review) => (
                   <Card key={review.id}>
@@ -516,7 +518,7 @@ const RestaurantDetail: React.FC = () => {
               </Stack>
             </Box>
 
-            {/* Restaurant Info */}
+            {/* /*Restaurant Info */}
             <Accordion>
               <AccordionSummary expandIcon={<ExpandMore />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -532,7 +534,7 @@ const RestaurantDetail: React.FC = () => {
                     </ListItemIcon>
                     <ListItemText
                       primary="Contact"
-                      secondary={restaurant.contact}
+                      secondary={restaurant?.contact?.phone || restaurant?.contact?.email || 'N/A'}
                     />
                   </ListItem>
                   <ListItem>
@@ -541,9 +543,10 @@ const RestaurantDetail: React.FC = () => {
                     </ListItemIcon>
                     <ListItemText
                       primary="Opening Hours"
-                      secondary={restaurant.openingHours.map(oh => 
-                        `${oh.open} - ${oh.close}`
-                      ).join(', ')}
+                      secondary={restaurant?.openingHours?.map(oh => 
+                        oh.open && oh.close ? `${oh.open} - ${oh.close}` : null)
+                      .filter((v): v is string => !!v).join(', ') //type predicate to filter out nulls
+                      || 'N/A'}
                     />
                   </ListItem>
                   <ListItem>
@@ -552,7 +555,7 @@ const RestaurantDetail: React.FC = () => {
                     </ListItemIcon>
                     <ListItemText
                       primary="Full Address"
-                      secondary={restaurant.address}
+                      secondary={restaurant?.address || 'N/A'}
                     />
                   </ListItem>
                 </List>
@@ -560,7 +563,7 @@ const RestaurantDetail: React.FC = () => {
             </Accordion>
           </Grid>
 
-          {/* Right Column - Cart Summary (Desktop) */}
+          {/* Right Column - Cart Summary */}
           <Grid item xs={12} lg={4} sx={{ display: { xs: 'none', lg: 'block' } }}>
             <Paper
               elevation={4}
@@ -571,7 +574,7 @@ const RestaurantDetail: React.FC = () => {
                 overflow: 'hidden',
               }}
             >
-              {/* Cart Header */}
+              {/* Header */}
               <Box
                 sx={{
                   bgcolor: 'primary.main',
@@ -583,42 +586,38 @@ const RestaurantDetail: React.FC = () => {
                 <Typography variant="h6" fontWeight={700}>
                   Your Order
                 </Typography>
-                <Typography variant="body2">
-                  {restaurant.name}
-                </Typography>
+                <Typography variant="body2">{restaurant.name}</Typography>
               </Box>
 
               {/* Cart Items */}
               <Box sx={{ maxHeight: 400, overflow: 'auto', p: 2 }}>
-                {cart.length === 0 ? (
+                {cartItems.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <ShoppingCart sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="body1" color="text.secondary">
-                      Your cart is empty
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Add items from the menu
-                    </Typography>
+                    <Typography color="text.secondary">Your cart is empty</Typography>
                   </Box>
                 ) : (
                   <Stack spacing={2}>
-                    {cart.map((item) => (
+                    {cartItems.map((item) => (
                       <Box key={item.id}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Box>
-                            <Typography variant="subtitle1" fontWeight={600}>
-                              {item.quantity} × {item.foodItem.name}
+                            <Typography fontWeight={600}>
+                              {item.quantity} × {item.name}
                             </Typography>
-                            {item.selectedAddons.length > 0 && (
+
+                            {item.specialInstructions && (
                               <Typography variant="caption" color="text.secondary">
-                                Addons: {item.selectedAddons.map(a => a.name).join(', ')}
+                                Note: {item.specialInstructions}
                               </Typography>
                             )}
                           </Box>
-                          <Typography variant="subtitle1" fontWeight={600}>
-                            ₹{(item.foodItem.price * item.quantity).toFixed(2)}
+
+                          <Typography fontWeight={600}>
+                            ₹{(item.price * item.quantity).toFixed(2)}
                           </Typography>
                         </Box>
+
                         <Divider sx={{ my: 1 }} />
                       </Box>
                     ))}
@@ -626,52 +625,49 @@ const RestaurantDetail: React.FC = () => {
                 )}
               </Box>
 
-              {/* Cart Summary */}
-              {cart.length > 0 && (
+              {/* Summary */}
+              {cartItems.length > 0 && (
                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
                   <Stack spacing={1}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Item Total
-                      </Typography>
-                      <Typography variant="body2">₹{cartTotal.toFixed(2)}</Typography>
+                      <Typography color="text.secondary">Item Total</Typography>
+                      <Typography>₹{subtotal.toFixed(2)}</Typography>
                     </Box>
+
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Delivery Fee
-                      </Typography>
-                      <Typography variant="body2">₹{restaurant.deliveryFee}</Typography>
+                      <Typography color="text.secondary">Delivery Fee</Typography>
+                      <Typography>₹{deliveryFee}</Typography>
                     </Box>
+
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Taxes & Charges
-                      </Typography>
-                      <Typography variant="body2">₹{(cartTotal * 0.05).toFixed(2)}</Typography>
+                      <Typography color="text.secondary">Taxes & Charges</Typography>
+                      <Typography>₹{tax.toFixed(2)}</Typography>
                     </Box>
+
                     <Divider />
+
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography variant="h6" fontWeight={700}>
                         Total Amount
                       </Typography>
                       <Typography variant="h6" color="primary.main" fontWeight={700}>
-                        ₹{(cartTotal + restaurant.deliveryFee + (cartTotal * 0.05)).toFixed(2)}
+                        ₹{total.toFixed(2)}
                       </Typography>
                     </Box>
                   </Stack>
 
-                  {/* Checkout Button */}
                   <Button
                     fullWidth
                     variant="contained"
                     size="large"
                     sx={{ mt: 3, borderRadius: 2 }}
-                    onClick={handleCheckout}
+                    onClick={() => navigate('/checkout')}
                   >
                     Proceed to Checkout
                   </Button>
 
-                  {/* Minimum Order Notice */}
-                  {cartTotal < restaurant.minOrder && (
+                  {/* Min Order */}
+                  {subtotal < restaurant.minOrder && (
                     <Typography
                       variant="caption"
                       color="error"
@@ -684,133 +680,132 @@ const RestaurantDetail: React.FC = () => {
               )}
             </Paper>
           </Grid>
-        </Grid>
-      </Container>
+          </Grid>
+          </Container>
 
-      {/* Floating Cart Button (Mobile) */}
-      {cart.length > 0 && (
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: 70,
-            right: 20,
-            zIndex: 1000,
-            display: { xs: 'block', lg: 'none' },
-          }}
-        >
-          <Badge badgeContent={cartItemsCount} color="error">
-            <Button
-              variant="contained"
-              startIcon={<ShoppingCart />}
-              onClick={() => setCartDrawerOpen(true)}
+          {/* Food Customization Modal */}
+          {selectedFoodItem && (
+            <FoodCustomizationModal
+              open={modalOpen}
+              foodItem={selectedFoodItem}
+              onClose={() => setModalOpen(false)}
+              onAddToCart={handleAddCustomizedItem}
+            />
+          )}
+
+          {/* Floating Cart Button (mobile)*/}
+          {cartItems.length >= 0 && (
+            <Box
               sx={{
-                borderRadius: 10,
-                px: 3,
-                py: 1.5,
-                boxShadow: 6,
+                position: 'fixed',
+                bottom: 70,
+                right: 20,
+                zIndex: 1000,
+                display: { xs: 'block', lg: 'none' },
               }}
             >
-              View Cart • ₹{cartTotal.toFixed(2)}
-            </Button>
-          </Badge>
-        </Box>
-      )}
-
-      {/* Cart Drawer (Mobile) */}
-      <Drawer
-        anchor="bottom"
-        open={cartDrawerOpen}
-        onClose={() => setCartDrawerOpen(false)}
-        PaperProps={{
-          sx: {
-            height: '80vh',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-          },
-        }}
-      >
-        <Box sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h5" fontWeight={700}>
-              Your Cart ({cartItemsCount} items)
-            </Typography>
-            <IconButton onClick={() => setCartDrawerOpen(false)}>
-              <ArrowBack />
-            </IconButton>
-          </Box>
-
-          {cart.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <ShoppingCart sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary">
-                Your cart is empty
-              </Typography>
+              <Badge badgeContent={itemCount} color="error">
+                <Button
+                  variant="contained"
+                  startIcon={<ShoppingCart />}
+                  onClick={() => dispatch(toggleCartDrawer())}
+                  sx={{
+                    borderRadius: 10,
+                    px: 3,
+                    py: 1.5,
+                    boxShadow: 6,
+                  }}
+                >
+                  View Cart • ₹{total.toFixed(2)}
+                </Button>
+              </Badge>
             </Box>
-          ) : (
-            <>
-              <Box sx={{ maxHeight: '50vh', overflow: 'auto', mb: 3 }}>
-                <Stack spacing={2}>
-                  {cart.map((item) => (
-                    <Box key={item.id}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Box>
-                          <Typography variant="subtitle1" fontWeight={600}>
-                            {item.quantity} × {item.foodItem.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            ₹{item.foodItem.price} each
-                          </Typography>
-                        </Box>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          ₹{(item.foodItem.price * item.quantity).toFixed(2)}
-                        </Typography>
-                      </Box>
-                      <Divider sx={{ my: 1 }} />
-                    </Box>
-                  ))}
-                </Stack>
+          )}
+
+          {/* Cart Drawer (mobile)*/}
+          <Drawer
+            anchor="bottom"
+            open={isCartDrawerOpen}  //set true to open
+            onClose={() => dispatch(toggleCartDrawer())} //i.e: close on esc/outside click or swipe down
+            PaperProps={{
+              sx: {
+                height: '80vh',
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+              },
+            }}
+          >
+            <Box sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                <Typography variant="h5" fontWeight={700}>
+                  Your Cart ({itemCount} items)
+                </Typography>
+
+                <IconButton onClick={() => dispatch(toggleCartDrawer())}>
+                  <ArrowBack />
+                </IconButton>
               </Box>
 
-              {/* Cart Summary */}
-              <Paper elevation={3} sx={{ p: 2, borderRadius: 2 }}>
-                <Stack spacing={1}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Item Total
-                    </Typography>
-                    <Typography variant="body2">₹{cartTotal.toFixed(2)}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Delivery Fee
-                    </Typography>
-                    <Typography variant="body2">₹{restaurant.deliveryFee}</Typography>
-                  </Box>
-                  <Divider />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="h6" fontWeight={700}>
-                      Total Amount
-                    </Typography>
-                    <Typography variant="h6" color="primary.main" fontWeight={700}>
-                      ₹{(cartTotal + restaurant.deliveryFee).toFixed(2)}
-                    </Typography>
-                  </Box>
-                </Stack>
+              {cartItems.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                  <ShoppingCart sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+                  <Typography>Your cart is empty</Typography>
+                </Box>
+              ) : (
+                <>
+                  <Box sx={{ maxHeight: '50vh', overflow: 'auto', mb: 3 }}>
+                    <Stack spacing={2}>
+                      {cartItems.map((item) => (
+                        <Box key={item.id}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography>
+                              {item.quantity} × {item.name}
+                            </Typography>
 
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  sx={{ mt: 3, borderRadius: 2 }}
-                  onClick={handleCheckout}
-                >
-                  Proceed to Checkout
-                </Button>
-              </Paper>
-            </>
-          )}
-        </Box>
-      </Drawer>
+                            <Typography>
+                              ₹{(item.price * item.quantity).toFixed(2)}
+                            </Typography>
+                          </Box>
+
+                          <Divider sx={{ my: 1 }} />
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+
+                  <Paper elevation={3} sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography>Item Total</Typography>
+                      <Typography>₹{subtotal.toFixed(2)}</Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography>Delivery Fee</Typography>
+                      <Typography>₹{deliveryFee}</Typography>
+                    </Box>
+
+                    <Divider sx={{ my: 1 }} />
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography fontWeight={700}>Total</Typography>
+                      <Typography fontWeight={700} color="primary">
+                        ₹{total.toFixed(2)}
+                      </Typography>
+                    </Box>
+
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      sx={{ mt: 2 }}
+                      onClick={() => navigate('/checkout')}
+                    >
+                      Proceed to Checkout
+                    </Button>
+                  </Paper>
+                </>
+              )}
+            </Box>
+          </Drawer>
     </Box>
   );
 };
