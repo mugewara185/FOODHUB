@@ -36,15 +36,19 @@ import {
   Login, Logout
 } from '@mui/icons-material';
 import { APP_NAME } from '../../core/constants/food';
-
 import { useAuth } from '../../contexts/AuthContext';
+import { useAppSelector, useAppDispatch } from '../../app/store';
+
+//cartSelector
+import { selectCartItems } from '../../features/cart/cartSlice';
 
 const MainLayout: React.FC = () => {
   // console.log('%c<MainLayout/>','color:orange')
   const { user, isAuthenticated, isLoading, logout } = useAuth(); // Get auth state
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [cartItemsCount] = useState(3);
+  // const [cartItemsCount] = useState(useAppSelector(selectCartItems).reduce((total, item) => total + item.quantity, 0));
+  const [cartItemsCount] = useState(useAppSelector(selectCartItems).length)
 
   const menuItems = [
     { text: 'Home', icon: <Home />, path: '/' },
