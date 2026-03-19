@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -9,12 +9,12 @@ import {
   Button,
   Divider,
   Stack,
-  IconButton,
-  Chip,
   TextField,
   Card,
   CardContent,
+  IconButton,
   Alert,
+  Chip,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -24,142 +24,75 @@ import {
   LocalOffer,
   ShoppingBag,
   LocationOn,
-  Restaurant,
-  LocalFireDepartment,
 } from '@mui/icons-material';
-import { type CartItem, type Restaurant as RestaurantType } from '../../../data/types/food';
-import { MOCK_RESTAURANTS } from '../../../core/constants/food';
-
-// Mock cart data
-const MOCK_CART_ITEMS: CartItem[] = [
-  {
-    id: '1',
-    foodItem: {
-      id: '1',
-      name: 'Butter Chicken',
-      description: 'Tender chicken in rich tomato butter gravy',
-      price: 320,
-      image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=300&fit=crop',
-      category: 'Main Course',
-      restaurantId: '1',
-      restaurantName: 'Spice Garden',
-      isVeg: false,
-      isSpicy: true,
-      isBestSeller: true,
-      isAvailable: true,
-      rating: 4.7,
-      ingredients: ['Chicken', 'Tomato', 'Butter', 'Cream', 'Spices'],
-      dietaryInfo: {
-        calories: 450,
-        protein: 25,
-        carbs: 12,
-        fat: 32,
-      },
-      addons: [
-        { id: '1', name: 'Extra Butter', price: 30, isAvailable: true },
-        { id: '2', name: 'Extra Cream', price: 25, isAvailable: true },
-      ],
-    },
-    quantity: 2,
-    selectedAddons: [
-      { id: '1', name: 'Extra Butter', price: 30, isAvailable: true },
-    ],
-    selectedVariant: { id: '2', name: 'Full', price: 320 },
-    specialInstructions: 'Less spicy please',
-  },
-  {
-    id: '2',
-    foodItem: {
-      id: '2',
-      name: 'Garlic Naan',
-      description: 'Soft bread with garlic butter',
-      price: 80,
-      image: 'https://images.unsplash.com/photo-1563379091339-03246963d9d6?w=400&h=300&fit=crop',
-      category: 'Breads',
-      restaurantId: '1',
-      restaurantName: 'Spice Garden',
-      isVeg: true,
-      isSpicy: false,
-      isBestSeller: true,
-      isAvailable: true,
-      rating: 4.5,
-      ingredients: ['Flour', 'Garlic', 'Butter', 'Yogurt'],
-      dietaryInfo: {
-        calories: 280,
-        protein: 8,
-        carbs: 45,
-        fat: 12,
-      },
-    },
-    quantity: 3,
-    selectedAddons: [],
-  },
-];
+import { useAppDispatch, useAppSelector } from '../../../app/store';
+import {
+  selectCartItems,
+  selectCartRestaurant,
+  selectCartTotals,
+  updateQuantity,
+  removeFromCart,
+  clearCart,
+  applyCoupon,
+  removeCoupon,
+} from '../../../features/cart/cartSlice';
+import { selectSelectedRestaurant } from '../../../features/restaurant/restaurantSlice';
+import { showToast } from '../../../features/ui/uiSlice';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState<CartItem[]>(MOCK_CART_ITEMS);
+  const dispatch = useAppDispatch();
+  
+  const cartItems = useAppSelector(selectCartItems);
+  const restaurant = useAppSelector(selectCartRestaurant);
+  const restaurantDetails = useAppSelector(selectSelectedRestaurant);
+  const totals = useAppSelector(selectCartTotals);
+  
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
 
-  // Get restaurant from first item
-  const restaurant: RestaurantType | undefined = useMemo(() => {
-    if (cartItems.length === 0) return undefined;
-    return MOCK_RESTAURANTS.find(r => r.id === cartItems[0].foodItem.restaurantId);
-  }, [cartItems]);
-
-  // Calculate cart totals
-  const cartSummary = useMemo(() => {
-    const itemTotal = cartItems.reduce((total, item) => {
-      const itemPrice = item.foodItem.price;
-      const addonsPrice = item.selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
-      const variantPrice = item.selectedVariant?.price || 0;
-      return total + (itemPrice + addonsPrice + variantPrice) * item.quantity;
-    }, 0);
-
-    const deliveryFee = restaurant?.deliveryFee || 0;
-    const tax = itemTotal * 0.05; // 5% tax
-    const discount = couponApplied ? itemTotal * 0.1 : 0; // 10% discount if coupon applied
-    const total = itemTotal + deliveryFee + tax - discount;
-
-    return {
-      itemTotal,
-      deliveryFee,
-      tax,
-      discount,
-      total,
-      minOrder: restaurant?.minOrder || 0,
-    };
-  }, [cartItems, restaurant, couponApplied]);
-
-  // Handle quantity update
-  const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    if (quantity === 0) {
-      setCartItems(prev => prev.filter(item => item.id !== itemId));
+  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity === 0) {
+      dispatch(removeFromCart(itemId));
+      dispatch(showToast({
+        message: 'Item removed from cart',
+        type: 'info'
+      }));
     } else {
-      setCartItems(prev =>
-        prev.map(item =>
-          item.id === itemId ? { ...item, quantity } : item
-        )
-      );
+      dispatch(updateQuantity({ itemId, quantity: newQuantity }));
     }
   };
 
-  // Handle remove item
   const handleRemoveItem = (itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
+    dispatch(removeFromCart(itemId));
+    dispatch(showToast({
+      message: 'Item removed from cart',
+      type: 'info'
+    }));
   };
 
-  // Handle apply coupon
-  const handleApplyCoupon = () => {
-    if (couponCode.trim() && !couponApplied) {
-      setCouponApplied(true);
-      setCouponCode('');
+  const handleClearCart = () => {
+    if (window.confirm('Are you sure you want to clear your cart?')) {
+      dispatch(clearCart());
+      dispatch(showToast({
+        message: 'Cart cleared',
+        type: 'info'
+      }));
     }
   };
 
-  // Handle remove coupon
+  const handleApplyCoupon = () => {
+    dispatch(applyCoupon(couponCode));
+    setCouponApplied(true);
+    setCouponCode('');
+    dispatch(showToast({
+      message: 'Coupon applied successfully',
+      type: 'success'
+    }));
+  };
+
   const handleRemoveCoupon = () => {
+    dispatch(removeCoupon());
     setCouponApplied(false);
   };
 
@@ -167,20 +100,15 @@ const Cart: React.FC = () => {
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
     
-    if (cartSummary.itemTotal < cartSummary.minOrder) {
-      alert(`Minimum order amount is ₹${cartSummary.minOrder}`);
+    if (restaurantDetails?.minOrder && totals.total < restaurantDetails?.minOrder) {
+      alert(`Minimum order amount is ₹${restaurantDetails?.minOrder??0}`);
       return;
     }
     
     navigate('/checkout');
   };
 
-  // Handle empty cart
-  const handleEmptyCart = () => {
-    setCartItems([]);
-  };
-
-  // Handle continue shopping
+    // Handle continue shopping
   const handleContinueShopping = () => {
     if (restaurant) {
       navigate(`/restaurants/${restaurant.id}`);
@@ -204,7 +132,6 @@ const Cart: React.FC = () => {
             variant="contained"
             size="large"
             onClick={() => navigate('/restaurants')}
-            sx={{ borderRadius: 2, px: 4 }}
           >
             Browse Restaurants
           </Button>
@@ -228,7 +155,7 @@ const Cart: React.FC = () => {
           Your Cart
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Review your order before checkout
+          {cartItems.length} items from {restaurant.name}
         </Typography>
       </Box>
 
@@ -236,7 +163,7 @@ const Cart: React.FC = () => {
         {/* Left Column - Cart Items */}
         <Grid item xs={12} lg={8}>
           {/* Restaurant Info */}
-          {restaurant && (
+          {restaurantDetails && (
             <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                 <Box
@@ -249,45 +176,45 @@ const Cart: React.FC = () => {
                   }}
                 >
                   <img
-                    src={restaurant.image}
-                    alt={restaurant.name}
+                    src={restaurantDetails.image}
+                    alt={restaurantDetails.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="h6" fontWeight={700}>
-                    {restaurant.name}
+                    {restaurantDetails.name}
                   </Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <LocationOn fontSize="small" sx={{ color: 'text.secondary' }} />
                     <Typography variant="body2" color="text.secondary">
-                      {restaurant.address.split(',')[0]}
+                      {restaurantDetails.address.split(',')[0]}
                     </Typography>
                   </Stack>
                 </Box>
                 <Button
                   variant="outlined"
-                  onClick={() => navigate(`/restaurants/${restaurant.id}`)}
+                  onClick={() => navigate(`/restaurants/${restaurantDetails.id}`)}
                 >
                   View Menu
                 </Button>
               </Box>
               <Divider />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, overflow: 'auto' }}>
                 <Chip
-                  label={`Delivery: ${restaurant.deliveryTime}`}
+                  label={`Delivery: ${restaurantDetails.deliveryTime}`}
                   color="primary"
                   variant="outlined"
                   size="small"
                 />
                 <Chip
-                  label={`Min order: ₹${restaurant.minOrder}`}
+                  label={`Min order: ₹${restaurantDetails.minOrder}`}
                   color="secondary"
                   variant="outlined"
                   size="small"
                 />
                 <Chip
-                  label={`Fee: ₹${restaurant.deliveryFee}`}
+                  label={`Fee: ₹${restaurantDetails.deliveryFee}`}
                   color="info"
                   variant="outlined"
                   size="small"
@@ -295,20 +222,19 @@ const Cart: React.FC = () => {
               </Box>
             </Paper>
           )}
-
+    
           {/* Cart Items */}
           <Paper sx={{ p: 3, borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6" fontWeight={700}>
-                Order Items ({cartItems.length})
+                Order Items
               </Typography>
               <Button
                 color="error"
-                startIcon={<Delete />}
-                onClick={handleEmptyCart}
+                onClick={handleClearCart}
                 size="small"
               >
-                Clear All
+                Clear Cart
               </Button>
             </Box>
 
@@ -316,23 +242,23 @@ const Cart: React.FC = () => {
               {cartItems.map((item) => (
                 <Box key={item.id}>
                   <Box sx={{ display: 'flex', gap: 2 }}>
-                    {/* Food Image */}
+                    {/* Item Image */}
                     <Box
                       sx={{
-                        width: 100,
-                        height: 100,
+                        width: 80,
+                        height: 80,
                         borderRadius: 2,
                         overflow: 'hidden',
                         flexShrink: 0,
-                        position: 'relative',
                       }}
                     >
                       <img
-                        src={item.foodItem.image}
-                        alt={item.foodItem.name}
+                        src={item.image}
+                        alt={item.name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
-                      {item.foodItem.isBestSeller && (
+                      {/* dev:i-add required chips if item is bestseller or has discount */}
+                      {/* {item.foodItem.isBestSeller && (
                         <Chip
                           label="Bestseller"
                           size="small"
@@ -345,17 +271,18 @@ const Cart: React.FC = () => {
                             height: 20,
                           }}
                         />
-                      )}
+                      )} */}
                     </Box>
 
-                    {/* Food Details */}
+                    {/* Item Details */}
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                         <Box>
-                          <Typography variant="h6" fontWeight={600}>
-                            {item.foodItem.name}
-                          </Typography>
-                          <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {item.name}
+                        </Typography>
+                        {/* dev:i- add chips for veg/non-veg and spicy tags */}
+                          {/* <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
                             <Chip
                               label={item.foodItem.isVeg ? '🟢 Veg' : '🔴 Non-Veg'}
                               size="small"
@@ -373,41 +300,18 @@ const Cart: React.FC = () => {
                                 sx={{ fontSize: '0.7rem' }}
                               />
                             )}
-                          </Stack>
+                          </Stack> */}
                         </Box>
-                        <Typography variant="h6" color="primary.main" fontWeight={700}>
-                          ₹{((item.foodItem.price + 
-                            item.selectedAddons.reduce((sum, a) => sum + a.price, 0) + 
-                            (item.selectedVariant?.price || 0)) * item.quantity).toFixed(2)}
+                        <Typography variant="subtitle1" fontWeight={700} color="primary.main">
+                          ₹{item.price * item.quantity}
                         </Typography>
                       </Box>
 
-                      {/* Selected Options */}
-                      {(item.selectedAddons.length > 0 || item.selectedVariant) && (
-                        <Box sx={{ mb: 1 }}>
-                          {item.selectedVariant && (
-                            <Typography variant="body2" color="text.secondary">
-                              Size: {item.selectedVariant.name}
-                            </Typography>
-                          )}
-                          {item.selectedAddons.length > 0 && (
-                            <Typography variant="body2" color="text.secondary">
-                              Addons: {item.selectedAddons.map(a => a.name).join(', ')}
-                            </Typography>
-                          )}
-                        </Box>
-                      )}
-
                       {/* Special Instructions */}
                       {item.specialInstructions && (
-                        <Box sx={{ mb: 2 }}>
-                          <Typography variant="caption" color="primary" fontWeight={600}>
-                            Note:
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                            {item.specialInstructions}
-                          </Typography>
-                        </Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                          Note: {item.specialInstructions}
+                        </Typography>
                       )}
 
                       {/* Quantity Controls */}
@@ -431,7 +335,6 @@ const Cart: React.FC = () => {
                             <Add fontSize="small" />
                           </IconButton>
                         </Box>
-
                         <IconButton
                           color="error"
                           onClick={() => handleRemoveItem(item.id)}
@@ -441,7 +344,7 @@ const Cart: React.FC = () => {
                       </Box>
                     </Box>
                   </Box>
-                  <Divider sx={{ mt: 3 }} />
+                  <Divider sx={{ mt: 2 }} />
                 </Box>
               ))}
             </Stack>
@@ -461,7 +364,7 @@ const Cart: React.FC = () => {
                   </Button>
                 }
               >
-                10% discount applied!
+                Coupon applied! You saved ₹{totals.discount}
               </Alert>
             ) : (
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -469,7 +372,7 @@ const Cart: React.FC = () => {
                   fullWidth
                   placeholder="Enter coupon code"
                   value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                   InputProps={{
                     startAdornment: <LocalOffer sx={{ mr: 1, color: 'text.secondary' }} />,
                   }}
@@ -477,8 +380,7 @@ const Cart: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={handleApplyCoupon}
-                  disabled={!couponCode.trim()}
-                  sx={{ minWidth: 120 }}
+                  disabled={!couponCode}
                 >
                   Apply
                 </Button>
@@ -492,14 +394,7 @@ const Cart: React.FC = () => {
 
         {/* Right Column - Order Summary */}
         <Grid item xs={12} lg={4}>
-          <Paper
-            sx={{
-              position: 'sticky',
-              top: 20,
-              borderRadius: 3,
-              overflow: 'hidden',
-            }}
-          >
+          <Paper sx={{ p: 3, borderRadius: 3, position: 'sticky', top: 20,  }}> 
             {/* Summary Header */}
             <Box
               sx={{
@@ -512,78 +407,72 @@ const Cart: React.FC = () => {
               <Typography variant="h6" fontWeight={700}>
                 Order Summary
               </Typography>
-              {restaurant && (
+              {restaurantDetails && (
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  {restaurant.name}
+                  {restaurantDetails.name}
                 </Typography>
               )}
             </Box>
 
-            {/* Summary Details */}
-            <Box sx={{ p: 3 }}>
-              <Stack spacing={2}>
+             {/* Summary Details */}
+            <Box sx={{ p: 3 }}></Box>
+            <Stack spacing={2} marginY={2}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Item Total
+                </Typography>
+                <Typography variant="body2">₹{totals.subtotal}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Delivery Fee
+                </Typography>
+                <Typography variant="body2">₹{totals.deliveryFee}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Tax (GST)
+                </Typography>
+                <Typography variant="body2">₹{totals.tax.toFixed(2)}</Typography>
+              </Box>
+              {totals.discount > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Item Total
+                  <Typography variant="body2" color="success.main">
+                    Discount
                   </Typography>
-                  <Typography variant="body2">₹{cartSummary.itemTotal.toFixed(2)}</Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Delivery Fee
-                  </Typography>
-                  <Typography variant="body2">₹{cartSummary.deliveryFee.toFixed(2)}</Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Tax & Charges
-                  </Typography>
-                  <Typography variant="body2">₹{cartSummary.tax.toFixed(2)}</Typography>
-                </Box>
-
-                {couponApplied && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="success.main">
-                      Discount Applied
-                    </Typography>
-                    <Typography variant="body2" color="success.main">
-                      -₹{cartSummary.discount.toFixed(2)}
-                    </Typography>
-                  </Box>
-                )}
-
-                <Divider />
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="h6" fontWeight={700}>
-                    Total Amount
-                  </Typography>
-                  <Typography variant="h6" color="primary.main" fontWeight={700}>
-                    ₹{cartSummary.total.toFixed(2)}
+                  <Typography variant="body2" color="success.main">
+                    -₹{totals.discount}
                   </Typography>
                 </Box>
-              </Stack>
+              )}
+              <Divider />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="h6" fontWeight={700}>
+                  Total Amount
+                </Typography>
+                <Typography variant="h6" color="primary.main" fontWeight={700}>
+                  ₹{totals.total}
+                </Typography>
+              </Box>
+            </Stack>
 
               {/* Minimum Order Notice */}
-              {cartSummary.itemTotal < cartSummary.minOrder && (
+              {restaurantDetails?.minOrder && totals.total < restaurantDetails?.minOrder && (
                 <Alert severity="warning" sx={{ mt: 2 }}>
-                  Add ₹{(cartSummary.minOrder - cartSummary.itemTotal).toFixed(2)} more to reach minimum order
+                  Add ₹{(restaurantDetails?.minOrder - totals.subtotal).toFixed(2)} more to reach minimum order
                 </Alert>
               )}
 
               {/* Checkout Button */}
-              <Button
-                fullWidth
-                variant="contained"
-                size="large"
-                sx={{ mt: 3, borderRadius: 2, py: 1.5 }}
-                onClick={handleCheckout}
-                disabled={cartSummary.itemTotal < cartSummary.minOrder}
-              >
-                Proceed to Checkout
-              </Button>
+            <Button
+              fullWidth
+              variant="contained"
+              size="large"
+              sx={{ mt: 3 }}
+              onClick={handleCheckout}
+            >
+              Proceed to Checkout
+            </Button>
 
               {/* Continue Shopping */}
               <Button
@@ -603,9 +492,9 @@ const Cart: React.FC = () => {
                 <Typography variant="caption" color="primary" sx={{ cursor: 'pointer' }}>
                   Terms of Service & Privacy Policy
                 </Typography>
+                {/* </Box> */}
               </Box>
-            </Box>
-          </Paper>
+              </Paper>
 
           {/* Payment Methods */}
           <Card sx={{ mt: 3, borderRadius: 3 }}>
@@ -642,3 +531,14 @@ const Cart: React.FC = () => {
 };
 
 export default Cart;
+
+// {
+//   1.To refine: 
+// ->apply coupon validation and error handling, add loading states for async actions, implement edit item details (like addons/variants) from cart, enhance UI with more item details and tags, optimize performance for larger carts, and ensure mobile responsiveness.
+// ->to make proceed to checkout disabled until minimum ordder is reached,
+// 2.To Implement:
+// ->Accepted payment, need help page, 
+// =>edit item details (like addons/variants) directly from cart, add option to save cart for later, implement user reviews/ratings for items in cart, and integrate real-time inventory updates to reflect item availability.
+// 
+// 3.To Test:
+// }

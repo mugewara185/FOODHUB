@@ -138,10 +138,12 @@ export default restaurantSlice.reducer;
 // Selectors
 export const selectAllRestaurants = (state: RootState) => state.restaurants.restaurants;
 export const selectFeaturedRestaurants = (state: RootState) => {
-  console.log({ state });
+  // console.log({ state });
   return state.restaurants.featuredRestaurants;
 };
-export const selectSelectedRestaurant = (state: RootState) => { console.log({ state }); return state.restaurants.selectedRestaurant; };
+export const selectSelectedRestaurant = (state: RootState) => {
+                                                                // console.log({ state }); 
+                                                                return state.restaurants.selectedRestaurant; };
 export const selectRestaurantMenu = (state: RootState) => state.restaurants.menuItems;
 export const selectMenuCategories = (state: RootState) => state.restaurants.categories;
 export const selectRestaurantLoading = (state: RootState) => state.restaurants.loading;

@@ -27,6 +27,7 @@ import { type FoodItem} from '../../../core/types';
 // import { type FoodItem, type Addon, type Variant } from '../../../core/types';
 type Addon = FoodItem['addons'][number];
 type Variant = FoodItem['variants'][number];
+
 interface FoodCustomizationModalProps {
   open: boolean;
   foodItem: FoodItem;
@@ -74,6 +75,7 @@ const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
 
   // Handle add to cart
   const handleAdd = () => {
+    // console.log('handleAdd()');
     onAddToCart({
       foodItem,
       quantity,

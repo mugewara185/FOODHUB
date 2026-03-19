@@ -18,13 +18,15 @@ import {
   Favorite,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type FoodItem } from '../../../core/types';
+import { type CustomizedItem, type FoodItem } from '../../../core/types';
 import FoodCustomizationModal from './FoodCustomizationModal';
+import { useAppDispatch } from '../../../app/store';
 
 interface FoodItemCardProps {
   foodItem: FoodItem;
   quantity?: number;
   onAddToCart?: (foodItem: FoodItem) => void;
+  onAddToCartWithCustomization?: (customizedItem: CustomizedItem) => void;
   onUpdateQuantity?: (foodItemId: string, quantity: number) => void;
   onToggleFavorite?: (foodItemId: string) => void;
 }
@@ -33,11 +35,14 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({
   foodItem,
   quantity = 0,
   onAddToCart,
+  onAddToCartWithCustomization,
   onUpdateQuantity,
   onToggleFavorite,
 }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [customizationOpen, setCustomizationOpen] = useState(false);
+
+  // const dispatch= useAppDispatch();
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,7 +51,7 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); //i.e.., stop event bubbling to card click
     if (foodItem.addons?.length || foodItem.variants?.length) {
       setCustomizationOpen(true);
     } else {
@@ -269,14 +274,16 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({
       </CardContent>
     </Card>
     {/* //modal component */}
-    {customizationOpen && (
+    {customizationOpen && ( 
+      // console.log('FoodCustomizationModal'),
       <FoodCustomizationModal
         open={customizationOpen}
         foodItem={foodItem}
         onClose={() => setCustomizationOpen(false)}
         onAddToCart={(customizedItem) => {
           // Handle customized item addition
-          console.log('Customized item:', customizedItem);
+          // console.log('Customized item:', customizedItem);
+          onAddToCartWithCustomization?.(customizedItem);
         }}
       />
     )}

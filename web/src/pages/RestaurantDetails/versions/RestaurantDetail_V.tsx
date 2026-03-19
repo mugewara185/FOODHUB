@@ -55,10 +55,12 @@ import {
 } from '../../../features/restaurant/restaurantSlice';
 import {
   addToCart,
+  clearCart,
   selectCartItems,
   selectCartRestaurant,
   selectCartTotals,
   selectIsCartEmpty,
+  updateQuantity,
 } from '../../../features/cart/cartSlice';
 import {
   toggleCartDrawer,
@@ -68,6 +70,7 @@ import {
 import FoodItemCard from '../../../features/food/components/FoodItemCard';
 import FoodCustomizationModal from '../../../features/food/components/FoodCustomizationModal';
 import Map from '../../../shared/components/maps/Map';
+import type { CartItem, CustomizedItem, FoodItem } from '../../../core/types';
 
 // Mock reviews data
 const MOCK_REVIEWS = [
@@ -98,7 +101,7 @@ const RestaurantDetail: React.FC = () => {
   
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isFavorite, setIsFavorite] = useState(false);
-  const [selectedFoodItem, setSelectedFoodItem] = useState<any>(null);
+  const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   // Restaurant selectors
@@ -120,7 +123,7 @@ const RestaurantDetail: React.FC = () => {
       dispatch(fetchRestaurantById(id));
     }
     return () => {
-      dispatch(clearSelectedRestaurant());
+      // dispatch(clearSelectedRestaurant());
     };
   }, [id, dispatch]);
 
@@ -130,13 +133,14 @@ const RestaurantDetail: React.FC = () => {
     : categories.filter(cat => cat.id === selectedCategory);
 
   // Handle add to cart
-  const handleAddToCart = (foodItem: any) => {
+  const handleAddToCart = (foodItem: FoodItem) => {
     // Check if adding from different restaurant
     if (!isCartEmpty && cartRestaurant.id !== restaurant?.id) {
       if (!window.confirm('Your cart contains items from a different restaurant. Do you want to clear it and add this item?')) {
         return;
       }
       // Clear cart logic would go here
+      // dispatch(clearCart());
     }
 
     if (foodItem.addons?.length || foodItem.variants?.length) {
@@ -162,25 +166,45 @@ const RestaurantDetail: React.FC = () => {
   };
 
   // Handle customized item
-  const handleAddCustomizedItem = (customizedItem: any) => {
-    dispatch(addToCart({
-      foodItemId: customizedItem.foodItem.id,
-      name: customizedItem.foodItem.name,
-      price: customizedItem.foodItem.price + 
-             customizedItem.selectedAddons.reduce((sum: number, a: any) => sum + a.price, 0),
-      quantity: customizedItem.quantity,
-      image: customizedItem.foodItem.image,
-      restaurantId: restaurant!.id,
-      restaurantName: restaurant!.name,
-      isVeg: customizedItem.foodItem.isVeg,
-      specialInstructions: customizedItem.specialInstructions,
-    }));
+  const handleAddCustomizedItem = (customizedItem: CustomizedItem) => {
+    // console.log('handleAddCustomizedItem():','color: green', {customizedItem});
+    const addItem:Omit<CartItem, 'id'>={
+                                foodItemId: customizedItem.foodItem.id,
+                                name: customizedItem.foodItem.name,
+                                price: customizedItem.foodItem.price + 
+                                      (customizedItem.selectedAddons?.reduce((sum: number, a: FoodItem['addons'][number]) => sum + a.price, 0) ?? 0),
+                                quantity: customizedItem.quantity,
+                                image: customizedItem.foodItem.image,
+                                restaurantId: restaurant!.id,
+                                restaurantName: restaurant!.name,
+                                isVeg: customizedItem.foodItem.isVeg,
+                                specialInstructions: customizedItem.specialInstructions,
+                              }
+    // dispatch(addToCart(addItem));
+    dispatch(addToCart(addItem));
     
     dispatch(showToast({
       message: `${customizedItem.quantity}x ${customizedItem.foodItem.name} added to cart`,
       type: 'success'
     }));
+    console.log('handleAddCustomizedItem():','color:red')
   };
+
+  //dev-i: toggle favorite (just UI for now, no persistence)
+  const handleToggleFavorite = (foodItemId: string) => {
+  setIsFavorite(prev => !prev);
+  // dispatch(toggleFavorite(foodItemId)); // Implement this action in your restaurantSlice
+  dispatch(showToast({
+    message: isFavorite ? `Removed from favorites` : `Added to favorites`,
+    type: 'success'
+  }));
+  };
+
+  const handleOnquantityUpdate = (foodItemId: string, quantity: number) => {
+    const existingCartItem = cartItems.find(ci => ci.foodItemId === foodItemId);
+    if (!existingCartItem) return;
+    dispatch(updateQuantity({ itemId:existingCartItem.id, quantity }));
+  }
 
   if (loading) {
     return (
@@ -352,13 +376,15 @@ const RestaurantDetail: React.FC = () => {
               onClick={() => {
                 window.open(`https://www.google.com/maps/dir/?api=1&destination=${restaurant.location.lat},${restaurant.location.lng}`);
               }}
-            >
+              >
               Get Directions
             </Button>
           </Grid>
           <Grid item xs={12} md={6}>
+              {/* ts:map not loading properly, so commenting out for now. Will fix in next iteration. */}
+              map
             <Box sx={{ height: 200, borderRadius: 2, overflow: 'hidden' }}>
-              <Map
+              {/* <Map
                 center={restaurant.geoLocation || { lat: 0, lng: 0 }}
                 markers={[{
                   id: restaurant.id,
@@ -368,7 +394,34 @@ const RestaurantDetail: React.FC = () => {
                 }]}
                 height="100%"
                 zoom={15}
-              />
+              /> */}
+          {/* <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400 }}> */}
+            {/* <Map
+              center={{ lat: 19.0760, lng: 72.8777 }}
+              markers={[
+                {
+                  id: 'restaurant',
+                  position: { lat: 19.1136, lng: 72.8697 },
+                  type: 'restaurant',
+                  title: restaurant.name,
+                },
+                {
+                  id: 'customer',
+                  position: { lat: 19.0760, lng: 72.8777 },
+                  type: 'customer',
+                  title: restaurant.name,
+                },
+                {
+                  id: 'partner',
+                  position: { lat: 19.0945, lng: 72.8735 },
+                  type: 'partner',
+                  title: 'Your Location',
+                },
+              ]}
+              showTraffic={true}
+              height="100%"
+            /> */}
+          {/* </Paper> */}
             </Box>
           </Grid>
         </Grid>
@@ -431,6 +484,9 @@ const RestaurantDetail: React.FC = () => {
                           foodItem={item}
                           quantity={cartItem?.quantity || 0}
                           onAddToCart={() => handleAddToCart(item)}
+                          onAddToCartWithCustomization={handleAddCustomizedItem}
+                          onToggleFavorite={handleToggleFavorite}
+                          onUpdateQuantity={handleOnquantityUpdate}
                         />
                       );
                     })}
@@ -569,7 +625,8 @@ const RestaurantDetail: React.FC = () => {
               elevation={4}
               sx={{
                 position: 'sticky',
-                top: 20,
+                top: 140,
+                // bottom: 100, dev-l: not being sticky when scroll down???
                 borderRadius: 3,
                 overflow: 'hidden',
               }}
@@ -685,6 +742,7 @@ const RestaurantDetail: React.FC = () => {
 
           {/* Food Customization Modal */}
           {selectedFoodItem && (
+            // console.log('FoodCustomizationModal'),
             <FoodCustomizationModal
               open={modalOpen}
               foodItem={selectedFoodItem}

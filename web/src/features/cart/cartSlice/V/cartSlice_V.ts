@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from '../../../../app/store';
-import type { CartItem } from '../../../../data/types';
+import type { CartItem, CustomizedItem } from '../../../../core/types';
 // Types
 export interface CartState {
   items: CartItem[];
@@ -49,7 +49,7 @@ const cartSlice = createSlice({
   initialState,
   reducers: {
     addToCart: (state, action: PayloadAction<Omit<CartItem, 'id'>>) => {
-      const { foodItemId, restaurantId, restaurantName } = action.payload;
+      const { foodItemId, restaurantId, restaurantName } = action.payload ; 
 
       // Check if adding from same restaurant
       if (state.restaurantId && state.restaurantId !== restaurantId) {
@@ -68,7 +68,7 @@ const cartSlice = createSlice({
       if (existingItem) {
         existingItem.quantity += 1;
       } else {
-        const newItem: CartItem = {
+        const newItem: CartItem | CustomizedItem = {
           ...action.payload,
           id: uuidv4(),
         };
@@ -175,7 +175,9 @@ export const {
 export default cartSlice.reducer;
 
 // Selectors
-export const selectCartItems = (state: RootState) => state.cart.items;
+export const selectCartItems = (state: RootState) => (
+                                                      console.dir({'restaurants': state.restaurants, 'ui': state.ui}), console.log({ 'CartItems': state.cart.items }), 
+                                                      state.cart.items);
 export const selectCartRestaurant = (state: RootState) => ({
   id: state.cart.restaurantId,
   name: state.cart.restaurantName,
