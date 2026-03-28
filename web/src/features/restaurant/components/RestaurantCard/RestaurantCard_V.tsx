@@ -32,8 +32,8 @@ const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
   isFavorite = false,
   onToggleFavorite,
 }) => {
-  const fallBackImgSrc='https://th.bing.com/th/id/OIP.PLyeERi4uNYToVEWGHbhngHaEK?w=321&h=181&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3'
-  const { id, name, image, address, cuisine, rating, deliveryTime, minOrder, deliveryFee }=restaurant;
+  const fallBackImgSrc = 'https://th.bing.com/th/id/OIP.PLyeERi4uNYToVEWGHbhngHaEK?w=321&h=181&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3'
+  const { id, name, image, address, cuisine, rating, deliveryTime, minOrder, deliveryFee } = restaurant;
   const navigate = useNavigate();
 
   return (
@@ -81,33 +81,26 @@ const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
         )}
       </Button>
 
-    {/* Image Container */}
-    {/* <div className="relative w-full aspect-[16/9] overflow-hidden"> */}
-    {(
-      // console.log('rendering image'),
-    <img
-      // src={`${image}?w=400&h=225&fit=crop&q=80`}
-      // src={`${fallBackImg ? fallBackImg : image}?w=400&h=225&fit=crop&q=80`}
-      src={`${image}?w=400&h=225&fit=crop&q=80`}
-      // onError={() => setfallBackImg(fallBackImgSrc)}
-      //  onError={(e) => {
-      //     (e.target as HTMLImageElement).src = fallBackImgSrc;
-      //   }}
-      srcSet={`
-        ${image}?w=400&h=225&fit=crop&q=80 400w,
-        ${image}?w=800&h=450&fit=crop&q=80 800w
-      `}
-      loading="lazy"
-      sizes="(max-width: 768px) 100vw, 400px"
-      alt={name}
-      className="w-full h-full object-cover"
-    />)}
-      {/* fallback overlay (optional UX polish) */}
-      {/* {!fallBackImg && (
-        <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-          No Image
-        </div>
-      )} */}
+      {/* Image Container */}
+      <div className="relative w-full aspect-[16/9] overflow-hidden">
+        <img
+          src={`${image}?w=400&h=225&fit=crop&q=80`}
+          srcSet={`
+            ${image}?w=400&h=225&fit=crop&q=80 400w,
+            ${image}?w=800&h=450&fit=crop&q=80 800w
+          `}
+          loading="lazy"
+          sizes="(max-width: 768px) 100vw, 400px"
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.onerror = null; // Prevent infinite loop if fallback fails
+            target.src = fallBackImgSrc;
+            target.removeAttribute('srcset'); // srcSet overrides src, so we must remove it
+          }}
+        />
+      </div>
 
       <CardContent sx={{ flexGrow: 1, p: 2 }}>
         {/* Restaurant Name and Rating */}
