@@ -87,8 +87,8 @@ const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
           src={`${image}?w=400&h=225&fit=crop&q=80`}
           srcSet={`
             ${image}?w=400&h=225&fit=crop&q=80 400w,
-            ${image}?w=800&h=450&fit=crop&q=80 800w
-          `}
+            `}
+          // ${image}?w=800&h=450&fit=crop&q=80 800w
           loading="lazy"
           sizes="(max-width: 768px) 100vw, 400px"
           alt={name}

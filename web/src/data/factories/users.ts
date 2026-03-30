@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import type { User } from "../types";
+import type { User } from "../types/auth"; // Explicitly targeting auth types where UserRole is defined
 
 export const generateUsers = (count = 15): User[] =>
   Array.from({ length: count }).map((_, i) => ({
@@ -8,34 +8,84 @@ export const generateUsers = (count = 15): User[] =>
     email: faker.internet.email(),
     avatar: faker.image.avatar(),
     address: faker.location.streetAddress(),
+    role: 'user', // Default role
+    isActive: true,
+    emailVerified: false,
+    phoneVerified: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   }));
 
-export const users: User[] = [
+export const users: (User & { password?: string, address?: string })[] = [
   {
-    id: "u1",
-    name: "Admin",
+    id: "admin-1",
+    name: "System Admin",
     email: "admin@",
     password: "admin",
     role: "admin",
-    avatar: "/src/assets/avatars/admin.jpg",
+    avatar: "https://i.pravatar.cc/150?u=admin",
     address: "Zom HQ, Chennai, India",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: "u2",
+    id: "dev-1",
+    name: "Developer (God Mode)",
+    email: "dev@",
+    password: "dev",
+    role: "admin", // Essentially an admin, but useful to differentiate mentally
+    avatar: "https://i.pravatar.cc/150?u=dev",
+    address: "Localhost",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "owner-1",
+    name: "Restaurant Owner",
+    email: "owner@",
+    password: "owner",
+    role: "restaurant_owner",
+    restaurantId: "r1", // Matches fake restaurant IDs
+    avatar: "https://i.pravatar.cc/150?u=owner",
+    address: "Spice Garden Restaurant",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "partner-1",
+    name: "Delivery Partner",
+    email: "partner@",
+    password: "partner",
+    role: "delivery_partner",
+    avatar: "https://i.pravatar.cc/150?u=partner",
+    address: "Street 7, Mumbai",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "user-1",
     name: "John Customer",
-    email: "john@example.com",
-    password: "john123",
-    role: "customer",
-    avatar: "/src/assets/avatars/customer1.jpg",
+    email: "user@",
+    password: "user",
+    role: "user",
+    avatar: "https://i.pravatar.cc/150?u=customer",
     address: "No. 23, Residency Road, Bangalore",
-  },
-  {
-    id: "u3",
-    name: "Priya Foodie",
-    email: "priya@example.com",
-    password: "priya123",
-    role: "customer",
-    avatar: "/src/assets/avatars/customer2.jpg",
-    address: "Plot 77, Anna Nagar, Chennai",
+    isActive: true,
+    emailVerified: true,
+    phoneVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];

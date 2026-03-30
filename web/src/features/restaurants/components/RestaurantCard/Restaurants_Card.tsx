@@ -17,7 +17,8 @@ import {
   FavoriteBorder,
   Favorite,
 } from '@mui/icons-material';
-import { type Restaurant } from '../../../../data/types/food';
+// import { type Restaurant } from '../../../../data/types/food';
+import { type Restaurant } from '../../../../core/types';
 import { useNavigate } from 'react-router-dom';
 
 interface RestaurantsCardProps {

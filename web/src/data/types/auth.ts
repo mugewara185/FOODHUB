@@ -48,22 +48,7 @@ export interface AuthUser extends User {
   permissions: Permission[];
 }
 
-// Authentication types
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  avatar?: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
-export interface AuthUser extends User {
-  token: string;
-  refreshToken: string;
-  expiresAt: number;
-}
 
 export interface LoginCredentials {
   email: string;

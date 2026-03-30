@@ -1,103 +1,155 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from '../../features/auth/protectedRoute';
-  //user routes
+//user routes
 import MainLayout from '../../shared/layout/MainLayout';
 import Home from '../../pages/Home';
 import Login from '../../pages/Auth/Login';
 import Signup from '../../pages/Auth/Signup';
 import ForgotPassword from '../../pages/Auth/ForgotPassword';
 import ResetPassword from '../../pages/Auth/ResetPassword';
-import Profile from '../../pages/Profile';
-import RestaurantDetail from '../../pages/RestaurantDetails/versions/RestaurantDetail_V';
-import Checkout from '../../pages/Checkout';
+import RestaurantDetail from '../../pages/RestaurantDetails';
+import Checkout from '../../pages/Cart/Checkout/Checkout';
 import Cart from '../../pages/Cart';
 import Restaurants from '../../pages/restaurantListings';
-import type Dashboard from '../../pages/admin/AdminDashboard';
+
 import Orders from '../../pages/Orders';
+// import Profile from '../../pages/zothers/Profile';
+import {
+  Favourites,
+  Profile,
+  Notifications,
+  SearchPage,
+  Settings
+  // Addresses,
+  // Checkout 
+} from '../../pages/'
 // import OrderDetail from '../pages/OrderDetail';
 // import Search from '../pages/Search';
 // import NotFound from '../pages/NotFound';
-  //admin routes
+
+// delivery partner routes
+import PartnerLayout from '../../shared/layout/PartnerLayout';
+import PartnerDashboard from '../../pages/_deliveryPartner/PartnerDashboard';
+import PartnerProfile from '../../pages/_deliveryPartner/Profile';
+import AvailableOrders from '../../pages/_deliveryPartner/AvailableOrdders';
+import ActiveDelivery from '../../pages/_deliveryPartner/ActiveDelivery';
+import DeliveryHistory from '../../pages/_deliveryPartner/DeliveryHistory';
+import Earnings from '../../pages/_deliveryPartner/Earnings';
+import Support from '../../pages/_deliveryPartner/PartnerSupport';
+// import partnerSettings from '../../pages/_deliveryPartner/Settings';
+
+// owner routes
+import OwnerLayout from '../../shared/layout/OwnerLayout';
+import OwnerDashboard from '../../pages/_ownerPages/DashBoard';
+import OwnerSettings from '../../pages/_ownerPages/Settings';
+
+//admin routes
 import AdminLayout from '../../shared/layout/AdminLayout';
 import AdminDashboard from '../../pages/admin/AdminDashboard';
 import OrdersList from '../../pages/admin/orders/OrdersList';
 import RestaurantsList from '../../pages/admin/restaurants/RestaurantsList';
 import AddRestaurant from '../../pages/admin/restaurants/AddRestaurants';
-import {Promotions, Reports, Settings, Users} from '../../pages/admin';
 import OrderTracking from '../../pages/Orders/OrderTracking';
-import PartnerLayout from '../../shared/layout/PartnerLayout';
-import PartnerDashboard from '../../pages/_deliveryPartner/PartnerDashboard';
-import AvailableOrders from '../../pages/_deliveryPartner/AvailableOrdders';
-import ActiveDelivery from '../../pages/_deliveryPartner/ActiveDelivery';
-import OwnerLayout from '../../shared/layout/OwnerLayout';
-import OwnerDashboard from '../../pages/_ownerPages/DashBoard';
-// import OrderTracking from '../pages/Orders/OrderTracking/index';
+import AdminProfile from '../../pages/admin/Profile';
+import { Promotions, Reports, Settings as AdminSettings, Users } from '../../pages/admin';
+
+import { de } from 'date-fns/locale';
+import PartnerSettings from '../../pages/_deliveryPartner/Settings';
+
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* admin routes */}
-      <Route path="/admin" element={<AdminLayout />} >
-        <Route index element={<AdminDashboard />} />
-        <Route path='orders' element={<OrdersList />} />
-        <Route path='restaurants' element={<RestaurantsList />} />
-        <Route path='restaurants/add' element={<AddRestaurant />} />
-        <Route path='promotions' element={<Promotions />} />
-        <Route path='reports' element={<Reports />} />
-        <Route path='settings' element={<Settings />} />
-        <Route path='users' element={<Users />} />
-      </Route>
-      {/* partner routes */}
-      <Route path="/partner/*" element={<PartnerLayout />} >
-        <Route index element={<PartnerDashboard />} />
-        <Route path='orders' element={<AvailableOrders />} />
-        <Route path='active' element={<ActiveDelivery />} />
-      </Route>
-      {/* owner routes  */}
-      <Route path="/owner/*" element={<OwnerLayout />} >
-        <Route index element={<OwnerDashboard />} />
-      </Route>
       {/* user routes */}
       <Route path="/" element={<MainLayout />}>
-      {/* Public Routes */}
+        {/* Public Routes */}
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="restaurants" element={<Restaurants />} />
-        <Route path="restaurant/:id" element={<RestaurantDetail />} />
-        
-      {/* Protected Routes */}
+        <Route path="restaurants/:id" element={<RestaurantDetail />} />
+        <Route path='favorites' element={<Favourites />} />
+        <Route path='notification' element={<Notifications />} />
+        <Route path='search' element={<SearchPage />} />
+        <Route path='settings' element={<Settings />} />
+        {/* Protected Routes */}
         <Route path="profile" element={
-          // <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['user', 'admin']}>
             <Profile />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         } />
         <Route path="cart" element={
-          // <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['user', 'admin']}>
             <Cart />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         } />
         <Route path="checkout" element={
-          // <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['user', 'admin']}>
             <Checkout />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         } />
         <Route path="orders" element={
-          // <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['user', 'admin']}>
             <Orders />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         } />
         <Route path='orders/:id/track' element={<OrderTracking />} />
         {/* ... other routes */}
-        
+
         {/* Public Routes */}
         {/* <Route path="search" element={<Search />} /> */}
-        
+
         {/* 404 */}
         {/* <Route path="*" element={<NotFound />} /> */}
       </Route>
+
+      {/* partner routes */}
+      <Route path="/partner/*" element={
+        <ProtectedRoute allowedRoles={['delivery_partner']}>
+          <PartnerLayout />
+        </ProtectedRoute>
+      } >
+        <Route index element={<PartnerDashboard />} />
+        <Route path='orders' element={<AvailableOrders />} />
+        <Route path='active' element={<ActiveDelivery />} />
+        <Route path='profile' element={<PartnerProfile />} />
+        <Route path='history' element={<DeliveryHistory />} />
+        <Route path='earnings' element={<Earnings />} />
+        <Route path='support' element={<Support />} />
+        <Route path='settings' element={<PartnerSettings />} />
+      </Route>
+
+      {/* owner routes  */}
+      <Route path="/owner/*" element={
+        <ProtectedRoute allowedRoles={['restaurant_owner']}>
+          <OwnerLayout />
+        </ProtectedRoute>
+      } >
+        <Route index element={<OwnerDashboard />} />
+        <Route path='settings' element={<OwnerSettings />} />
+        {/* <Route path='s' */}
+      </Route>
+
+      {/* admin routes */}
+      <Route path="/admin/*" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout />
+        </ProtectedRoute>
+      } >
+        <Route index element={<AdminDashboard />} />
+        <Route path='orders' element={<OrdersList />} />
+        {/* <Route path='orders/:id/track' element={<OrderTracking />} (//user component) for now /> */}
+        <Route path='restaurants' element={<RestaurantsList />} />
+        <Route path='restaurants/add' element={<AddRestaurant />} />
+        <Route path='promotions' element={<Promotions />} />
+        <Route path='reports' element={<Reports />} />
+        <Route path='settings' element={<AdminSettings />} />
+        <Route path='users' element={<Users />} />
+        <Route path='profile' element={<AdminProfile />} />
+      </Route>
+
     </Routes>
   );
 };

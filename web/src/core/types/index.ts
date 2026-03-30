@@ -25,6 +25,7 @@ export interface Restaurant {
 export interface CartItem {
   id: string;
   foodItemId: string;
+  caartItemId?: string;
   name: string;
   price: number;
   quantity: number;
@@ -50,9 +51,9 @@ export interface FoodItem {
   isBestSeller: boolean;
   isAvailable: boolean;
   rating: number;
-  addons: { id: string; name: string; price: number; isAvailable: boolean }[];
-  variants: { id: string; name: string; price: number }[];
-  ingredients?: string[];
+  addons?: { id: string; name: string; price: number; isAvailable: boolean }[];
+  variants?: { id: string; name: string; price: number }[] | null;
+  ingredients?: string[]; 
   dietaryInfo?: {
     calories: number;
     protein: number;
@@ -60,11 +61,23 @@ export interface FoodItem {
     fat: number;
   };
 }
+export interface CustomizedItem {
+    id:string;
+    foodItem: FoodItem;
+    quantity: number;
+    selectedAddons?: FoodItem['addons'];
+    // selectedVariant?: FoodItem['variants']?.[number] | null; //error: FoodItem['variants'] is possibly undefined. 
+    selectedVariant?: NonNullable<FoodItem['variants']>[number] | null; //fix: using NonNullable to ensure variants is not undefined before accessing its elements. This allows for the possibility of selectedVariant being null if no variant is selected, while still ensuring type safety when accessing the variants array.
+    // selectedVariant?: FoodItem['variants'] extends (infer U)[] ? U : never | null; //other fix: using conditional types to infer the type of elements in the variants array, while still allowing for null if no variant is selected.
+    specialInstructions?: string;
+  }
 export interface Category {
   id: string;
   name: string;
   items: FoodItem[];
 }
+
+
 
 export type MenuItem = {
   restaurantId: string;

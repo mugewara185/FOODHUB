@@ -1,12 +1,12 @@
 import { faker } from "@faker-js/faker";
 import type { Review } from "../types";
 import { users } from "./users";
-import { restaurants } from "./restaurants";
+import getRestaurants from "./restaurants";
 
-export const generateReviews = (count = 40): Review[] =>
+export const generateReviews = (count = 40): Omit<Review, 'rating' | 'comment' | 'createdAt'>[] =>
   Array.from({ length: count }).map((_, i) => {
     const user = users[i % users.length];
-    const restaurant = restaurants[i % restaurants.length];
+    const restaurant = getRestaurants[i % getRestaurants.length];
 
     return {
       id: `rev${i + 1}`,

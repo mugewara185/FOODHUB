@@ -1,13 +1,14 @@
 import { faker } from "@faker-js/faker";
 import type { Order } from "../types";
 import { users } from "./users";
-import { restaurants } from "./restaurants";
+import getRestaurants from "./restaurants";
 import { menus } from "./menus";
+// import type getRestaurants from "./restaurants";
 
 export const generateOrders = (count = 20): Order[] =>
   Array.from({ length: count }).map((_, i) => {
     const user = users[i % users.length];
-    const restaurant = restaurants[i % restaurants.length];
+    const restaurant = getRestaurants[i % getRestaurants.length];
     const items = menus.slice(i, i + 2);
 
     return {

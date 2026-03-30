@@ -176,7 +176,7 @@ export default cartSlice.reducer;
 
 // Selectors
 export const selectCartItems = (state: RootState) => (
-                                                      console.dir({'restaurants': state.restaurants, 'ui': state.ui}), console.log({ 'CartItems': state.cart.items }), 
+                                                      // console.dir({'restaurants': state.restaurants, 'ui': state.ui}), console.log({ 'CartItems': state.cart.items }), 
                                                       state.cart.items);
 export const selectCartRestaurant = (state: RootState) => ({
   id: state.cart.restaurantId,

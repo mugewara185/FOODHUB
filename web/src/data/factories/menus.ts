@@ -1,9 +1,10 @@
 import type { MenuItem } from "../types";
-import { restaurants } from "./restaurants";
+// import type getRestaurants from "./restaurants";
+import getRestaurants from "./restaurants";
 import { faker } from "@faker-js/faker";
 
 export const generateMenus = (): MenuItem[] =>
-  restaurants.flatMap((rest) =>
+  getRestaurants.flatMap((rest) =>
     Array.from({ length: 8 }).map((_, i) => ({
       id: `m${rest.id}-${i + 1}`,
       restaurantId: rest.id,

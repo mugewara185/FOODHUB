@@ -89,15 +89,15 @@ export const mockFoodItems: FoodItem[] =
       isAvailable: true,
       rating: 4.4,
 
-      addons: [
-        { id: "a5", name: "Extra Paneer", price: 60, isAvailable: true },
-        { id: "a6", name: "Butter Topping", price: 30, isAvailable: true },
-      ],
+      // addons: [
+      //   { id: "a5", name: "Extra Paneer", price: 60, isAvailable: true },
+      //   { id: "a6", name: "Butter Topping", price: 30, isAvailable: true },
+      // ],
 
-      variants: [
-        { id: "v6", name: "Half", price: 249 },
-        { id: "v7", name: "Full", price: 399 },
-      ],
+      // variants: [
+      //   { id: "v6", name: "Half", price: 249 },
+      //   { id: "v7", name: "Full", price: 399 },
+      // ],
 
       ingredients: ["Paneer", "Tomato", "Butter", "Cream"],
 
@@ -124,10 +124,10 @@ export const mockFoodItems: FoodItem[] =
       isAvailable: true,
       rating: 4.2,
 
-      addons: [
-        { id: "a7", name: "Extra Sauce", price: 20, isAvailable: true },
-        { id: "a8", name: "Spring Roll", price: 50, isAvailable: true },
-      ],
+      // addons: [
+      //   { id: "a7", name: "Extra Sauce", price: 20, isAvailable: true },
+      //   { id: "a8", name: "Spring Roll", price: 50, isAvailable: true },
+      // ],
 
       variants: [
         { id: "v8", name: "Regular", price: 179 },
