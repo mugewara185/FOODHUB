@@ -1,58 +1,71 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Grid,
   Typography,
   Box,
   Button,
-  Chip,
   Card,
-  CardContent,
-  IconButton,
-  Stack,
   Paper,
   InputBase,
+  IconButton,
+  Stack,
 } from '@mui/material';
 import {
   Search,
   NavigateNext,
   LocalOffer,
-  Star,
   Timer,
   DeliveryDining,
+  Star,
 } from '@mui/icons-material';
-import { CUISINES, MOCK_RESTAURANTS } from '../../../core/constants/food';
-import { type Restaurant } from '../../../data/types/food';
-import { useNavigate } from 'react-router-dom';
-import RestaurantCard from '../../../features/restaurants/components/RestaurantCard/Restaurants_Card';
+import { useAppDispatch, useAppSelector } from '../../../app/store';
+import {
+  fetchRestaurants,
+  selectFeaturedRestaurants,
+  selectAllRestaurants,
+  selectRestaurantLoading,
+  filterByCuisine,
+} from '../../../features/restaurant/restaurantSlice';
+import RestaurantCard from '../../../features/restaurant/components/RestaurantCard/RestaurantCard_V';
+import { showToast } from '../../../features/ui/uiSlice';
 
-const Home: React.FC = () => {
+// Import new section components
+import PromoSection from '@features/home/components/PromoSection';
+import CuisinesSection from '@features/home/components/CuisinesSection';
+import HowItWorksSection from '@features/home/components/HowItWorksSection';
+import TestimonialsSection from '@features/home/components/TestimonialsSection';
+import StatsSection from '@features/home/components/StatsSection';
+import TopDishesSection from '@features/home/components/TopDishesSection';
+import QuickDeliverySection from '@features/home/components/QuickDeliverySection';
+
+const HomeV: React.FC = () => {
   const navigate = useNavigate();
-  const [selectedCuisine, setSelectedCuisine] = useState<string>('all');
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const dispatch = useAppDispatch();
 
-  // Filter restaurants based on selected cuisine
-  const filteredRestaurants = selectedCuisine === 'all'
-    ? MOCK_RESTAURANTS
-    : MOCK_RESTAURANTS.filter(restaurant => 
-        restaurant.cuisine.includes(selectedCuisine)
-      );
+  const featuredRestaurants = useAppSelector(selectFeaturedRestaurants);
+  const allRestaurants = useAppSelector(selectAllRestaurants);
+  const loading = useAppSelector(selectRestaurantLoading);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
-  const featuredRestaurants = MOCK_RESTAURANTS.filter(r => r.isFeatured);
-  const topRatedRestaurants = [...MOCK_RESTAURANTS]
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 6);
+  // Fetch restaurants on component mount
+  useEffect(() => {
+    dispatch(fetchRestaurants())
+      .unwrap()
+      .catch((error) => {
+        dispatch(showToast({
+          message: String(error) || 'Failed to load restaurants',
+          type: 'error'
+        }));
+      });
+  }, [dispatch]);
 
-  const handleToggleFavorite = (restaurantId: string) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(restaurantId)) {
-        newFavorites.delete(restaurantId);
-      } else {
-        newFavorites.add(restaurantId);
-      }
-      return newFavorites;
-    });
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
   };
 
   const handleViewAll = (type: string) => {
@@ -80,10 +93,11 @@ const Home: React.FC = () => {
               <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
                 Order food from the best restaurants near you
               </Typography>
-              
+
               {/* Search Bar */}
               <Paper
                 component="form"
+                onSubmit={handleSearch}
                 sx={{
                   p: '2px 4px',
                   display: 'flex',
@@ -92,39 +106,23 @@ const Home: React.FC = () => {
                   bgcolor: 'white',
                   maxWidth: 600,
                 }}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  navigate('/search');
-                }}
               >
-                <IconButton sx={{ p: '10px' }} type="submit">
-                  <Search />
-                </IconButton>
                 <InputBase
                   sx={{ ml: 1, flex: 1 }}
-                  placeholder="Search for restaurants, cuisines, or dishes..."
-                  inputProps={{ 'aria-label': 'search food' }}
+                  placeholder="Search for restaurants or dishes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <Button
-                  variant="contained"
-                  sx={{
-                    borderRadius: 2,
-                    px: 3,
-                    textTransform: 'none',
-                    bgcolor: 'primary.dark',
-                    '&:hover': { bgcolor: 'primary.dark' },
-                  }}
-                  type="submit"
-                >
-                  Search
-                </Button>
+                <IconButton type="submit" sx={{ p: '10px' }} color="primary">
+                  <Search />
+                </IconButton>
               </Paper>
 
               {/* Quick Stats */}
               <Stack direction="row" spacing={4} sx={{ mt: 4 }}>
                 <Box>
                   <Typography variant="h4" fontWeight={700}>
-                    500+
+                    {allRestaurants.length}+
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
                     Restaurants
@@ -132,7 +130,7 @@ const Home: React.FC = () => {
                 </Box>
                 <Box>
                   <Typography variant="h4" fontWeight={700}>
-                    10k+
+                    200+
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
                     Dishes
@@ -140,10 +138,10 @@ const Home: React.FC = () => {
                 </Box>
                 <Box>
                   <Typography variant="h4" fontWeight={700}>
-                    25k+
+                    10k+
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Happy Customers
+                    Customers
                   </Typography>
                 </Box>
               </Stack>
@@ -165,54 +163,19 @@ const Home: React.FC = () => {
       </Box>
 
       <Container maxWidth="lg" sx={{ py: 6 }}>
-        {/* Cuisines Section */}
-        <Box sx={{ mb: 6 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-            <Typography variant="h4" fontWeight={700}>
-              Popular Cuisines
-            </Typography>
-            <Button
-              endIcon={<NavigateNext />}
-              onClick={() => handleViewAll('cuisines')}
-            >
-              View All
-            </Button>
-          </Box>
-          
-          <Grid container spacing={2}>
-            {CUISINES.map((cuisine) => (
-              <Grid item xs={4} sm={2.4} key={cuisine.id}>
-                <Card
-                  sx={{
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    border: selectedCuisine === cuisine.name ? 2 : 0,
-                    borderColor: 'primary.main',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                    },
-                  }}
-                  onClick={() => setSelectedCuisine(
-                    selectedCuisine === cuisine.name ? 'all' : cuisine.name
-                  )}
-                >
-                  <CardContent>
-                    <Typography variant="h3" sx={{ mb: 1 }}>
-                      {cuisine.icon}
-                    </Typography>
-                    <Typography variant="body2" fontWeight={500}>
-                      {cuisine.name}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
+        {/* Stats Section - Credibility & Impact */}
+        <StatsSection />
 
-        {/* Featured Restaurants */}
+        {/* Promo Section - Call to Action with Offers */}
+        <PromoSection />
+
+        {/* Quick Delivery Section - Express Service Hook */}
+        <QuickDeliverySection />
+
+        {/* Cuisines Section - Browse by Category */}
+        <CuisinesSection />
+
+        {/* Featured Restaurants - Existing Redux Integration */}
         <Box sx={{ mb: 6 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
             <Box>
@@ -230,53 +193,32 @@ const Home: React.FC = () => {
               View All
             </Button>
           </Box>
-          
-          <Grid container spacing={3}>
-            {featuredRestaurants.map((restaurant) => (
-              <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
-                <RestaurantCard
-                  restaurant={restaurant}
-                  isFavorite={favorites.has(restaurant.id)}
-                  onToggleFavorite={handleToggleFavorite}
-                />
-              </Grid>
-            ))}
-          </Grid>
+
+          {loading ? (
+            <Typography>Loading restaurants...</Typography>
+          ) : (
+            <Grid container spacing={3}>
+              {featuredRestaurants.map((restaurant) => (
+                <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
+                  <RestaurantCard
+                    restaurant={restaurant}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Box>
 
-        {/* Top Rated Restaurants */}
-        <Box sx={{ mb: 6 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-            <Box>
-              <Typography variant="h4" fontWeight={700} gutterBottom>
-                Top Rated
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Highest rated restaurants by our customers
-              </Typography>
-            </Box>
-            <Button
-              endIcon={<NavigateNext />}
-              onClick={() => handleViewAll('top-rated')}
-            >
-              View All
-            </Button>
-          </Box>
-          
-          <Grid container spacing={3}>
-            {topRatedRestaurants.map((restaurant) => (
-              <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
-                <RestaurantCard
-                  restaurant={restaurant}
-                  isFavorite={favorites.has(restaurant.id)}
-                  onToggleFavorite={handleToggleFavorite}
-                />
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
+        {/* Top Dishes Section - Popular Items */}
+        <TopDishesSection />
 
-        {/* Why Choose Us Section */}
+        {/* How It Works Section - User Education */}
+        <HowItWorksSection />
+
+        {/* Testimonials Section - Social Proof */}
+        <TestimonialsSection />
+
+        {/* Why Choose Us Section - Brand Differentiation */}
         <Box sx={{ mb: 6 }}>
           <Typography variant="h4" fontWeight={700} textAlign="center" gutterBottom>
             Why Choose FoodHub?
@@ -284,7 +226,7 @@ const Home: React.FC = () => {
           <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
             We deliver excellence with every order
           </Typography>
-          
+
           <Grid container spacing={4}>
             {[
               {
@@ -309,7 +251,7 @@ const Home: React.FC = () => {
               },
             ].map((feature, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
-                <Card sx={{ textAlign: 'center', p: 3 }}>
+                <Card sx={{ textAlign: 'center', p: 3, height: '100%' }}>
                   <Box sx={{ mb: 2 }}>{feature.icon}</Box>
                   <Typography variant="h6" fontWeight={600} gutterBottom>
                     {feature.title}
@@ -339,7 +281,7 @@ const Home: React.FC = () => {
           <Typography variant="body1" sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
             Download our app for faster ordering, exclusive offers, and better experience
           </Typography>
-          <Stack direction="row" spacing={2} justifyContent="center">
+          <Stack direction="row" spacing={2} justifyContent="center" sx={{ flexWrap: 'wrap' }}>
             <Button
               variant="contained"
               sx={{
@@ -369,4 +311,4 @@ const Home: React.FC = () => {
   );
 };
 
-export default Home;
+export default HomeV;
