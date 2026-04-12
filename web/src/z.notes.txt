@@ -6,6 +6,7 @@ feature: useRestaurants,
 components: DataTable, ErroBoundary, 
 utils: performance, 
 services: sockets, 
+others: performance
 }
 
 
