@@ -39,6 +39,7 @@
       "@api/*": ["src/api/*"],
       "@app/*": ["src/app/*"],
       "@core/*": ["src/core/*"],
+      "@core/dev/*": ["src/core/dev/*"],
       "@services/*": ["src/services/*"],
       "@assets/*": ["src/assets/*"],
       "@contexts/*": ["src/contexts/*"]
