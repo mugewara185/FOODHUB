@@ -49,6 +49,7 @@ const cartSlice = createSlice({
   initialState,
   reducers: {
     addToCart: (state, action: PayloadAction<Omit<CartItem, 'id'>>) => {
+      // console.log('addToCart reducer:',{state,action})
       const { foodItemId, restaurantId, restaurantName } = action.payload ; 
 
       // Check if adding from same restaurant
