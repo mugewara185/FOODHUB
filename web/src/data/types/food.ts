@@ -1,137 +1,66 @@
-// Restaurant and Food related types
+// ============================================================================
+// FOOD & RESTAURANT TYPES (Re-exported from core)
+// ============================================================================
+// This file is deprecated. All types are now centralized in src/core/types/index.ts
+// Use imports from core/types directly instead:
+//   import type { Restaurant, FoodItem, Cart, Order } from '@/core/types'
 
-export interface Restaurant {
-  id: string;
-  name: string;
-  description: string;
-  cuisine: string[];
-  rating: number;
-  deliveryTime: string;
-  deliveryFee: number;
-  minOrder: number;
-  image: string;
-  bannerImage?: string;
-  address: string;
-  location: {
-    lat: number;
-    lng: number;
-  };
-  isOpen: boolean;
-  isFeatured: boolean;
-  isVeg: boolean;
-  tags: string[];
-  contact: string;
-  openingHours: {
-    open: string;
-    close: string;
-  }[];
-}
+export {
+  type Restaurant,
+  type FoodItem,
+  type MenuItem,
+  type Category,
+  type Addon,
+  type Variant,
+  type DietaryInfo,
+  type Cart,
+  type CartItem,
+  type CustomizedCartItem,
+  type Order,
+  type OrderItem,
+  type DeliveryInfo,
+  type OrderStatus,
+  type Review,
+  type Coordinates,
+  type OpeningHours,
+  type ContactInfo,
+  type DeliveryPartner,
+  type LiveTracking,
+} from '../../core/types';
+//   total: number;
+//   status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+//   paymentMethod: 'cod' | 'card' | 'upi' | 'wallet';
+//   paymentStatus: 'pending' | 'paid' | 'failed';
+//   deliveryAddress: Address;
+//   deliveryInstructions?: string;
+//   createdAt: string;
+//   estimatedDelivery: string;
+// }
 
-export interface FoodItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  restaurantId: string;
-  restaurantName: string;
-  isVeg: boolean;
-  isSpicy: boolean;
-  isBestSeller: boolean;
-  isAvailable: boolean;
-  rating: number;
-  ingredients: string[];
-  dietaryInfo: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-  addons?: Addon[];
-  variants?: Variant[];
-}
+// export interface Address {
+//   id: string;
+//   name: string;
+//   phone: string;
+//   street: string;
+//   city: string;
+//   state: string;
+//   zipCode: string;
+//   isDefault: boolean;
+//   type: 'home' | 'work' | 'other';
+// }
 
-export interface Addon {
-  id: string;
-  name: string;
-  price: number;
-  isAvailable: boolean;
-}
-
-export interface Variant {
-  id: string;
-  name: string;
-  price: number;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  icon: string;
-  description?: string;
-}
-
-export interface CartItem {
-  id: string;
-  foodItem: FoodItem;
-  quantity: number;
-  selectedAddons: Addon[];
-  selectedVariant?: Variant;
-  specialInstructions?: string;
-}
-
-export interface Cart {
-  id: string;
-  restaurantId: string;
-  restaurantName: string;
-  items: CartItem[];
-  subtotal: number;
-  deliveryFee: number;
-  tax: number;
-  total: number;
-}
-
-export interface Order {
-  id: string;
-  userId: string;
-  restaurantId: string;
-  items: CartItem[];
-  total: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
-  paymentMethod: 'cod' | 'card' | 'upi' | 'wallet';
-  paymentStatus: 'pending' | 'paid' | 'failed';
-  deliveryAddress: Address;
-  deliveryInstructions?: string;
-  createdAt: string;
-  estimatedDelivery: string;
-}
-
-export interface Address {
-  id: string;
-  name: string;
-  phone: string;
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  isDefault: boolean;
-  type: 'home' | 'work' | 'other';
-}
-
-export interface Review {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  restaurantId?: string;
-  foodItemId?: string;
-  rating: number;
-  comment: string;
-  images?: string[];
-  createdAt: string;
-}
+// export interface Review {
+//   id: string;
+//   userId: string;
+//   userName: string;
+//   userAvatar?: string;
+//   restaurantId?: string;
+//   foodItemId?: string;
+//   rating: number;
+//   comment: string;
+//   images?: string[];
+//   createdAt: string;
+// }
 
 export interface Cuisine {
   id: string;

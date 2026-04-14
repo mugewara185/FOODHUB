@@ -1,31 +1,162 @@
+// ============================================================================
+// CORE DOMAIN TYPES - ACTIVE/PRODUCTION USE
+// ============================================================================
+
+// ─────────────────────────────────────────────────────────────────────────
+// 1. USER & AUTHENTICATION
+// ─────────────────────────────────────────────────────────────────────────
+
+export type UserRole = 'admin' | 'restaurant_owner' | 'user' | 'delivery_partner';
+
+export type Permission =
+  | 'view_dashboard'
+  | 'manage_users'
+  | 'manage_restaurants'
+  | 'manage_menu'
+  | 'manage_orders'
+  | 'manage_payments'
+  | 'view_reports'
+  | 'manage_delivery'
+  | 'place_order'
+  | 'view_profile'
+  | 'manage_own_restaurant'
+  | 'manage_own_orders'
+  | 'track_orders'
+  | 'cancel_orders';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  role: UserRole;
+  restaurantId?: string; // For restaurant owners
+  isActive: boolean;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  address?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthUser extends User {
+  token: string;
+  refreshToken: string;
+  expiresAt: number;
+  permissions: Permission[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 2. RESTAURANT & LOCATION
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+export interface OpeningHours {
+  day: string; // "Monday", "Tuesday", etc.
+  open: string; // "09:00"
+  close: string; // "23:00"
+}
+
+export interface ContactInfo {
+  phone: string;
+  email?: string;
+}
+
 export interface Restaurant {
   id: string;
   name: string;
-  location?: string;
-  geoLocation?: { lat: number; lng: number };
   description: string;
-  cuisine: string[];
-  rating: number;
-  deliveryTime: string;
+  cuisine: string[]; // ['Italian', 'Mexican', etc.]
+  rating: number; // 1-5
+  deliveryTime: string; // "20-30 min"
   deliveryFee: number;
   minOrder: number;
-  image: string;
-  bannerImage?: string;
+  image: string; // Primary image URL
+  bannerImage?: string; // Banner image URL
   address: string;
+  location: Coordinates; // { lat, lng }
   isOpen: boolean;
   isFeatured: boolean;
   isVeg?: boolean;
-  tags: string[];
-  contact?: {
-    phone: string;
-    email: string;
-  };
-  openingHours?: { day: string; open: string; close: string }[];
+  tags: string[]; // ['Fast Delivery', 'Best Seller']
+  contact?: ContactInfo;
+  openingHours?: OpeningHours[];
 }
-export interface CartItem {
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3. FOOD ITEMS & MENU
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface Addon {
   id: string;
+  name: string;
+  price: number;
+  isAvailable: boolean;
+}
+
+export interface Variant {
+  id: string;
+  name: string; // "Regular", "Medium", "Large"
+  price: number;
+}
+
+export interface DietaryInfo {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface FoodItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number; // For discounts
+  image: string;
+  category: string; // "Pizza", "Burger", "Indian", etc.
+  restaurantId: string;
+  restaurantName: string;
+  isVeg: boolean;
+  isSpicy: boolean;
+  isBestSeller: boolean;
+  isAvailable: boolean;
+  rating: number;
+  addons?: Addon[]; // Customization options
+  variants?: Variant[]; // Size/Type variations
+  ingredients?: string[];
+  dietaryInfo?: DietaryInfo;
+}
+
+export interface MenuItem {
+  id: string;
+  restaurantId: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  isVeg: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  icon?: string;
+  description?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 4. CART & CHECKOUT
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface CartItem {
+  id: string; // UUID - unique to cart entry
   foodItemId: string;
-  caartItemId?: string;
   name: string;
   price: number;
   quantity: number;
@@ -34,180 +165,356 @@ export interface CartItem {
   restaurantName: string;
   isVeg: boolean;
   specialInstructions?: string;
-  addons?: { name: string; price: number }[];
-};
-export interface FoodItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  restaurantId: string;
-  restaurantName: string;
-  isVeg: boolean;
-  isSpicy: boolean;
-  isBestSeller: boolean;
-  isAvailable: boolean;
-  rating: number;
-  addons?: { id: string; name: string; price: number; isAvailable: boolean }[];
-  variants?: { id: string; name: string; price: number }[] | null;
-  ingredients?: string[]; 
-  dietaryInfo?: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
-}
-export interface CustomizedItem {
-    id:string;
-    foodItem: FoodItem;
-    quantity: number;
-    selectedAddons?: FoodItem['addons'];
-    // selectedVariant?: FoodItem['variants']?.[number] | null; //error: FoodItem['variants'] is possibly undefined. 
-    selectedVariant?: NonNullable<FoodItem['variants']>[number] | null; //fix: using NonNullable to ensure variants is not undefined before accessing its elements. This allows for the possibility of selectedVariant being null if no variant is selected, while still ensuring type safety when accessing the variants array.
-    // selectedVariant?: FoodItem['variants'] extends (infer U)[] ? U : never | null; //other fix: using conditional types to infer the type of elements in the variants array, while still allowing for null if no variant is selected.
-    specialInstructions?: string;
-  }
-export interface Category {
-  id: string;
-  name: string;
-  items: FoodItem[];
+  addons?: Addon[]; // Selected addons in cart
 }
 
+export interface CustomizedCartItem extends CartItem {
+  foodItem: FoodItem;
+  quantity: number;
+  selectedAddons?: Addon[] | any;
+  selectedVariant?: Variant | null | any;
+  specialInstructions?: string;
+}
 
-
-export type MenuItem = {
-  restaurantId: string;
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  isVeg: boolean;
-};
-
-
-export type Cart = {
+export interface Cart {
   userId: string;
   id: string;
   items: CartItem[];
+  restaurantId: string | null; // Single restaurant per cart
+  restaurantName: string | null;
+  subtotal: number;
+  deliveryFee: number;
+  tax: number;
   total: number;
-};
+  couponCode?: string | null;
+  discount: number;
+  itemCount: number;
+}
 
-export type User = {
+// ─────────────────────────────────────────────────────────────────────────
+// 5. ORDERS
+// ─────────────────────────────────────────────────────────────────────────
+
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+export type PaymentMethod = 'card' | 'upi' | 'wallet' | 'cash_on_delivery';
+export type PaymentStatus = 'pending' | 'completed' | 'failed';
+
+export interface OrderItem {
+  foodItemId: string;
+  name: string;
+  quantity: number;
+  price: number;
+  addons?: Addon[];
+  specialInstructions?: string;
+}
+
+export interface DeliveryInfo {
+  address: string;
+  coordinates?: Coordinates;
+  partnerAssigned?: boolean;
+  estimatedTime?: string;
+}
+
+export interface Order {
   id: string;
-  password?: string;
-  role?: string;
+  userId: string;
+  restaurantId: string;
+  restaurantName: string;
+  items: OrderItem[];
+  subtotal: number;
+  deliveryFee: number;
+  tax: number;
+  discount: number;
+  total: number;
+  couponCode?: string;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  deliveryInfo: DeliveryInfo;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 6. REVIEWS & RATINGS
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  restaurantId: string;
+  restaurantName: string;
+  orderId?: string; // Link to order if from completed order
+  foodItemId?: string; // If reviewing specific item
+  rating: number; // 1-5, can be decimal
+  title?: string;
+  comment: string;
+  photos?: string[]; // Photo URLs
+  helpful: number;
+  unhelpful: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 7. DELIVERY & LOGISTICS (ACTIVE)
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface DeliveryPartner {
+  id: string;
   name: string;
   email: string;
+  phone: string;
   avatar?: string;
-  address?: string;
-};
-
-export type Order = {
-  userId: string;
-  id: string;
-  restaurantId: string;
-  items: { name: string; quantity: number; price: number }[];
-  total: number;
-  status: "pending" | "completed" | "cancelled";
-  createdAt: string;
-};
-
-export type Review = {
-  userId: string;
-  id: string;
-  restaurantId: string;
+  vehicleType: 'bike' | 'scooter' | 'car';
+  vehicleNumber?: string;
+  currentLocation: Coordinates;
+  status: 'online' | 'offline' | 'on_delivery';
   rating: number;
-  comment: string;
+  completedDeliveries: number;
+  isActive: boolean;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface LiveTracking {
+  orderId: string;
+  partnerId: string;
+  partnerName?: string;
+  partnerPhone?: string;
+  partnerLocation: Coordinates;
+  estimatedArrival: string; // ISO timestamp
+  status: 'assigned' | 'picked_up' | 'on_the_way' | 'arrived' | 'delivered';
+  updatedAt: string;
+}
+
+// ============================================================================
+// FUTURE FEATURES (Commented - uncomment when needed)
+// ============================================================================
+
+// ─────────────────────────────────────────────────────────────────────────
+// FAVORITES & PERSONALIZATION
+// ─────────────────────────────────────────────────────────────────────────
+/*
+export interface Favorite {
+  id: string;
+  userId: string;
+  restaurantId?: string;
+  foodItemId?: string;
+  createdAt: string;
+}
+
+export type SearchHistory = {
+  id: string;
+  userId: string;
+  query: string;
+  timestamp: string;
 };
 
+export type RecentView = {
+  id: string;
+  userId: string;
+  restaurantId?: string;
+  foodItemId?: string;
+  viewedAt: string;
+};
+*/
 
-// //TOO ADD 
-// // 🧠 Personalization & UX
-// export type SearchHistory = {
-//   userId: string;
-//   query: string;
-//   timestamp: string;
-// };
-// export type FavoriteRestaurant = {
-//   userId: string;
-//   restaurantId: string;
-// };
-// export type FavoriteItem = {
-//   userId: string;
-//   menuItemId: string;
-// };
+// ─────────────────────────────────────────────────────────────────────────
+// PAYMENTS & BILLING
+// ─────────────────────────────────────────────────────────────────────────
+/*
+export interface SavedPaymentMethod {
+  id: string;
+  userId: string;
+  type: 'card' | 'upi' | 'wallet' | 'netbanking';
+  provider: string; // 'Visa', 'RazorPay', 'PayPal'
+  lastFourDigits?: string;
+  isDefault: boolean;
+  expiryDate?: string; // For cards
+  createdAt: string;
+}
 
-// // 📦 Logistics & Tracking
-// export type DeliveryStatus = {
-//   orderId: string;
-//   status: "preparing" | "out_for_delivery" | "delivered" | "delayed";
-//   updatedAt: string;
-//   estimatedArrival?: string;
-//   deliveryPartnerId?: string;
-// };
+export interface Invoice {
+  id: string;
+  orderId: string;
+  userId: string;
+  restaurantId: string;
+  items: OrderItem[];
+  subtotal: number;
+  tax: number;
+  deliveryFee: number;
+  discount: number;
+  total: number;
+  paymentMethod: PaymentMethod;
+  paidAt: string;
+}
 
-// // 🧾 Business & Operational Expansion
-// export type RestaurantBranch = {
-//   id: string;
-//   restaurantId: string;
-//   address: string;
-//   contactNumber?: string;
-//   openingHours: { day: string; open: string; close: string }[];
-//   geoLocation?: { lat: number; lng: number };
-// };
-// export type DeliveryPartner = {
-//   id: string;
-//   name: string;
-//   phone: string;
-//   vehicleType: "bike" | "car" | "cycle";
-//   currentLocation?: { lat: number; lng: number };
-//   isAvailable: boolean;
-// };
-// export type PaymentMethod = {
-//   id: string;
-//   userId: string;
-//   type: "card" | "upi" | "wallet";
-//   provider: string;
-//   lastFourDigits?: string;
-//   isDefault: boolean;
-// };
-// export type Coupon = {
-//   code: string;
-//   description: string;
-//   discountType: "flat" | "percentage";
-//   value: number;
-//   expiryDate: string;
-//   applicableRestaurantIds?: string[];
-//   minOrderAmount?: number;
-// };
+export interface Coupon {
+  id: string;
+  code: string;
+  description: string;
+  discountType: 'flat' | 'percentage' | 'buy_one_get_one';
+  value: number;
+  expiryDate: string;
+  applicableRestaurantIds?: string[]; // null = all restaurants
+  applicableCuisines?: string[];
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  usageLimit?: number;
+  usedCount: number;
+  createdAt: string;
+}
+*/
 
-// // 🛠 Admin & Moderation
-// export type RestaurantAdmin = {
-//   id: string;
-//   restaurantId: string;
-//   name: string;
-//   email: string;
-//   role: "owner" | "manager" | "staff";
-// };
-// export type Report = {
-//   id: string;
-//   reportedBy: string;
-//   targetType: "review" | "restaurant" | "menuItem";
-//   targetId: string;
-//   reason: string;
-//   createdAt: string;
-// };
+// ─────────────────────────────────────────────────────────────────────────
+// RESTAURANT MANAGEMENT (Owner Features)
+// ─────────────────────────────────────────────────────────────────────────
+/*
+export interface RestaurantBranch {
+  id: string;
+  restaurantId: string;
+  name: string;
+  address: string;
+  location: Coordinates;
+  contactNumber?: string;
+  openingHours: OpeningHours[];
+}
 
-// // 📊 Analytics & Feedback
-// export type AnalyticsEvent = {
-//   userId?: string;
-//   eventType: string;
-//   metadata?: Record<string, any>;
-//   timestamp: string;
-// };
+export interface RestaurantStats {
+  restaurantId: string;
+  totalOrders: number;
+  totalRevenue: number;
+  averageRating: number;
+  bestSellingItems: string[];
+  peakHours: string[];
+  lastUpdate: string;
+}
+
+export interface RestaurantOwnerPanel {
+  id: string;
+  ownerId: string;
+  restaurantId: string;
+  permissions: Permission[];
+}
+*/
+
+// ─────────────────────────────────────────────────────────────────────────
+// ADMIN & MODERATION
+// ─────────────────────────────────────────────────────────────────────────
+/*
+export interface Report {
+  id: string;
+  reportedBy: string;
+  reportedUser?: string;
+  targetType: 'review' | 'restaurant' | 'menu_item' | 'user';
+  targetId: string;
+  reason: string;
+  description?: string;
+  status: 'pending' | 'reviewed' | 'action_taken' | 'dismissed';
+  createdAt: string;
+  reviewedAt?: string;
+}
+
+export interface AdminActivity {
+  id: string;
+  adminId: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  changes: Record<string, any>;
+  timestamp: string;
+}
+
+export interface SuspendedUser {
+  id: string;
+  userId: string;
+  reason: string;
+  suspendedAt: string;
+  suspendedUntil?: string;
+  suspendedBy: string;
+}
+*/
+
+// ─────────────────────────────────────────────────────────────────────────
+// ANALYTICS & FEEDBACK
+// ─────────────────────────────────────────────────────────────────────────
+/*
+export type AnalyticsEvent = {
+  id: string;
+  userId?: string;
+  eventType: 'view_restaurant' | 'add_to_cart' | 'checkout' | 'order_placed' | 'review_submitted';
+  metadata?: Record<string, any>;
+  timestamp: string;
+};
+
+export interface UserPreferences {
+  userId: string;
+  preferredCuisines: string[];
+  priceRange: 'low' | 'medium' | 'high';
+  preferredRestaurants: string[];
+  notifications: {
+    orderUpdates: boolean;
+    promotions: boolean;
+    reviews: boolean;
+  };
+  updatedAt: string;
+}
+
+export interface PushNotification {
+  id: string;
+  userId: string;
+  type: 'order_update' | 'promotion' | 'review_request' | 'general';
+  title: string;
+  message: string;
+  data?: Record<string, any>;
+  sentAt: string;
+  readAt?: string;
+}
+*/
+
+// ============================================================================
+// FACTORY INPUT INTERFACE (For dynamic dummy data generation)
+// ============================================================================
+
+export interface FactoryInput {
+  restaurants: RestaurantFactoryInput[];
+  foodItems: FoodItemFactoryInput[];
+  users: UserFactoryInput[];
+  orders: OrderFactoryInput[];
+  reviews: ReviewFactoryInput[];
+}
+
+export interface RestaurantFactoryInput {
+  count?: number;
+  cuisines?: string[];
+  locations?: string[];
+  priceRanges?: 'low' | 'medium' | 'high'[];
+}
+
+export interface FoodItemFactoryInput {
+  count?: number;
+  categories?: string[];
+  vegPercentage?: number; // 0-100
+  withAddons?: boolean;
+  withVariants?: boolean;
+}
+
+export interface UserFactoryInput {
+  count?: number;
+  roles?: UserRole[];
+  includeTestAccounts?: boolean;
+}
+
+export interface OrderFactoryInput {
+  count?: number;
+  statuses?: OrderStatus[];
+  dateRange?: { from: string; to: string };
+}
+
+export interface ReviewFactoryInput {
+  count?: number;
+  ratingRange?: { min: number; max: number };
+}

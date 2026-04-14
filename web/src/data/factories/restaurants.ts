@@ -1,4 +1,5 @@
-import type { Restaurant } from "../types";
+import type { Restaurant as type1 } from "../typess";
+import type { Restaurant as type2 } from "../types";
 import { restaurantNames } from "../seeds/restaurantNames";
 import { cuisinesList } from "../seeds/cuisines";
 import { locations } from "../seeds/locations";
@@ -7,7 +8,7 @@ import { foodImages, restaurantImages } from "../seeds/Images";
 const deliveryTimes = ["20-30 min", "30-40 min", "40-50 min"];
 const tagsPool = ["Popular", "Fast Delivery", "Best Seller", "Top Rated"];
 
-export const generateRestaurants = (count = 60): Restaurant[] =>
+export const generateRestaurants = (count = 60): type1[] | type2[] =>
   Array.from({ length: count }).map((_, i) => ({
     id: `r${i + 1}`,
     name: restaurantNames[i % restaurantNames.length],
@@ -37,3 +38,5 @@ export const generateRestaurants = (count = 60): Restaurant[] =>
 const getRestaurants = generateRestaurants();
 
 export default getRestaurants;
+
+//make core/type default here

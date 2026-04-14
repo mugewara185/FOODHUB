@@ -32,7 +32,7 @@ import {
   Code,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { useAppDispatch, useAppSelector } from '../../../app/store';
+import store, { useAppDispatch, useAppSelector } from '../../../app/store';
 import { 
   fetchRestaurants, 
   selectFeaturedRestaurants,
@@ -42,10 +42,9 @@ import {
 } from '../../../features/restaurant/restaurantSlice';
 import RestaurantCard from '../../../features/restaurant/components/RestaurantCard/RestaurantCard_V';
 import { showToast } from '../../../features/ui/uiSlice';
-import { CUISINES } from '../../../core/constants/food';
+// import { CUISINES } from '../../../core/constants/food';
 //dev
 import { useDevContext } from '../../../core/dev/contexts/DevContext';
-import { FloatingDevConsole } from '../../../features/ui/components/FloatingDevConsole';
 
 // Import section components
 import PromoSection from '@features/home/components/PromoSection';
@@ -73,11 +72,12 @@ const staggerContainer = {
 };
 
 const HomeV2: React.FC = () => {
+  console.log('store states',store.getState())
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { availableVersions, selectedVersions } = useDevContext();
+  // const { availableVersions, selectedVersions } = useDevContext();
   
   const featuredRestaurants = useAppSelector(selectFeaturedRestaurants);
   const allRestaurants = useAppSelector(selectAllRestaurants);
@@ -155,7 +155,7 @@ const HomeV2: React.FC = () => {
               >
                 <motion.div variants={fadeInUp}>
                   <Chip 
-                    label="⚡ Development Mode - V2 Renderer" 
+                    label="⚡ Development Mode - _V_ Renderer" 
                     size="small"
                     color="warning"
                     variant="outlined"
@@ -273,7 +273,7 @@ const HomeV2: React.FC = () => {
                   component="img"
                   src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&auto=format&fit=crop"
                   alt="Food Delivery"
-                  onLoad={() => setHeroImageLoaded(true)}
+                  onLoad={() => setHeroImageLoaded(false)}
                   sx={{
                     width: '100%',
                     borderRadius: 4,
@@ -300,12 +300,12 @@ const HomeV2: React.FC = () => {
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Chip 
             icon={<Code />}
-            label="DEV MODE - Live Component Swapping" 
+            label="DEV MODE - Home_V Renderer Active" 
             color="warning" 
             variant="outlined"
             sx={{ mb: 2 }}
           />
-          <Typography 
+          {/* <Typography 
             variant="h3" 
             fontWeight={800} 
             gutterBottom
@@ -320,11 +320,11 @@ const HomeV2: React.FC = () => {
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
             Dynamic component swapping, A/B testing ready, and blazing fast performance
-          </Typography>
+          </Typography> */}
         </Box>
 
         <Divider sx={{ my: 4 }}>
-          <Chip label="What makes us different" size="medium" />
+          <Chip label="Explore" size="medium" />
         </Divider>
 
         {/* Stats Section - Credibility & Impact */}
@@ -474,16 +474,6 @@ const HomeV2: React.FC = () => {
           </Button>
         </Box>
       </Container>
-
-      {/* Floating Dev Console */}
-      <FloatingDevConsole
-        allRestaurants={allRestaurants}
-        featuredRestaurants={featuredRestaurants}
-        loading={loading}
-        availableVersions={availableVersions}
-        selectedVersions={selectedVersions}
-        cuisineLength={CUISINES.length}
-      />
     </Box>
   );
 };

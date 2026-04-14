@@ -1,19 +1,17 @@
-import React from 'react'
-// import RestaurantDetails_V from './RestaurantDetailsV1'
-import RestaurantDetails_V from './versions/RestaurantDetailsV2'
-// import RestaurantDetails_V from './versions/RestaurantDetailsV3'
-import { logger } from '../../core/utils/logger'
-// import RestaurantDetailsV3 from './versions/RestaurantDetailsV3'
-import RestaurantDetail from './versions/RestaurantDetail_V'
+import React from 'react';
+import { DevVersionRenderer } from '../../core/dev/renderer/DevVersionRenderer';
 
-const index = () => {
-logger.log(`<${RestaurantDetails_V.name}>--------------------------------!`)
-  
+// Vite handles dynamic glob imports from the versions directory
+const versions = import.meta.glob('./versions/*.tsx');
+
+const RestaurantDetailIndex: React.FC = () => {
   return (
-    // <div>
-      <RestaurantDetail/>
-    // </div>
-  )
-}
+    <DevVersionRenderer 
+      pageKey="RestaurantDetails" 
+      defaultVersion="RestaurantDetail_V" 
+      imports={versions}
+    />
+  );
+};
 
-export default index
+export default RestaurantDetailIndex;

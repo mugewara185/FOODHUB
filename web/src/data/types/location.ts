@@ -1,59 +1,18 @@
-export interface Coordinates {
-  lat: number;
-  lng: number;
-}
+// ============================================================================
+// LOCATION & DELIVERY TYPES (Re-exported from core)
+// ============================================================================
+// This file is deprecated. All types are now centralized in src/core/types/index.ts
+// Use imports from core/types directly instead:
+//   import type { Coordinates, DeliveryPartner, LiveTracking } from '@/core/types'
 
-export interface Location {
-  address: string;
-  coordinates: Coordinates;
-  placeId?: string;
-}
+export {
+  type Coordinates,
+  type DeliveryPartner,
+  type LiveTracking,
+} from '../../core/types';
 
-export interface DeliveryPartner {
-  id: string;
-  name: string;
-  avatar?: string;
-  phone: string;
-  vehicleType: 'bike' | 'scooter' | 'car';
-  vehicleNumber: string;
-  currentLocation: Coordinates;
-  status: 'online' | 'offline' | 'on_delivery';
-  rating: number;
-  completedDeliveries: number;
-  lastUpdate: Date;
-}
-
-export interface DeliveryRoute {
-  pickup: Location;
-  dropoff: Location;
-  distance: number; // in meters
-  duration: number; // in seconds
-  polyline: string;
-  steps: DeliveryStep[];
-}
-
-export interface DeliveryStep {
-  instruction: string;
-  distance: number;
-  duration: number;
-  coordinates: Coordinates;
-}
-
-export interface LiveTracking {
-  orderId: string;
-  partnerId: string;
-  partnerLocation: Coordinates;
-  estimatedArrival: Date;
-  currentStep: number;
-  totalSteps: number;
-  status: 'assigned' | 'picked_up' | 'on_the_way' | 'arrived' | 'delivered';
-  lastUpdate: Date;
-}
-
-export interface MapMarker {
-  id: string;
-  position: Coordinates;
-  type: 'restaurant' | 'customer' | 'partner' | 'current';
-  title: string;
-  info?: any;
-}
+// FUTURE: Additional location/geospatial utilities can be added here when implementing:
+// - Route optimization
+// - Geofencing
+// - Map-based searches
+// - Delivery zone management

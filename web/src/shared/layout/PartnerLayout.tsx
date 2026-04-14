@@ -22,6 +22,7 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material';
+import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
 import {
   Menu as MenuIcon,
   Dashboard,
@@ -246,6 +247,8 @@ const PartnerLayout: React.FC = () => {
             color={isOnline ? 'success' : 'default'}
             sx={{ mr: 2 }}
           />
+
+          <DevVersionSwitcher />
 
           {/* Notifications */}
           <IconButton>

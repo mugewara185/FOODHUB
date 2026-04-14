@@ -621,7 +621,10 @@ const AddRestaurant: React.FC = () => {
   };
 
   return (
-    <Box>
+    <Box 
+    // display={'flex'} flexDirection={'column'} 
+    // justifyContent={'center'}
+    >
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
         <IconButton onClick={() => navigate(-1)}>
@@ -637,7 +640,7 @@ const AddRestaurant: React.FC = () => {
         </Box>
       </Box>
 
-      <Grid container spacing={4}>
+      <Grid container spacing={4} wrap='nowrap'>
         {/* Main Form */}
         <Grid item xs={12} lg={8}>
           <Paper sx={{ p: 3, borderRadius: 2 }}>

@@ -14,10 +14,10 @@ import {
   Delete,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type CartItem } from '../../data/types/food';
+import { type CartItem, type CustomizedCartItem } from '@core/types';
 
 interface CartItemProps {
-  item: CartItem;
+  item: CustomizedCartItem;
   onUpdateQuantity: (itemId: string, quantity: number) => void;
   onRemove: (itemId: string) => void;
 }
@@ -28,12 +28,12 @@ const CartItemComponent: React.FC<CartItemProps> = ({
   onRemove,
 }) => {
   const itemPrice = item.foodItem.price;
-  const addonsPrice = item.selectedAddons.reduce(
+  const addonsPrice = item.selectedAddons?.reduce(
     (sum, addon) => sum + addon.price,
     0
   );
   const variantPrice = item.selectedVariant?.price || 0;
-  const totalItemPrice = (itemPrice + addonsPrice + variantPrice) * item.quantity;
+  const totalItemPrice = (itemPrice + (addonsPrice || 0) + variantPrice) * item.quantity;
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -85,7 +85,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({
           </Stack>
 
           {/* Selected Addons */}
-          {item.selectedAddons.length > 0 && (
+          {item.selectedAddons && item.selectedAddons.length > 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Addons:{' '}
               {item.selectedAddons.map((addon) => addon.name).join(', ')}
@@ -137,7 +137,7 @@ const CartItemComponent: React.FC<CartItemProps> = ({
           </Box>
         </Box>
       </Box>
-      
+
       <Divider sx={{ mt: 2 }} />
     </Box>
   );

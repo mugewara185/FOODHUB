@@ -42,8 +42,23 @@ export const UIProvider= ({children}:{children:ReactNode})=>{
 }; 
 
     return(
-        <UIContext.Provider value={{isSideNavOpen, setSideNavOpen, sideNavTog, setSideNavTog,
-                    theme, accentColor, animations, layoutStyle, navPosition, resetUI,setAccentColor,setAnimations,setLayoutStyle,setNavPosition,setTheme,
+        <UIContext.Provider 
+        value={{
+            isSideNavOpen,
+            setSideNavOpen,
+            sideNavTog, 
+            setSideNavTog,
+            theme,
+            accentColor, 
+            animations, 
+            layoutStyle, 
+            navPosition, 
+            resetUI,
+            setAccentColor,
+            setAnimations,
+            setLayoutStyle,
+            setNavPosition,
+            setTheme,
          }}>
             {children}
         </UIContext.Provider>

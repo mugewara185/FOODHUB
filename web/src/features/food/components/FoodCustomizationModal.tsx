@@ -23,22 +23,16 @@ import {
   Close,
   LocalFireDepartment,
 } from '@mui/icons-material';
-import { type FoodItem} from '../../../core/types';
+import type { FoodItem, CustomizedCartItem, Addon, Variant } from '../../../core/types';
 // import { type FoodItem, type Addon, type Variant } from '../../../core/types';
-type Addon = FoodItem['addons'][number];
-type Variant = FoodItem['variants'][number];
+// type Addon = FoodItem['addons'][number] | undefined;
+// type Variant = FoodItem['variants'][number] | undefined;
 
 interface FoodCustomizationModalProps {
   open: boolean;
   foodItem: FoodItem;
   onClose: () => void;
-  onAddToCart: (customizedItem: {
-    foodItem: FoodItem;
-    quantity: number;
-    selectedAddons?: Addon[];
-    selectedVariant?: Variant;
-    specialInstructions?: string;
-  }) => void;
+  onAddToCart: (customizedItem: CustomizedCartItem) => void;
 }
 
 const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
@@ -82,6 +76,14 @@ const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
       selectedAddons,
       selectedVariant,
       specialInstructions: specialInstructions.trim() || undefined,
+      id: '',
+      foodItemId: '',
+      name: '',
+      price: 0,
+      image: '',
+      restaurantId: '',
+      restaurantName: '',
+      isVeg: false
     });
     onClose();
   };
@@ -124,7 +126,7 @@ const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </Box>
-          
+
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Typography variant="h6" fontWeight={700}>
               {foodItem.name}

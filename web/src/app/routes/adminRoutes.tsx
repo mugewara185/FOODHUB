@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import AppLayout from '../../shared/layout/AppLayout';
+import AppLayout from '../../shared/layout/others/AppLayout';
 import Dashboard from '../pages/ADMINpages/Dashboard';
 import Courses from '../pages/ADMINpages/Courses';
 // import Profile from '../pages/Profile';

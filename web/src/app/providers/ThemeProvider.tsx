@@ -10,7 +10,8 @@ type ThemeContextType={
 const ThemeContext= createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider= ({children}: { children: ReactNode})=>{
-    const[theme, setTheme]= useState<Theme>('light');
+    // const[theme, setTheme]= useState<Theme>('light');
+    const[theme, setTheme]= useState<Theme>('dark');
 
     useEffect(()=>{
         document.documentElement.classList.toggle('dark', theme === 'dark');

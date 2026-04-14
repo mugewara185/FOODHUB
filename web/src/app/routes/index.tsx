@@ -23,7 +23,7 @@ import {
   Settings
   // Addresses,
   // Checkout 
-} from '../../pages/'
+} from '@pages/index'
 // import OrderDetail from '../pages/OrderDetail';
 // import Search from '../pages/Search';
 // import NotFound from '../pages/NotFound';
@@ -37,7 +37,7 @@ import ActiveDelivery from '../../pages/_deliveryPartner/ActiveDelivery';
 import DeliveryHistory from '../../pages/_deliveryPartner/DeliveryHistory';
 import Earnings from '../../pages/_deliveryPartner/Earnings';
 import Support from '../../pages/_deliveryPartner/PartnerSupport';
-// import partnerSettings from '../../pages/_deliveryPartner/Settings';
+import PartnerSettings from '../../pages/_deliveryPartner/Settings';
 
 // owner routes
 import OwnerLayout from '../../shared/layout/OwnerLayout';
@@ -55,12 +55,23 @@ import AdminProfile from '../../pages/admin/Profile';
 import { Promotions, Reports, Settings as AdminSettings, Users } from '../../pages/admin';
 
 import { de } from 'date-fns/locale';
-import PartnerSettings from '../../pages/_deliveryPartner/Settings';
+import DevLayout from '@/core/dev/ui/layout/DevLayout';
+import DevDashboard from '@/core/dev/ui/Dashboard';
+import ComponentTreeExplorer from '@/core/dev/ui/pages/ComponentTreeExplorer';
+import ComponentTreeExplorer2 from '@/core/dev/ui/pages/ComponenTreeExplorer2';
+import StateInspector from '@/core/dev/ui/pages/StateInspector';
+import PropsPanel from '@/core/dev/ui/pages/PropsPanel';
+import VersionSwitcher from '@/core/dev/ui/pages/VersionSwitcher';
+import NetworkInspector from '@/core/dev/ui/pages/NetworkInspector';
+import LogPanel from '@/core/dev/ui/pages/LogPanel';
+import PerformanceMetrics from '@/core/dev/ui/pages/PerformanceMetrics';
+import ComponentPlayground from '@/core/dev/ui/components/ComponentPlayground';
+import DocumentationViewer from '@/core/dev/ui/pages/DocumentationViewer';
 
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* user routes */}
+      {/* user and public routes */}
       <Route path="/" element={<MainLayout />}>
         {/* Public Routes */}
         <Route index element={<Home />} />
@@ -76,9 +87,9 @@ const AppRoutes: React.FC = () => {
         <Route path='settings' element={<Settings />} />
         {/* Protected Routes */}
         <Route path="profile" element={
-          <ProtectedRoute allowedRoles={['user', 'admin']}>
-            <Profile />
-          </ProtectedRoute>
+          // <ProtectedRoute allowedRoles={['user', 'admin']}>
+          <Profile />
+          // </ProtectedRoute>
         } />
         <Route path="cart" element={
           <ProtectedRoute allowedRoles={['user', 'admin']}>
@@ -103,6 +114,24 @@ const AppRoutes: React.FC = () => {
 
         {/* 404 */}
         {/* <Route path="*" element={<NotFound />} /> */}
+      </Route>
+
+      {/* admin routes */}
+      <Route path="/admin/*" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout />
+        </ProtectedRoute>
+      } >
+        <Route index element={<AdminDashboard />} />
+        <Route path='orders' element={<OrdersList />} />
+        {/* <Route path='orders/:id/track' element={<OrderTracking />} (//user component) for now /> */}
+        <Route path='restaurants' element={<RestaurantsList />} />
+        <Route path='restaurants/add' element={<AddRestaurant />} />
+        <Route path='promotions' element={<Promotions />} />
+        <Route path='reports' element={<Reports />} />
+        <Route path='settings' element={<AdminSettings />} />
+        <Route path='users' element={<Users />} />
+        <Route path='profile' element={<AdminProfile />} />
       </Route>
 
       {/* partner routes */}
@@ -132,24 +161,20 @@ const AppRoutes: React.FC = () => {
         {/* <Route path='s' */}
       </Route>
 
-      {/* admin routes */}
-      <Route path="/admin/*" element={
-        <ProtectedRoute allowedRoles={['admin']}>
-          <AdminLayout />
-        </ProtectedRoute>
-      } >
-        <Route index element={<AdminDashboard />} />
-        <Route path='orders' element={<OrdersList />} />
-        {/* <Route path='orders/:id/track' element={<OrderTracking />} (//user component) for now /> */}
-        <Route path='restaurants' element={<RestaurantsList />} />
-        <Route path='restaurants/add' element={<AddRestaurant />} />
-        <Route path='promotions' element={<Promotions />} />
-        <Route path='reports' element={<Reports />} />
-        <Route path='settings' element={<AdminSettings />} />
-        <Route path='users' element={<Users />} />
-        <Route path='profile' element={<AdminProfile />} />
+      {/* dev */}
+      <Route path="/dev" element={<DevLayout />} >
+        <Route index element={<DevDashboard />} />
+        <Route path='component-tree' element={<ComponentTreeExplorer />} />
+        <Route path='component-tree2' element={<ComponentTreeExplorer2 />} />
+        <Route path='components' element={<ComponentPlayground />} />
+        <Route path='state' element={<StateInspector />} />
+        <Route path='props' element={<PropsPanel />} />
+        <Route path='versions' element={<VersionSwitcher />} />
+        <Route path='network' element={<NetworkInspector />} />
+        <Route path='logs' element={<LogPanel />} />
+        <Route path='performance' element={<PerformanceMetrics />} />
+        <Route path='docs' element={<DocumentationViewer />} />
       </Route>
-
     </Routes>
   );
 };

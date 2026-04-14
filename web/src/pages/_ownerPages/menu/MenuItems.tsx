@@ -44,6 +44,7 @@ import {
   PhotoCamera,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle } from 'lucide-react';
 
 interface MenuItem {
   id: string;

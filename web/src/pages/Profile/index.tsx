@@ -1,82 +1,52 @@
-import React from "react";
-import { users, orders } from "@/data/dummyData";
-// import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/Tabs";
-import { User, MapPin, ShoppingBag } from "lucide-react";
-import SettingsSection from "@/features/profile/SettingsSection";
+import React, { useMemo, useEffect } from 'react';
+import { DevVersionRenderer } from '../../core/dev/renderer/DevVersionRenderer';
+import { useLogger } from '../../core/dev/logger';
 
-const KEY_USER = "miniZomUser";
+/**
+ * Profile Page with Dev Version Renderer
+ * 
+ * This component uses the core/dev framework to allow dynamic switching between
+ * multiple profile page implementations (Profile_V, ProfileV1, etc.)
+ * 
+ * Features:
+ * - Hot swap different page versions without reloading
+ * - Version state persists in localStorage
+ * - Only visible to dev@ user with developer menu
+ * - ErrorBoundary wraps each version for safety
+ * - Integrated with logger system for tracking profile views
+ * 
+ * How to use:
+ * 1. Login with dev@ account
+ * 2. Click the developer icon (⚙️) in the toolbar
+ * 3. Select different Profile versions to compare them
+ * 4. Changes persist in localStorage
+ */
 
-const ProfilePage: React.FC = () => {
-  const stored = localStorage.getItem(KEY_USER);
-  const currentUser = stored ? JSON.parse(stored) : users[0];
-  const myOrders = orders.filter((o) => o.userId === currentUser.id);
+const ProfileIndex: React.FC = () => {
+  const { info } = useLogger();
+
+  // Log page load once on mount
+  useEffect(() => {
+    info('PAGE', 'Profile versions being loaded', { route: '/profile' }, 'ProfileIndex');
+  }, []);
+
+  // Use Vite's import.meta.glob to dynamically load all versions from /V folder
+  const versionImports = useMemo(
+    () =>
+      import.meta.glob<{ default: React.ComponentType }>(
+        './V/*.tsx',
+        { eager: false }
+      ),
+    []
+  );
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <Tabs defaultValue="overview" className="space-y-6">
-        {/* Tabs header */}
-        <TabsList className="grid w-full grid-cols-2 bg-muted/30 rounded-xl">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-
-        {/* Overview Section */}
-        <TabsContent value="overview">
-          <div className="bg-card p-6 rounded-2xl shadow-sm space-y-8">
-            {/* Profile Header */}
-            <div className="flex items-center gap-4">
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-20 h-20 rounded-full object-cover border"
-              />
-              <div>
-                <h2 className="text-xl font-semibold">{currentUser.name}</h2>
-                <p className="text-sm text-muted-foreground">{currentUser.email}</p>
-                <div className="flex items-center text-sm text-muted-foreground mt-1">
-                  <MapPin size={14} className="mr-1" />
-                  {currentUser.address}
-                </div>
-              </div>
-            </div>
-
-            {/* Order Stats */}
-            <div>
-              <h3 className="font-semibold flex items-center gap-2">
-                <ShoppingBag size={16} /> My Orders
-              </h3>
-
-              {myOrders.length === 0 ? (
-                <p className="text-sm text-muted-foreground mt-2">No orders yet</p>
-              ) : (
-                <div className="mt-3 space-y-2">
-                  {myOrders.map((o) => (
-                    <div
-                      key={o.id}
-                      className="p-3 border rounded-lg hover:bg-muted/50 transition"
-                    >
-                      <div className="text-sm font-medium">
-                        Order #{o.id} — ₹{o.total}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {o.status} • {new Date(o.createdAt).toLocaleString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Settings Section */}
-        <TabsContent value="settings">
-          <SettingsSection />
-        </TabsContent>
-      </Tabs>
-    </div>
+    <DevVersionRenderer
+      pageKey="Profile"
+      defaultVersion="Profile_V"
+      imports={versionImports}
+    />
   );
 };
 
-export default ProfilePage;
+export default ProfileIndex;

@@ -1,54 +1,20 @@
-// Role types
-export type UserRole = 'admin' | 'restaurant_owner' | 'user' | 'delivery_partner';
+// ============================================================================
+// AUTHENTICATION TYPES
+// ============================================================================
 
-// Permissions
-export type Permission = 
-  | 'view_dashboard'
-  | 'manage_users'
-  | 'manage_restaurants'
-  | 'manage_menu'
-  | 'manage_orders'
-  | 'manage_payments'
-  | 'view_reports'
-  | 'manage_delivery'
-  | 'place_order'
-  | 'view_profile'
-  | 'manage_own_restaurant'
-  | 'manage_own_orders'
-  | 'track_orders'
-  | 'cancel_orders';
+import type { AuthUser } from '@/core/types/auth';
 
-export interface Role {
-  id: string;
-  name: UserRole;
-  displayName: string;
-  permissions: Permission[];
-  description: string;
-}
+// Re-export core user/permission types
+export {
+  type User,
+  type AuthUser,
+  type UserRole,
+  type Permission,
+} from '../../core/types';
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  avatar?: string;
-  role: UserRole;
-  restaurantId?: string; // For restaurant owners
-  isActive: boolean;
-  emailVerified: boolean;
-  phoneVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AuthUser extends User {
-  token: string;
-  refreshToken: string;
-  expiresAt: number;
-  permissions: Permission[];
-}
-
-
+// ─────────────────────────────────────────────────────────────────────────
+// AUTH REQUEST/RESPONSE TYPES
+// ─────────────────────────────────────────────────────────────────────────
 
 export interface LoginCredentials {
   email: string;
@@ -80,6 +46,10 @@ export interface UpdateProfileData {
   avatar?: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// AUTH STATE & CONTEXT TYPES
+// ─────────────────────────────────────────────────────────────────────────
+
 export interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -95,4 +65,17 @@ export interface AuthContextType extends AuthState {
   resetPassword: (data: ResetPasswordData) => Promise<void>;
   updateProfile: (data: UpdateProfileData) => Promise<void>;
   clearError: () => void;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ROLE & PERMISSION HELPERS
+// ─────────────────────────────────────────────────────────────────────────
+
+// Role configuration for permission mapping
+export interface RoleConfig {
+  id: string;
+  name: 'admin' | 'restaurant_owner' | 'user' | 'delivery_partner';
+  displayName: string;
+  permissions: string[];
+  description: string;
 }

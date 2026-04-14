@@ -21,6 +21,7 @@ import {
   Chip,
   Divider,
   Stack,
+  Avatar,
 } from '@mui/material';
 import {
   TrendingUp,

@@ -24,6 +24,7 @@ import {
   useMediaQuery,
   Button,
 } from '@mui/material';
+import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
 import {
   Menu as MenuIcon,
   Dashboard,
@@ -324,7 +325,13 @@ const AdminLayout: React.FC = () => {
               </Badge>
             </IconButton>
             
-            <IconButton>
+            <DevVersionSwitcher />
+            
+            <IconButton onClick={() => {
+              // Toggle theme mode logic here
+                // You'll need to integrate this with your theme provider
+              console.log('Toggle theme mode');
+            }}>
               {theme.palette.mode === 'dark' ? <LightMode /> : <DarkMode />}
             </IconButton>
             
@@ -355,7 +362,9 @@ const AdminLayout: React.FC = () => {
       </Drawer>
 
       {/* Main Content */}
-      <Box
+      <Box 
+        // justifyItems={'left'}
+        // display={'flex'}
         component="main"
         sx={{
           flexGrow: 1,
@@ -366,7 +375,7 @@ const AdminLayout: React.FC = () => {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
-          ...(open && !isMobile && { marginLeft: `${drawerWidth}px` }),
+          ...(open && !isMobile && { marginLeft: `${drawerWidth-0}px` }),
         }}
       >
         <Toolbar />
