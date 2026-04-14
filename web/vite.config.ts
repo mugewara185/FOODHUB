@@ -18,6 +18,9 @@ export default defineConfig({
       '@services': path.resolve(__dirname, './src/services'),
       '@assets': path.resolve(__dirname, './src/assets'),
       '@contexts': path.resolve(__dirname, './src/contexts'),
+
+      '@emotion/react': path.resolve('./node_modules/@emotion/react'),
+      '@emotion/styled': path.resolve('./node_modules/@emotion/styled'),
     },
   },
 })

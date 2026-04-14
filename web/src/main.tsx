@@ -4,7 +4,11 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { Provider } from 'react-redux';
 import store from './app/store';
+import { DevProvider } from './core/dev/contexts/DevContext';
+import { LoggerProvider } from './core/dev/contexts/LoggerContext';
+// import { ErrorBoundary } from './shared/components/ErrorBoundary';
 
+// import { ThemeProvider } from '@mui/material/styles';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 // import {AuthProvider} from './contexts/AuthContext';
@@ -30,19 +34,25 @@ import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <ThemeProvider theme={theme}>
-      {/* <ThemeProvider theme={foodtheme}> */}
-        <CssBaseline />
-        {/* <AuthProvider> */}
-          <Provider store={store}>
-            <App />
-          </Provider>
-        {/* </AuthProvider> */}
-      </ThemeProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
+  // <React.StrictMode>
+    <LoggerProvider>
+      {/* <ErrorBoundary> */}
+        <BrowserRouter>
+          {/* <ThemeProvider theme={theme}> */}
+          {/* <ThemeProvider theme={foodtheme}> */}
+            <CssBaseline />
+            {/* <AuthProvider> */}
+              <Provider store={store}>
+                <DevProvider>
+                  <App />
+                </DevProvider>
+              </Provider>
+            {/* </AuthProvider> */}
+          {/* </ThemeProvider> */}
+        </BrowserRouter>
+      {/* </ErrorBoundary> */}
+    </LoggerProvider>
+  // </React.StrictMode>,
 );
 
 
