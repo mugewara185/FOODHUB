@@ -4,6 +4,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/styled-engine-sc": "^9.0.0",
     "@mui/x-tree-view": "^9.0.1",
+    "@xyflow/react": "^12.10.2",
     "styled-components": "^6.4.0"
   }
 }

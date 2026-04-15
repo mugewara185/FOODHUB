@@ -1,0 +1,9 @@
+export {default as PartnerLayout} from '@/shared/layout/PartnerLayout';
+export {default as PartnerDashboard} from '@/pages/_deliveryPartner/PartnerDashboard';
+export {default as PartnerProfile} from '@/pages/_deliveryPartner/Profile';
+export {default as AvailableOrders} from '@/pages/_deliveryPartner/AvailableOrdders';
+export {default as ActiveDelivery} from '@/pages/_deliveryPartner/ActiveDelivery';
+export {default as DeliveryHistory} from '@/pages/_deliveryPartner/DeliveryHistory';
+export {default as Earnings} from '@/pages/_deliveryPartner/Earnings';
+export {default as Support} from '@/pages/_deliveryPartner/PartnerSupport';
+export {default as PartnerSettings} from '@/pages/_deliveryPartner/Settings';
