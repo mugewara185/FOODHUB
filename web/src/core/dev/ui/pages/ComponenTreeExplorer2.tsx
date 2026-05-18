@@ -73,7 +73,8 @@ import {
 } from '@mui/icons-material';
 
 // React Flow imports
-import ReactFlow, {
+import {
+    ReactFlow, 
     type Node,
     type Edge,
     Controls,
