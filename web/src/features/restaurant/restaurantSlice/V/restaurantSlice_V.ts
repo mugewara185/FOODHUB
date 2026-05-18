@@ -197,6 +197,8 @@ const restaurantSlice = createSlice({
         state.favorites = state.favorites.filter(id => id !== restaurantId);
       } else {
         state.favorites.push(restaurantId);
+        console.log('toggle favourite', action.payload,{'fav':[...state.favorites]});
+        console.log()
       }
     },
   },
@@ -337,4 +339,7 @@ export const selectActiveFiltersCount = createSelector(
   }
 );
 
-export const selectFavorites = (state: RootState) => state.restaurants.favorites;
+export const selectFavorites = (state: RootState) => {
+  console.log('selectFavorites',[...state.restaurants.favorites])
+  return [...state.restaurants.favorites];
+};
