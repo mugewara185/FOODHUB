@@ -156,11 +156,11 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     };
 
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize)
   }, []);
 
   // Calculate bounds for dragging
-  const getDragBounds = () => {
+  const getDragBounds = () => { //ls-reason?
     return {
       left: 0,
       right: window.innerWidth - FAB_WIDTH,
@@ -204,8 +204,9 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
         JSON.stringify({ x: newX, y: newY }),
       );
     }
-
-    dragDistance.current = 0;
+    setTimeout(()=> // ts-s:set dragdistance to zero after clickTimeout.Current to stop opening modal right after drag
+      dragDistance.current = 0
+    ,DOUBLE_CLICK_DELAY+1)
   };
 
   const handleFabClick = () => {
@@ -219,6 +220,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     clickTimeout.current = setTimeout(() => {
       // Only open modal if it wasn't actually dragged
       if (dragDistance.current < DRAG_THRESHOLD) {
+      // if (dragDistance.current === 0) {
         setIsOpen((prev) => !prev);
       }
       clickTimeout.current = null;
@@ -242,7 +244,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
         ref={fabRef}
         drag
         dragMomentum={false}
-        dragElastic={0}
+        dragElastic={10}
         dragConstraints={getDragBounds()}
         onDragStart={handleDragStart}
         onDrag={handleDrag}
@@ -261,8 +263,8 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
       >
         <Box
           onClick={handleFabClick}
-          // onDoubleClick={resetPosition}
-          onDoubleClick={() => setLogConsoleOpen(!LogConsoleOpen)}
+          onDoubleClick={resetPosition}
+          // onDoubleClick={() => setLogConsoleOpen(!LogConsoleOpen)}
           sx={{
             width: FAB_WIDTH,
             height: FAB_HEIGHT,
