@@ -4,18 +4,24 @@ import {
   fetchOrdersSuccess,
   fetchOrdersFailure,
 } from "./orderSlice";
-import { orders } from "@/data/dummyData";
-import { fakeFetch } from "@/api/fakeApi";
+// import { orders } from "@/data/dummyData";
+// import { fakeFetch } from "@/api/fakeApi";
+import { apiClient } from "@/services/http/apiClient";
 
 function* handleFetchOrders(action: ReturnType<typeof fetchOrdersRequest>) {
   try {
-    const data = yield call(
-      fakeFetch,
-      orders.filter((o) => o.userId === action.payload)
-    );
+    // Real API call - fetches user's orders
+    const data = yield call(() => apiClient.get("/orders"));
     yield put(fetchOrdersSuccess(data));
-  } catch {
-    yield put(fetchOrdersFailure("Failed to fetch orders"));
+  } catch (error) {
+    // Fallback to dummy data for development
+    // const data = yield call(
+    //   fakeFetch,
+    //   orders.filter((o) => o.userId === action.payload)
+    // );
+    // yield put(fetchOrdersSuccess(data));
+    const message = error instanceof Error ? error.message : "Failed to fetch orders";
+    yield put(fetchOrdersFailure(message));
   }
 }
 

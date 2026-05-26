@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { restaurants, menus, reviews } from "@/data/dummyData";
+// import { restaurants, menus, reviews } from "@/data/dummyData";
+import { apiClient } from "@/services/http/apiClient";
 import type { MenuItem, CartItem } from "@/data/types";
 
 const LOCAL_CART_KEY = "miniZomCart";
@@ -27,29 +28,73 @@ export function useRestaurantDetails() {
   const { id } = useParams<{ id: string }>();
   const [cartPreview, setCartPreview] = useState<CartItem[]>(() => readCart());
   const [loading, setLoading] = useState<boolean>(false);
+  const [restaurant, setRestaurant] = useState<any>(null);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [restaurantReviews, setRestaurantReviews] = useState<any[]>([]);
 
-  // Derived domain data from dummyData (swap out with API later)
-  const restaurant = useMemo(() => restaurants.find((r) => r.id === id), [id]);
-  const items = useMemo(() => menus.filter((m) => m.restaurantId === id), [id]);
-  const restaurantReviews = useMemo(() => reviews.filter((rv) => rv.restaurantId === id), [id]);
+  // Fetch data from API
+  useEffect(() => {
+    if (!id) return;
 
- //notes: sets and removes cartUpdate functinalities effeciently i.e.., reduces memory usage, 
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch restaurant details
+        const restaurantData = await apiClient.get(`/restaurants/${id}`);
+        setRestaurant(restaurantData);
+
+        // Fetch menu items for this restaurant
+        const menuData = await apiClient.get(`/restaurants/${id}`);
+        setItems(menuData.items || []);
+
+        // Fetch reviews for this restaurant
+        const reviewsData = await apiClient.get(`/reviews/restaurant/${id}`);
+        setRestaurantReviews(reviewsData);
+      } catch (error) {
+        console.error("Error fetching restaurant data:", error);
+        // Fallback to dummy data for development
+        // const restaurants = [];
+        // const menus = [];
+        // const reviews = [];
+        // setRestaurant(restaurants.find((r) => r.id === id));
+        // setItems(menus.filter((m) => m.restaurantId === id));
+        // setRestaurantReviews(reviews.filter((rv) => rv.restaurantId === id));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+ //notes: sets and removes cartUpdate functinalities effeciently i.e.., reduces memory usage,
   useEffect(() => {
     const handler = () => setCartPreview(readCart());
     window.addEventListener("cartUpdated", handler);
     return () => window.removeEventListener("cartUpdated", handler);
   }, []);
 
-  // Simple simulated load function - useful if you later swap to async API.
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      // placeholder for future API call(s)
-      // await someFetch(...)
+      if (!id) return;
+      // Fetch restaurant details
+      const restaurantData = await apiClient.get(`/restaurants/${id}`);
+      setRestaurant(restaurantData);
+
+      // Fetch menu items for this restaurant
+      const menuData = await apiClient.get(`/restaurants/${id}`);
+      setItems(menuData.items || []);
+
+      // Fetch reviews for this restaurant
+      const reviewsData = await apiClient.get(`/reviews/restaurant/${id}`);
+      setRestaurantReviews(reviewsData);
+    } catch (error) {
+      console.error("Error reloading restaurant data:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [id]);
 
   const addToCart = useCallback((item: MenuItem) => {
     const cart = readCart();
@@ -86,3 +131,4 @@ export function useRestaurantDetails() {
     loading,
   };
 }
+

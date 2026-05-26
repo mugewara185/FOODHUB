@@ -4,18 +4,26 @@ import {
   fetchMenuSuccess,
   fetchMenuFailure,
 } from "./menuSlice";
-import { menus } from "@/data/dummyData";
-import { fakeFetch } from "@/api/fakeApi";
+// import { menus } from "@/data/dummyData";
+// import { fakeFetch } from "@/api/fakeApi";
+import { apiClient } from "@/services/http/apiClient";
 
 function* handleFetchMenu(action: ReturnType<typeof fetchMenuRequest>) {
   try {
+    // Real API call
     const data = yield call(
-      fakeFetch,
-      menus.filter((m) => m.restaurantId === action.payload)
+      () => apiClient.get(`/restaurants/${action.payload}`)
     );
     yield put(fetchMenuSuccess(data));
-  } catch {
-    yield put(fetchMenuFailure("Failed to load menu"));
+  } catch (error) {
+    // Fallback to dummy data for development
+    // const data = yield call(
+    //   fakeFetch,
+    //   menus.filter((m) => m.restaurantId === action.payload)
+    // );
+    // yield put(fetchMenuSuccess(data));
+    const message = error instanceof Error ? error.message : "Failed to load menu";
+    yield put(fetchMenuFailure(message));
   }
 }
 

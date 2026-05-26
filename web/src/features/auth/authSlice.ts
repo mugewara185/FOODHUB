@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData } from "../../data/types/auth";
-import { users } from "../../data/factories/users";
-import { fakeFetch } from "../../api/fakeApi";
+// import { users } from "../../data/factories/users";
+// import { fakeFetch } from "../../api/fakeApi";
+import { apiClient } from "../../services/http/apiClient";
 
 type AuthState = {
   user: AuthUser | null;
@@ -25,26 +26,36 @@ export const loginThunk = createAsyncThunk(
   "auth/login",
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      // Find matching mock user
-      const found = users.find((u) => u.email.toLowerCase() === credentials.email.toLowerCase() && u.password === credentials.password);
-      if (!found) {
-        return rejectWithValue("Invalid email or password");
-      }
-      
-      const authUser: AuthUser = {
-        ...found,
-        token: "mock-jwt-token-" + Date.now(),
-        refreshToken: "mock-refresh-token",
-        expiresAt: Date.now() + 86400000,
-        permissions: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isActive: true,
-        emailVerified: true,
-        phoneVerified: true,
-      } as AuthUser;
+      // Real API call
+      const response = await apiClient.post("/auth/login", credentials);
 
-      return await fakeFetch(authUser, 800);
+      // Save token to localStorage
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      }
+
+      return response;
+
+      // Fallback to mock user for development
+      // const found = users.find((u) => u.email.toLowerCase() === credentials.email.toLowerCase() && u.password === credentials.password);
+      // if (!found) {
+      //   return rejectWithValue("Invalid email or password");
+      // }
+
+      // const authUser: AuthUser = {
+      //   ...found,
+      //   token: "mock-jwt-token-" + Date.now(),
+      //   refreshToken: "mock-refresh-token",
+      //   expiresAt: Date.now() + 86400000,
+      //   permissions: [],
+      //   createdAt: new Date().toISOString(),
+      //   updatedAt: new Date().toISOString(),
+      //   isActive: true,
+      //   emailVerified: true,
+      //   phoneVerified: true,
+      // } as AuthUser;
+
+      // return await fakeFetch(authUser, 800);
     } catch (err: any) {
       return rejectWithValue(err.message || "Login failed");
     }
@@ -55,26 +66,36 @@ export const signupThunk = createAsyncThunk(
   "auth/signup",
   async (data: SignupData, { rejectWithValue }) => {
     try {
-      // Simulate account creation
-      const newUser: AuthUser = {
-        id: "u_new_" + Date.now(),
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        role: "user",
-        avatar: "https://i.pravatar.cc/150",
-        token: "mock-jwt-token-new",
-        refreshToken: "mock-refresh-token",
-        expiresAt: Date.now() + 86400000,
-        permissions: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isActive: true,
-        emailVerified: false,
-        phoneVerified: false,
-      } as AuthUser;
+      // Real API call
+      const response = await apiClient.post("/auth/register", data);
 
-      return await fakeFetch(newUser, 1000);
+      // Save token to localStorage
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      }
+
+      return response;
+
+      // Fallback to mock user for development
+      // const newUser: AuthUser = {
+      //   id: "u_new_" + Date.now(),
+      //   name: data.name,
+      //   email: data.email,
+      //   phone: data.phone,
+      //   role: "user",
+      //   avatar: "https://i.pravatar.cc/150",
+      //   token: "mock-jwt-token-new",
+      //   refreshToken: "mock-refresh-token",
+      //   expiresAt: Date.now() + 86400000,
+      //   permissions: [],
+      //   createdAt: new Date().toISOString(),
+      //   updatedAt: new Date().toISOString(),
+      //   isActive: true,
+      //   emailVerified: false,
+      //   phoneVerified: false,
+      // } as AuthUser;
+
+      // return await fakeFetch(newUser, 1000);
     } catch (err: any) {
       return rejectWithValue(err.message || "Signup failed");
     }
@@ -86,7 +107,12 @@ export const forgotPasswordThunk = createAsyncThunk(
   async (data: ForgotPasswordData, { rejectWithValue }) => {
     try {
       if (!data.email) return rejectWithValue("Email is required");
-      return await fakeFetch({ success: true }, 800);
+
+      // Real API call
+      return await apiClient.post("/auth/forgot-password", data);
+
+      // Fallback to mock for development
+      // return await fakeFetch({ success: true }, 800);
     } catch (err: any) {
       return rejectWithValue("Failed to send reset email");
     }
@@ -100,7 +126,12 @@ export const resetPasswordThunk = createAsyncThunk(
       if (data.password !== data.confirmPassword) {
         return rejectWithValue("Passwords do not match");
       }
-      return await fakeFetch({ success: true }, 1000);
+
+      // Real API call
+      return await apiClient.post("/auth/reset-password", data);
+
+      // Fallback to mock for development
+      // return await fakeFetch({ success: true }, 1000);
     } catch (err: any) {
       return rejectWithValue("Failed to reset password");
     }
