@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, type BoxProps } from '@mui/material';
-import { uiConfig } from '../../../../app/config/uiConfig';
+import { uiConfig } from '../../../../core/config/uiConfig';
 
 export interface DebugWrapperProps extends BoxProps {
   componentName?: string;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/store';
 import {
   fetchRestaurantById,
@@ -37,12 +37,15 @@ const buildCustomizedItemName = (customizedItem: CustomizedCartItem) => {
 };
 
 export function useRestaurantLogic(id?: string) {
+  // const ref= React.useRef(0);
+  // console.log('%cuseRestauratnLogic:hook()','color:red',ref.current++,':',id)
+  // ref.current++
   const dispatch = useAppDispatch();
 
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const restaurant = useAppSelector(selectSelectedRestaurant);
+  const SelectedRestaurant = useAppSelector(selectSelectedRestaurant);
   const categories = useAppSelector(selectMenuCategories);
   const items = useAppSelector((state) => state.restaurants.menuItems);
   const loading = useAppSelector(selectRestaurantLoading);
@@ -56,8 +59,8 @@ export function useRestaurantLogic(id?: string) {
   const isCartDrawerOpen = useAppSelector(selectCartDrawerOpen);
 
   const isRestaurantFavorite = useMemo(
-    () => Boolean(restaurant && favorites.includes(restaurant.id)),
-    [favorites, restaurant]
+    () => Boolean(SelectedRestaurant && favorites.includes(SelectedRestaurant.id)),
+    [favorites, SelectedRestaurant]
   );
 
   const cartItemQuantities = useMemo(() => {
@@ -73,8 +76,8 @@ export function useRestaurantLogic(id?: string) {
   );
 
   const isCartRestaurantMismatch = useMemo(
-    () => !isCartEmpty && Boolean(restaurant?.id && cartRestaurant.id && cartRestaurant.id !== restaurant.id),
-    [cartRestaurant.id, isCartEmpty, restaurant]
+    () => !isCartEmpty && Boolean(SelectedRestaurant?.id && cartRestaurant.id && cartRestaurant.id !== SelectedRestaurant.id),
+    [cartRestaurant.id, isCartEmpty, SelectedRestaurant]
   );
 
   useEffect(() => {
@@ -90,14 +93,14 @@ export function useRestaurantLogic(id?: string) {
         return;
       }
 
-      if (!restaurant) {
-        dispatch(showToast({ message: 'Unable to add item: restaurant not loaded.', type: 'error' }));
+      if (!SelectedRestaurant) {
+        dispatch(showToast({ message: 'Unable to add item: Restaurant not loaded.', type: 'error' }));
         return;
       }
 
       if (isCartRestaurantMismatch) {
         const confirmed = window.confirm(
-          'Your cart contains items from a different restaurant. Do you want to clear it and add this item?'
+          'Your cart contains items from a different Restaurant. Do you want to clear it and add this item?'
         );
 
         if (!confirmed) {
@@ -120,21 +123,21 @@ export function useRestaurantLogic(id?: string) {
           price: foodItem.price,
           quantity,
           image: foodItem.image,
-          restaurantId: restaurant.id,
-          restaurantName: restaurant.name,
+          restaurantId: SelectedRestaurant.id,
+          restaurantName: SelectedRestaurant.name,
           isVeg: foodItem.isVeg,
         })
       );
 
       dispatch(showToast({ message: `${foodItem.name} added to cart`, type: 'success' }));
     },
-    [dispatch, isCartRestaurantMismatch, restaurant]
+    [dispatch, isCartRestaurantMismatch, SelectedRestaurant]
   );
 
   const handleAddCustomizedItem = useCallback(
     (customizedItem: CustomizedCartItem) => {
-      if (!restaurant) {
-        dispatch(showToast({ message: 'Unable to add customized item: restaurant not loaded.', type: 'error' }));
+      if (!SelectedRestaurant) {
+        dispatch(showToast({ message: 'Unable to add customized item: SelectedRestaurant not loaded.', type: 'error' }));
         return;
       }
 
@@ -148,8 +151,8 @@ export function useRestaurantLogic(id?: string) {
           price,
           quantity: customizedItem.quantity,
           image: customizedItem.foodItem.image,
-          restaurantId: restaurant.id,
-          restaurantName: restaurant.name,
+          restaurantId: SelectedRestaurant.id,
+          restaurantName: SelectedRestaurant.name,
           isVeg: customizedItem.foodItem.isVeg,
           specialInstructions: customizedItem.specialInstructions,
           addons: customizedItem.selectedAddons,
@@ -166,38 +169,40 @@ export function useRestaurantLogic(id?: string) {
         })
       );
     },
-    [dispatch, restaurant]
+    [dispatch, SelectedRestaurant]
   );
 
   const handleToggleFavorite = useCallback(
     (targetId?: string) => {
-      const restaurantId = restaurant?.id;
+      // console.log('clicked handleToggleFavorite-->')
+      // const restaurantId = SelectedRestaurant?.id || targetId;
+      const restaurantId = SelectedRestaurant?.id ;
       const shouldToggleRestaurantFavorite = !targetId || targetId === restaurantId;
-
+      console.log({restaurantId, shouldToggleRestaurantFavorite})
       if (!restaurantId) {
-        dispatch(showToast({ message: 'Please load a restaurant before toggling favorites.', type: 'info' }));
+        dispatch(showToast({ message: 'Please load a SelectedRestaurant before toggling favorites.', type: 'info' }));
         return;
       }
 
       if (!shouldToggleRestaurantFavorite) {
         dispatch(
           showToast({
-            message: 'Item favorites are not yet persisted. Restaurant favorites are supported for now.',
+            message: 'Item favorites are not yet persisted. SelectedRestaurant favorites are supported for now.',
             type: 'info',
           })
         );
         return;
       }
-
+      // console.log("dispatch toggel fav")
       dispatch(toggleFavorite(restaurantId));
       dispatch(
         showToast({
-          message: isRestaurantFavorite ? 'Removed restaurant from favorites' : 'Added restaurant to favorites',
+          message: isRestaurantFavorite ? 'Removed SelectedRestaurant from favorites' : 'Added SelectedRestaurant to favorites',
           type: 'success',
         })
       );
     },
-    [dispatch, isRestaurantFavorite, restaurant]
+    [dispatch, isRestaurantFavorite, SelectedRestaurant]
   );
 
   const handleUpdateQuantity = useCallback(
@@ -215,7 +220,7 @@ export function useRestaurantLogic(id?: string) {
   }, []);
 
   return {
-    restaurant,
+    SelectedRestaurant,
     categories,
     items,
     loading,

@@ -105,5 +105,5 @@ export const selectSidebarOpen = (state: RootState) => state.ui.sidebarOpen;
 export const selectCartDrawerOpen = (state: RootState) => state.ui.cartDrawerOpen;
 export const selectSearchDrawerOpen = (state: RootState) => state.ui.searchDrawerOpen;
 export const selectCurrentModal = (state: RootState) => state.ui.currentModal;
-export const selectToast = (state: RootState) => state.ui.toast;
+export const selectToast = (state: RootState) => (state.ui.toast);
 export const selectLoading = (state: RootState, key: string) => state.ui.loading[key];

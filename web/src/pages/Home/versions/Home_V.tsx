@@ -41,6 +41,7 @@ import {
   filterByCuisine,
 } from '../../../features/restaurant/restaurantSlice';
 import RestaurantCard from '../../../features/restaurant/components/RestaurantCard/RestaurantCard_V';
+import { Restaurants_Card, RestaurantsCard as RestaurantCard2 } from '@features/restaurant/components/RestaurantCard';
 import { showToast } from '../../../features/ui/uiSlice';
 // import { CUISINES } from '../../../core/constants/food';
 //dev
@@ -50,6 +51,7 @@ import { useDevContext } from '../../../core/dev/contexts/DevContext';
 import PromoSection from '@features/home/components/PromoSection';
 import CuisinesSection from '@features/home/components/CuisinesSection';
 import HowItWorksSection from '@features/home/components/HowItWorksSection';
+import HowItWorksSection1 from '@/features/home/components/howItWorks/HowItWorks_V1';
 import TestimonialsSection from '@features/home/components/TestimonialsSection';
 import StatsSection from '@features/home/components/StatsSection';
 import TopDishesSection from '@features/home/components/TopDishesSection';
@@ -296,6 +298,72 @@ const HomeV2: React.FC = () => {
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
+
+        {/* Featured Restaurants - Existing Redux Integration */}
+        <Box sx={{ my: 8 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="h4" fontWeight={700} gutterBottom>
+                Featured Restaurants
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Discover top-rated restaurants near you
+              </Typography>
+            </Box>
+            <Button
+              endIcon={<NavigateNext />}
+              onClick={() => handleViewAll('featured')}
+              sx={{ 
+                px: 3,
+                py: 1,
+                borderRadius: 3,
+                '&:hover': {
+                  transform: 'translateX(5px)',
+                  transition: 'transform 0.3s ease',
+                }
+              }}
+            >
+              View All Restaurants
+            </Button>
+          </Box>
+          
+          {loading ? (
+            <Grid container spacing={3}>
+              {[1, 2, 3].map((item) => (
+                <Grid item xs={12} sm={6} md={4} key={item}>
+                  <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Grid container spacing={3}>
+              {featuredRestaurants.slice(0, 6).map((restaurant, index) => (
+                <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                  >
+                    {/* <RestaurantCard restaurant={restaurant} /> */}
+                    <RestaurantCard2 restaurant={restaurant}/>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+
+          {!loading && featuredRestaurants.length === 0 && (
+            <Alert severity="info" sx={{ textAlign: 'center', py: 4 }}>
+              No featured restaurants available at the moment. Check back soon!
+            </Alert>
+          )}
+        </Box>
+
+        {/* Top Dishes Section - Popular Items */}
+        <Box sx={{ my: 8 }}>
+          <TopDishesSection />
+        </Box>
         {/* Section Indicator */}
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Chip 
@@ -359,74 +427,10 @@ const HomeV2: React.FC = () => {
           <CuisinesSection />
         </Box>
 
-        {/* Featured Restaurants - Existing Redux Integration */}
-        <Box sx={{ my: 8 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-            <Box>
-              <Typography variant="h4" fontWeight={700} gutterBottom>
-                Featured Restaurants
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Discover top-rated restaurants near you
-              </Typography>
-            </Box>
-            <Button
-              endIcon={<NavigateNext />}
-              onClick={() => handleViewAll('featured')}
-              sx={{ 
-                px: 3,
-                py: 1,
-                borderRadius: 3,
-                '&:hover': {
-                  transform: 'translateX(5px)',
-                  transition: 'transform 0.3s ease',
-                }
-              }}
-            >
-              View All Restaurants
-            </Button>
-          </Box>
-          
-          {loading ? (
-            <Grid container spacing={3}>
-              {[1, 2, 3].map((item) => (
-                <Grid item xs={12} sm={6} md={4} key={item}>
-                  <Skeleton variant="rectangular" height={300} sx={{ borderRadius: 2 }} />
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-            <Grid container spacing={3}>
-              {featuredRestaurants.slice(0, 6).map((restaurant, index) => (
-                <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                  >
-                    <RestaurantCard restaurant={restaurant} />
-                  </motion.div>
-                </Grid>
-              ))}
-            </Grid>
-          )}
-
-          {!loading && featuredRestaurants.length === 0 && (
-            <Alert severity="info" sx={{ textAlign: 'center', py: 4 }}>
-              No featured restaurants available at the moment. Check back soon!
-            </Alert>
-          )}
-        </Box>
-
-        {/* Top Dishes Section - Popular Items */}
-        <Box sx={{ my: 8 }}>
-          <TopDishesSection />
-        </Box>
-
         {/* How It Works Section - User Education */}
         <Box sx={{ my: 8 }}>
           <HowItWorksSection />
+          {/* <HowItWorksSection1/> */}
         </Box>
 
         {/* Testimonials Section - Social Proof */}

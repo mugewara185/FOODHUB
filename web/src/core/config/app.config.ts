@@ -6,8 +6,7 @@ export const IS_PROD = import.meta.env.MODE === 'production';
 export const APP_CONFIG = {
   // DEV ONLY: Bypasses authentication checks for rapid UI development
   // WARNING: MUST BE FALSE IN PRODUCTION!
-  // DEV_BYPASS_AUTH: true && IS_DEV,    
-  DEV_BYPASS_AUTH: true ,
+  DEV_BYPASS_AUTH: true && IS_DEV,
 
   // Analytics and tracking
   enableAnalytics: IS_PROD,

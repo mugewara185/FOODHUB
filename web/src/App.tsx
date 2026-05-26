@@ -11,9 +11,13 @@ import { useAppSelector } from "@app/store/hooks";
 //context
 import { useDevContext } from "@core/dev/contexts/DevContext";
 import { useLogger } from "./core/dev/logger";
-//dev-modals
+//ui-dev:
+  //modals
 import LogConsole from "./core/dev/logger";
 import { APP_CONFIG } from "./core/config/app.config";
+//ui-shared
+import { Toast } from "./shared/components/notifications";
+
 const App: React.FC = () => {
   const allRestaurants = useAppSelector(selectAllRestaurants);
   const featuredRestaurants = useAppSelector(selectFeaturedRestaurants);
@@ -24,6 +28,7 @@ const App: React.FC = () => {
   return (
     // <ErrorBoundary>
     <AuthProvider>
+      <Toast/>
       <AppRoutes />
       {/* Floating Dev Console */}
       {APP_CONFIG.DEV_BYPASS_AUTH && (

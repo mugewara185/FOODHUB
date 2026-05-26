@@ -57,15 +57,14 @@ import { Promotions, Reports, Settings as AdminSettings, Users } from '../../pag
 import { de } from 'date-fns/locale';
 import DevLayout from '@/core/dev/ui/layout/DevLayout';
 import DevDashboard from '@/core/dev/ui/Dashboard';
-import ComponentTreeExplorer from '@/core/dev/ui/pages/ComponentTreeExplorer';
-import ComponentTreeExplorer2 from '@/core/dev/ui/pages/ComponenTreeExplorer2';
+import ComponentTreeExplorer from '@/core/dev/ui/pages/ComponentTree';
 import StateInspector from '@/core/dev/ui/pages/StateInspector';
 import PropsPanel from '@/core/dev/ui/pages/PropsPanel';
 import VersionSwitcher from '@/core/dev/ui/pages/VersionSwitcher';
 import NetworkInspector from '@/core/dev/ui/pages/NetworkInspector';
 import LogPanel from '@/core/dev/ui/pages/LogPanel';
 import PerformanceMetrics from '@/core/dev/ui/pages/PerformanceMetrics';
-import ComponentPlayground from '@/core/dev/ui/components/ComponentPlayground';
+import ComponentPlayground from '@/core/dev/ui/pages/ComponentPlayground';
 import DocumentationViewer from '@/core/dev/ui/pages/DocumentationViewer';
 
 const AppRoutes: React.FC = () => {
@@ -165,7 +164,6 @@ const AppRoutes: React.FC = () => {
       <Route path="/dev" element={<DevLayout />} >
         <Route index element={<DevDashboard />} />
         <Route path='component-tree' element={<ComponentTreeExplorer />} />
-        <Route path='component-tree2' element={<ComponentTreeExplorer2 />} />
         <Route path='components' element={<ComponentPlayground />} />
         <Route path='state' element={<StateInspector />} />
         <Route path='props' element={<PropsPanel />} />

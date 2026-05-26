@@ -109,6 +109,7 @@ import { DevErrorBoundary } from '@/core/dev/renderer/DevErrorBoundary';
 // Cart selector
 import { selectCartItems } from '@features/cart/cartSlice';
 import { Trees } from 'lucide-react';
+// import DevToolbar from '../ToolBar';
 
 interface DevMetric {
   label: string;
@@ -155,7 +156,7 @@ const DevLayout: React.FC = () => {
     { text: 'Dashboard', icon: <Dashboard />, path: '/dev', color: '#FF6B6B', devOnly: true },
     { text: 'Components', icon: <Code />, path: '/dev/components', color: '#4ECDC4', devOnly: true },
     { text: 'Component Tree', icon: <AccountTree />, path: '/dev/component-tree', color: '#4ECDC4', devOnly: true },
-    { text: 'Component Tree2', icon: <Trees />, path: '/dev/component-tree2', color: '#4ECDC4', devOnly: true },
+    // { text: 'Component Tree2', icon: <Trees />, path: '/dev/component-tree2', color: '#4ECDC4', devOnly: true },
     { text: 'State Inspector', icon: <Storage />, path: '/dev/state', color: '#45B7D1', devOnly: true },
     { text: 'Props & Overrides', icon: <Build />, path: '/dev/props', color: '#FFA07A', devOnly: true },
     { text: 'Version Switcher', icon: <CloudSync />, path: '/dev/versions', color: '#98D8C8', devOnly: true },
@@ -541,6 +542,7 @@ const DevLayout: React.FC = () => {
               borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
             }}
           >
+            
             <Toolbar>
               <Typography
                 variant="h6"
@@ -583,6 +585,7 @@ const DevLayout: React.FC = () => {
                 <Terminal />
               </IconButton>
             </Toolbar>
+            {/* <DevToolbar/> */}
 
             {/* Dev Search Bar */}
             <Box sx={{ px: 2, pb: 2 }}>

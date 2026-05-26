@@ -9,6 +9,7 @@ import {
   useTheme,
   Alert,
 } from '@mui/material';
+//redux
 import { useAppDispatch, useAppSelector } from '../../../app/store';
 import {
   fetchRestaurants,
@@ -27,9 +28,10 @@ import {
   setOpenNowFilter,
   setDeliveryTime
 } from '../../../features/restaurant/restaurantSlice';
-
+//feature component
 import { RestaurantCard, RestaurantFilters } from '../../../features/restaurant/components';
-
+import { Restaurants_Card, RestaurantsCard } from '@features/restaurant/components/RestaurantCard';
+//feature ui-component
 import {
   ListToolbar,
   ActiveFiltersRow,
@@ -38,6 +40,8 @@ import {
   EmptyState,
   PageHeader
 } from '../../../features/ui/components';
+//feature hooks
+import { useRestaurantLogic } from '@/features/restaurant/hooks/useRestaurantLogic';
 
 import type { ActiveFilterChip } from '../../../features/ui/components';
 import { Restaurant as RestaurantIcon } from '@mui/icons-material';
@@ -47,7 +51,10 @@ const Restaurants: React.FC = () => {
   const dispatch = useAppDispatch();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'));
-  
+  //restaurant hooks
+  const onToggleFavorite= useRestaurantLogic().handleToggleFavorite;
+  const isFavourite= useRestaurantLogic().isFavorite;
+
   // Local UI state
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState('');
@@ -62,7 +69,6 @@ const Restaurants: React.FC = () => {
   const filters = useAppSelector((state) => state.restaurants.filters);
   const currentPage = useAppSelector((state) => state.restaurants.pagination.currentPage);
   const filteredCount = useAppSelector(selectFilteredRestaurants).length;
-
   useEffect(() => {
     dispatch(fetchRestaurants());
   }, [dispatch]);
@@ -110,7 +116,7 @@ const Restaurants: React.FC = () => {
   if (filters.deliveryTime !== 'all') {
     activeFilterChips.push({ key: 'time', label: `< ${filters.deliveryTime} mins`, onDelete: () => dispatch(setDeliveryTime('all')) });
   }
-
+const ref=React.useRef(0)
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <PageHeader
@@ -135,12 +141,11 @@ const Restaurants: React.FC = () => {
         showMobileFilter={isMobile}
         searchPlaceholder="Search for restaurants, cuisines..."
       />
-
       <ActiveFiltersRow filters={activeFilterChips} />
 
-      <Grid container spacing={4} sx={{ mt: 2 }}>
+      <Grid container spacing={2} sx={{ mt: 2 }} wrap='nowrap'>
         {!isMobile && (
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={3} >
             <FilterPanel
               activeFilterCount={activeFiltersCount}
               onClearAll={handleClearFilters}
@@ -190,7 +195,19 @@ const Restaurants: React.FC = () => {
               <Grid container spacing={3}>
                 {paginatedRestaurants.map((restaurant) => (
                   <Grid item xs={getGridColumns()} key={restaurant.id}>
-                    <RestaurantCard restaurant={restaurant} />
+                    {(
+                    // console.log('RestaurantCard', ref.current++,':',restaurant.id),
+                    
+                    <RestaurantCard 
+                      restaurant={restaurant} 
+                      isFavorite={isFavourite}
+                      onToggleFavorite={onToggleFavorite}
+                    />
+                    // <RestaurantsCard restaurant={restaurant}/>
+                    // {/* <Restaurants_Card
+                    //   restaurant={restaurant}
+                    // /> */}
+                    )}
                   </Grid>
                 ))}
               </Grid>

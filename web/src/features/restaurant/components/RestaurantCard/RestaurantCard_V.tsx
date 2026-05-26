@@ -17,9 +17,11 @@ import {
   FavoriteBorder,
   Favorite,
 } from '@mui/icons-material';
-import { type Restaurant } from '../../../../core/types';
-
 import { useNavigate } from 'react-router-dom';
+//core
+import { type Restaurant } from '../../../../core/types';
+//features
+import { useRestaurantLogic } from '@/features/restaurant/hooks/useRestaurantLogic';
 
 interface RestaurantsCardProps {
   restaurant: Restaurant;
@@ -27,14 +29,21 @@ interface RestaurantsCardProps {
   onToggleFavorite?: (id: string) => void;
 }
 
-const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
-  restaurant,
+const RestaurantsCard: React.FC<RestaurantsCardProps> = ( 
+  // {restaurant}
+  {restaurant,
   isFavorite = false,
-  onToggleFavorite,
-}) => {
-  const fallBackImgSrc = 'https://th.bing.com/th/id/OIP.PLyeERi4uNYToVEWGHbhngHaEK?w=321&h=181&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3'
+  onToggleFavorite
+}
+) => {
+  // const fallBackImgSrc = 'https://th.bing.com/th/id/OIP.PLyeERi4uNYToVEWGHbhngHaEK?w=321&h=181&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3'
+  const fallBackImgSrc = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANUAAACUCAMAAAAzmpx4AAAANlBMVEXm6ezc3+Lp7O/W2t63vsattb2dp7Ht8PKPmaWqsbrb3uOTnamkrbaXoayyucHh5OfCyM7IztMwfhuPAAABTUlEQVR4nO3Y0W7CIBSAYXooYAVK+/4vu4I1U7slS5qs4eT/LtRwxZ8CKsYAAAAAAAAAAAAAAAAAAAAAAAAAfyFHV0/pNCn2qHTeFWzyR8mGqyd2ivU5uU8pe3v1xM6QMa7haIljz2tQxlv5YXS49V41bG9hGN4q7hqqwpxzeh3WUCVrTFN2L8eehqrgtiMv5UdVq1FRteR59KlWSVnrsIYqY3yM+1no2krUURVse0RSUk7ZGdFRZdoPWilTnIc5zkVJVftc3BYkZnvVU1VzJvOIS1lJVV1+rqWI2b6UdVS1PfUc3LJUVD331D5qVeyrGjWZ7xAVv9nFPPfUTsMZWKPmt+H+q0p421NN9yswLlJPvM9/+EvPVfU2xufs3PQqZX+/emKn1JuzdLg8m2zXj+qXW07TeRQAAAAAAAAAAAAAAAAAAAAAAAD+y6DRF1ANDSRFLNpuAAAAAElFTkSuQmCC'
   const { id, name, image, address, cuisine, rating, deliveryTime, minOrder, deliveryFee } = restaurant;
   const navigate = useNavigate();
+  // let ref= React.useRef(0); let i=0;
+  // console.log('%cRestaurantCard rendering...',ref.current++,':',i,':',restaurant.id)
+  // i=i+1;
+  // const { handleToggleFavorite: onToggleFavorite}= useRestaurantLogic(id);
 
   return (
     <Card
@@ -121,7 +130,7 @@ const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
             }}
           >
             <Typography variant="body2" fontWeight={600}>
-              {restaurant.rating.toFixed(1)}
+              {restaurant.rating && restaurant?.rating?.toFixed(1)}
             </Typography>
             <Rating
               value={restaurant.rating}
@@ -135,7 +144,7 @@ const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
 
         {/* Cuisine Tags */}
         <Stack direction="row" spacing={0.5} sx={{ mb: 1, flexWrap: 'wrap' }}>
-          {restaurant.cuisine.slice(0, 2).map((cuisine) => (
+          {restaurant?.cuisine.slice(0, 2).map((cuisine) => (
             <Chip
               key={cuisine}
               label={cuisine}

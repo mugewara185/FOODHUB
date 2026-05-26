@@ -1,4 +1,4 @@
-import type { Restaurant as type1 } from "../typess";
+// import type { Restaurant as type1 } from "../typess";
 import type { Restaurant as type2 } from "../types";
 import { restaurantNames } from "../seeds/restaurantNames";
 import { cuisinesList } from "../seeds/cuisines";
@@ -8,7 +8,7 @@ import { foodImages, restaurantImages } from "../seeds/Images";
 const deliveryTimes = ["20-30 min", "30-40 min", "40-50 min"];
 const tagsPool = ["Popular", "Fast Delivery", "Best Seller", "Top Rated"];
 
-export const generateRestaurants = (count = 60): type1[] | type2[] =>
+export const generateRestaurants = (count = 60): type2[] =>
   Array.from({ length: count }).map((_, i) => ({
     id: `r${i + 1}`,
     name: restaurantNames[i % restaurantNames.length],
@@ -33,6 +33,19 @@ export const generateRestaurants = (count = 60): type1[] | type2[] =>
       tagsPool[i % tagsPool.length],
       cuisinesList[i % cuisinesList.length][0],
     ],
+    //missedout fields
+     location: {
+        lat: 12.9716 + (Math.random() - 0.5) * 0.1, // Sample lat offset
+        lng: 77.5946 + (Math.random() - 0.5) * 0.1  // Sample lng offset
+      },
+      contact: {
+        phone: `+91 ${Math.floor(9000000000 + Math.random() * 999999999)}`,
+        email: `info@${restaurantNames[i % restaurantNames.length].toLowerCase().replace(/\s/g, '')}.com`
+      },
+      openingHours: [
+        { day: "Monday - Friday", open: "09:00 AM", close: "11:00 PM" },
+        { day: "Saturday - Sunday", open: "10:00 AM", close: "11:59 PM" }
+      ]
   }));
 
 const getRestaurants = generateRestaurants();

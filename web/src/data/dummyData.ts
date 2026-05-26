@@ -1,4 +1,4 @@
-export { default } from "./factories/restaurants";
+export { default as restaurants } from "./factories/restaurants";
 export { menus } from "./factories/menus";
 export { users } from "./factories/users";
 export { carts } from "./factories/carts";
