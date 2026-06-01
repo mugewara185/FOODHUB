@@ -4,7 +4,7 @@ import { createSlice, createAsyncThunk, type PayloadAction, createSelector } fro
 import type { RootState } from '../../../../app/store';
 import type { Restaurant, FoodItem, Category } from '@core/types';
 import getRestaurants from '../../../../data/factories/restaurants';
-import {mockFoodItems} from '../../../../data/factories/foodItems';
+import mockFoodItems from '../../../../data/factories/foodItems';
 
 export type RestaurantFilters = {
   searchQuery: string;
@@ -79,7 +79,7 @@ export const fetchRestaurantById = createAsyncThunk(
       if (!restaurant) throw new Error('Restaurant not found');
 
       const items = mockFoodItems.filter(item => item.restaurantId === id);
-      // console.log({items})
+      console.log({"items":mockFoodItems,"filteredItems":items})
       return { restaurant, items };
     } catch (error) {
       return rejectWithValue(`Failed to fetch restaurant details:${error instanceof Error ? error.message : 'Unknown error'}`);

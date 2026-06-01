@@ -37,9 +37,8 @@ const buildCustomizedItemName = (customizedItem: CustomizedCartItem) => {
 };
 
 export function useRestaurantLogic(id?: string) {
-  // const ref= React.useRef(0);
-  // console.log('%cuseRestauratnLogic:hook()','color:red',ref.current++,':',id)
-  // ref.current++
+  const ref= React.useRef(0);
+  
   const dispatch = useAppDispatch();
 
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(null);
@@ -79,7 +78,11 @@ export function useRestaurantLogic(id?: string) {
     () => !isCartEmpty && Boolean(SelectedRestaurant?.id && cartRestaurant.id && cartRestaurant.id !== SelectedRestaurant.id),
     [cartRestaurant.id, isCartEmpty, SelectedRestaurant]
   );
-
+useEffect(() => {
+  // console.log('useRestaurantLogic mounted with id:', id);
+  console.log('%cuseRestauratnLogic:hook()','color:red',ref.current,':',id)
+  ref.current++
+},[])
   useEffect(() => {
     if (id) {
       dispatch(fetchRestaurantById(id));

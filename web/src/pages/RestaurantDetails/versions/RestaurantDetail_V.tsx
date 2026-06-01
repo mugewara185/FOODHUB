@@ -58,7 +58,7 @@ const RestaurantDetail: React.FC = () => {
   const dispatch = useAppDispatch();
 
   const {
-    restaurant,
+    SelectedRestaurant: restaurant,
     categories,
     items,
     loading,
@@ -76,7 +76,26 @@ const RestaurantDetail: React.FC = () => {
     handleToggleFavorite,
     closeCustomizationModal,
   } = useRestaurantLogic(id);
-
+  //ts
+console.log('useRestaurantLogic(',id,'):',{
+    SelectedRestaurant: restaurant,
+    categories,
+    items,
+    loading,
+    error,
+    cartItems,
+    cartTotals,
+    isFavorite,
+    modalOpen,
+    selectedFoodItem,
+    isCartDrawerOpen,
+    getItemQuantity,
+    handleAddToCart,
+    handleAddCustomizedItem,
+    handleUpdateQuantity,
+    handleToggleFavorite,
+    closeCustomizationModal,
+  })
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>

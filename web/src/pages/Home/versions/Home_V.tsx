@@ -61,7 +61,7 @@ import FeaturedRestaurantsSection from '@/features/home/components/FeaturedResta
 
 
 const HomeV2: React.FC = () => {
-  console.log('store states',store.getState())
+  // console.log('store states',store.getState())
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const theme = useTheme();
@@ -113,7 +113,7 @@ const HomeV2: React.FC = () => {
       {/*Vref: Hero Section with Parallax Effect */}
       {/* <Hero heroImageLoaded={heroImageLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleSearch={handleSearch} stats={stats} /> */}
 
-      {/*Vref: Main Content */}
+{/*Vref: Main Content */}
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
         {/*Vref: Featured Restaurants */}
         <FeaturedRestaurantsSection restaurants={featuredRestaurants} loading={loading} onViewAll={() => handleViewAll('featured')}  />
@@ -126,27 +126,11 @@ const HomeV2: React.FC = () => {
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Chip 
             icon={<Code />}
-            label="DEV MODE - Home_V Renderer Active" 
+            label="add more components here..." 
             color="warning" 
             variant="outlined"
             sx={{ mb: 2 }}
           />
-          {/*: <Typography 
-            variant="h3" 
-            fontWeight={800} 
-            gutterBottom
-            sx={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
-            }}
-          >
-            Experience the Future
-          </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-            Dynamic component swapping, A/B testing ready, and blazing fast performance
-          </Typography> */}
         </Box>
 
         <Divider sx={{ my: 4 }}>
