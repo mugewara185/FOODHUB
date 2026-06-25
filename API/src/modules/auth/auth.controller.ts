@@ -19,6 +19,16 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  password: z.string().min(6),
+  confirmPassword: z.string().min(6),
+  token: z.string().min(1),
+});
+
 function signToken(id: string): string {
   return jwt.sign({ id }, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn,
@@ -68,6 +78,50 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
         user: { id: user._id, name: user.name, email: user.email, role: user.role },
       },
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const body = forgotPasswordSchema.parse(req.body);
+    const user = await User.findOne({ email: body.email });
+
+    if (user) {
+      const resetToken = signToken(user._id.toString());
+      sendSuccess({ res, message: 'If an account exists, a reset link has been generated.', data: { resetToken } });
+      return;
+    }
+
+    sendSuccess({ res, message: 'If an account exists, a reset link has been generated.', data: { resetToken: null } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const body = resetPasswordSchema.parse(req.body);
+
+    if (body.password !== body.confirmPassword) {
+      throw new AppError('Passwords do not match', 400);
+    }
+
+    const decoded = jwt.verify(body.token, config.jwt.secret) as { id?: string };
+    if (!decoded.id) {
+      throw new AppError('Invalid reset token', 400);
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    user.password = body.password;
+    await user.save();
+
+    sendSuccess({ res, message: 'Password reset successful', data: { success: true } });
   } catch (err) {
     next(err);
   }

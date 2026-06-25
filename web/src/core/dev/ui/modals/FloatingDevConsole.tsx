@@ -38,6 +38,7 @@ import {
 } from "@mui/icons-material";
 import type { Restaurant } from "@core/types";
 import { useLogger } from "../../logger";
+import { buildFactorySeedPayload } from "../../utils/factorySeed";
 
 interface FloatingDevConsoleProps {
   allRestaurants: Record<string, unknown>[] | Restaurant[];
@@ -93,6 +94,11 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [position, setPosition] = useState({ x: defaultX, y: defaultY }); // Will be set after mount
+  const [seedStatus, setSeedStatus] = useState<{ loading: boolean; message: string | null; error: string | null }>({
+    loading: false,
+    message: null,
+    error: null,
+  });
   const dragDistance = useRef(0);
   const dragStartPos = useRef({ x: defaultX, y: defaultY });
   const fabRef = useRef<HTMLDivElement>(null);
@@ -235,6 +241,39 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const handleSeedFactoryData = async () => {
+    setSeedStatus({ loading: true, message: "Generating factory-based demo data...", error: null });
+
+    try {
+      const payload = buildFactorySeedPayload(12);
+      const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiBaseUrl}/dev/seed-factory-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result?.message || "The seed request failed.");
+      }
+
+      setSeedStatus({
+        loading: false,
+        message: `${result?.message || "Factory data seeded successfully."} (${payload.restaurants.length} restaurants / ${payload.menus.length} menu items)`,
+        error: null,
+      });
+    } catch (error) {
+      setSeedStatus({
+        loading: false,
+        message: null,
+        error: error instanceof Error ? error.message : "Unable to seed factory data right now.",
+      });
+    }
   };
 
   return (
@@ -462,6 +501,40 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                   </CardContent>
                 </Card>
               </Box>
+
+              <Card sx={{ mt: 2 }}>
+                <CardContent>
+                  <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                    Seed demo data from factories
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Push the generated restaurant and menu factory data into MongoDB so you can prototype against real records immediately.
+                  </Typography>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "flex-start", sm: "center" }}>
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      onClick={handleSeedFactoryData}
+                      disabled={seedStatus.loading}
+                    >
+                      {seedStatus.loading ? "Seeding..." : "Seed factory data"}
+                    </Button>
+                    <Typography variant="caption" color="text.secondary">
+                      This is intended for local development and demo work.
+                    </Typography>
+                  </Stack>
+                  {seedStatus.message && (
+                    <Alert severity="success" sx={{ mt: 2 }}>
+                      {seedStatus.message}
+                    </Alert>
+                  )}
+                  {seedStatus.error && (
+                    <Alert severity="error" sx={{ mt: 2 }}>
+                      {seedStatus.error}
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
             </Box>
           </TabPanel>
 

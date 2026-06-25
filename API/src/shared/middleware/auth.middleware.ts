@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: string;
+    name?: string;
   };
 }
 
@@ -31,7 +32,7 @@ export async function protect(
       throw new AppError('User no longer exists', 401);
     }
 
-    req.user = { id: user._id.toString(), email: user.email, role: user.role };
+    req.user = { id: user._id.toString(), email: user.email, role: user.role, name: user.name };
     next();
   } catch (err) {
     next(err);

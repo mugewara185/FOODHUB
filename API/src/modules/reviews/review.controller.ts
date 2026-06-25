@@ -25,7 +25,7 @@ export async function createReview(req: AuthRequest, res: Response, next: NextFu
       restaurantId: body.restaurantId,
       rating: body.rating,
       comment: body.comment,
-      userName: req.user!.email.split('@')[0],
+      userName: req.user!.name || req.user!.email.split('@')[0],
     });
 
     // Recalculate restaurant rating

@@ -86,9 +86,9 @@ const AppRoutes: React.FC = () => {
         <Route path='settings' element={<Settings />} />
         {/* Protected Routes */}
         <Route path="profile" element={
-          // <ProtectedRoute allowedRoles={['user', 'admin']}>
-          <Profile />
-          // </ProtectedRoute>
+          <ProtectedRoute allowedRoles={['user', 'admin']}>
+            <Profile />
+          </ProtectedRoute>
         } />
         <Route path="cart" element={
           <ProtectedRoute allowedRoles={['user', 'admin']}>

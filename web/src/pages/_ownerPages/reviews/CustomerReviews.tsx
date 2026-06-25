@@ -56,7 +56,7 @@ const mockReviews: Review[] = [
     date: '2024-01-15',
     likes: 12,
     dislikes: 1,
-    reply: 'Thank you for your kind words, John! We're glad you enjoyed your meal.',
+    reply: "Thank you for your kind words, John! We're glad you enjoyed your meal.",
     images: ['image1.jpg', 'image2.jpg'],
     reported: false,
   },

@@ -1,11 +1,12 @@
-import React, { type ReactNode, useCallback } from 'react';
+import React, { type ReactNode, useCallback, useEffect } from 'react';
 import type { AuthContextType, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData, UpdateProfileData } from '../data/types/auth';
 import { useAppDispatch, useAppSelector } from '../app/store/hooks';
-import { 
-  loginThunk, 
-  signupThunk, 
-  forgotPasswordThunk, 
-  resetPasswordThunk, 
+import {
+  loginThunk,
+  signupThunk,
+  forgotPasswordThunk,
+  resetPasswordThunk,
+  restoreAuthThunk,
   logout as logoutAction,
   clearError as clearErrorAction
 } from '../features/auth/authSlice';
@@ -14,8 +15,13 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Keep the provider as a pass-through so App.tsx does not break
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    void dispatch(restoreAuthThunk());
+  }, [dispatch]);
+
   return <>{children}</>;
 };
 

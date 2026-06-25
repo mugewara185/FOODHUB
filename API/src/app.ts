@@ -9,6 +9,7 @@ import authRoutes from './modules/auth/auth.routes';
 import restaurantRoutes from './modules/restaurants/restaurant.routes';
 import orderRoutes from './modules/orders/order.routes';
 import reviewRoutes from './modules/reviews/review.routes';
+import devRoutes from './modules/dev/dev.routes';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/dev', devRoutes);
 
 // 404 handler
 app.use((_req, res) => {
@@ -41,5 +43,5 @@ app.use((_req, res) => {
 
 // Global error handler (must be last)
 app.use(errorHandler);
-
+console.log('api running');
 export default app;
