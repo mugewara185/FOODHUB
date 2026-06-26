@@ -2,20 +2,27 @@ import { describe, expect, it } from 'vitest';
 import { buildFactorySeedPayload } from './factorySeed';
 
 describe('buildFactorySeedPayload', () => {
-  it('creates restaurants and menu items from the factory data', () => {
-    const payload = buildFactorySeedPayload(3);
+  it('creates a schema-driven payload for the selected factory targets', () => {
+    const payload = buildFactorySeedPayload(3, {
+      targets: ['restaurants', 'foodItems', 'users'],
+      config: { users: { count: 2 } },
+    });
 
-    expect(payload.restaurants).toHaveLength(3);
-    expect(payload.menus.length).toBeGreaterThan(0);
-    expect(payload.restaurants[0]).toMatchObject({
+    expect(payload.schemaVersion).toBe('factory-types-v1');
+    expect(payload.targets).toEqual(['restaurants', 'foodItems', 'users']);
+    expect(payload.config?.users?.count).toBe(2);
+    expect(payload.data.restaurants).toHaveLength(3);
+    expect(payload.data.restaurants[0]).toMatchObject({
       factoryId: expect.any(String),
       name: expect.any(String),
       city: expect.any(String),
     });
-    expect(payload.menus[0]).toMatchObject({
-      factoryRestaurantId: payload.restaurants[0].factoryId,
+    expect(payload.data.foodItems.length).toBeGreaterThan(0);
+    expect(payload.data.foodItems[0]).toMatchObject({
+      factoryRestaurantId: payload.data.restaurants[0].factoryId,
       name: expect.any(String),
       price: expect.any(Number),
     });
+    expect(payload.data.users).toHaveLength(2);
   });
 });

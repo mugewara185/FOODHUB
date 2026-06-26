@@ -1,38 +1,163 @@
-import { generateRestaurants } from '../../../data/factories/restaurants';
-import { generateMenus } from '../../../data/factories/menus';
+import type {
+  FoodItemFactoryInput,
+  OrderFactoryInput,
+  ReviewFactoryInput,
+  RestaurantFactoryInput,
+  UserFactoryInput,
+  FactoryInput,
+} from '@core/types';
+import { generateAllDummyData } from '../../../data/factories/unifiedFactory';
+
+export type FactorySeedTarget = 'restaurants' | 'foodItems' | 'users' | 'orders' | 'reviews';
+
+export interface FactorySeedConfig {
+  restaurants?: RestaurantFactoryInput;
+  foodItems?: FoodItemFactoryInput;
+  users?: UserFactoryInput;
+  orders?: OrderFactoryInput;
+  reviews?: ReviewFactoryInput;
+}
+
+export interface FactoryRestaurantSeedEntry {
+  factoryId: string;
+  name: string;
+  description: string;
+  cuisine: string[];
+  address: string;
+  city: string;
+  rating: number;
+  deliveryTime: number;
+  deliveryFee: number;
+  minOrder: number;
+  imageUrl: string;
+  coverImageUrl?: string;
+  isOpen: boolean;
+  isFeatured: boolean;
+  tags: string[];
+  phone: string;
+  location?: { lat: number; lng: number };
+  contact?: { phone: string; email?: string };
+  openingHours?: Array<{ day: string; open: string; close: string }>;
+}
+
+export interface FactoryFoodItemSeedEntry {
+  factoryRestaurantId: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  imageUrl?: string;
+  isAvailable: boolean;
+}
+
+export interface FactoryUserSeedEntry {
+  factoryId: string;
+  name: string;
+  email: string;
+  password: string;
+  role: 'user' | 'admin';
+  phone?: string;
+  address?: string;
+}
+
+export interface FactoryOrderSeedEntry {
+  factoryId: string;
+  userId: string;
+  restaurantId: string;
+  restaurantName: string;
+  items: Array<{ menuItemId: string; name: string; price: number; quantity: number }>;
+  totalAmount: number;
+  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  deliveryAddress: string;
+  paymentMethod: 'cash' | 'card' | 'upi';
+  note?: string;
+  createdAt?: string;
+}
+
+export interface FactoryReviewSeedEntry {
+  factoryId: string;
+  userId: string;
+  restaurantId: string;
+  rating: number;
+  comment: string;
+  userName: string;
+  createdAt?: string;
+}
 
 export interface FactorySeedPayload {
-  restaurants: Array<{
-    factoryId: string;
-    name: string;
-    description: string;
-    cuisine: string[];
-    address: string;
-    city: string;
-    rating: number;
-    deliveryTime: number;
-    deliveryFee: number;
-    minOrder: number;
-    imageUrl: string;
-    coverImageUrl?: string;
-    isOpen: boolean;
-    isFeatured: boolean;
-    tags: string[];
-    phone: string;
-    location?: { lat: number; lng: number };
-    contact?: { phone: string; email?: string };
-    openingHours?: Array<{ day: string; open: string; close: string }>;
-  }>;
-  menus: Array<{
-    factoryRestaurantId: string;
-    name: string;
-    description: string;
-    price: number;
-    category: string;
-    imageUrl?: string;
-    isAvailable: boolean;
-  }>;
+  schemaVersion: 'factory-types-v1';
+  targets: FactorySeedTarget[];
+  config?: FactorySeedConfig;
+  data: {
+    restaurants: FactoryRestaurantSeedEntry[];
+    foodItems: FactoryFoodItemSeedEntry[];
+    users: FactoryUserSeedEntry[];
+    orders: FactoryOrderSeedEntry[];
+    reviews: FactoryReviewSeedEntry[];
+  };
 }
+
+type GeneratedRestaurant = {
+  id: string;
+  name: string;
+  description: string;
+  cuisine: string[] | string;
+  address: string;
+  rating: number;
+  deliveryTime: string | number | undefined;
+  deliveryFee: number;
+  minOrder: number;
+  image?: string;
+  bannerImage?: string;
+  isOpen: boolean;
+  isFeatured: boolean;
+  tags: string[];
+  contact?: { phone?: string; email?: string };
+  location?: { lat: number; lng: number };
+  openingHours?: Array<{ day: string; open: string; close: string }>;
+};
+
+type GeneratedFoodItem = {
+  restaurantId: string;
+  name: string;
+  description: string;
+  price: number;
+  category?: string;
+  image?: string;
+  isAvailable: boolean;
+};
+
+type GeneratedUser = {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role?: string;
+  phone?: string;
+  address?: string;
+};
+
+type GeneratedOrder = {
+  id: string;
+  userId: string;
+  restaurantId: string;
+  restaurantName?: string;
+  items?: Array<{ name: string; price: number; quantity?: number }>;
+  total?: number;
+  totalAmount?: number;
+  status?: string;
+  createdAt?: string;
+};
+
+type GeneratedReview = {
+  id: string;
+  userId: string;
+  restaurantId: string;
+  rating: number;
+  comment: string;
+  userName: string;
+  createdAt?: string;
+};
 
 const parseDeliveryTime = (value: string | number | undefined): number => {
   if (typeof value === 'number') return value;
@@ -46,8 +171,22 @@ const parseDeliveryTime = (value: string | number | undefined): number => {
   return 30;
 };
 
-export const buildFactorySeedPayload = (restaurantCount = 12): FactorySeedPayload => {
-  const restaurants = generateRestaurants(restaurantCount).map((restaurant) => ({
+export const buildFactorySeedPayload = (
+  restaurantCount = 12,
+  options: { targets?: FactorySeedTarget[]; config?: FactorySeedConfig } = {}
+): FactorySeedPayload => {
+  const targets = (options.targets?.length ? options.targets : ['restaurants', 'foodItems', 'users', 'orders', 'reviews']) as FactorySeedTarget[];
+  const config = options.config ?? {};
+
+  const generated = generateAllDummyData({
+    restaurants: config.restaurants ?? { count: restaurantCount },
+    foodItems: config.foodItems ?? { count: Math.max(20, restaurantCount * 6) },
+    users: config.users ?? { count: 8, includeTestAccounts: true },
+    orders: config.orders ?? { count: 16 },
+    reviews: config.reviews ?? { count: 12 },
+  } as Partial<FactoryInput>);
+
+  const restaurants = (generated.restaurants as GeneratedRestaurant[]).map((restaurant) => ({
     factoryId: restaurant.id,
     name: restaurant.name,
     description: restaurant.description,
@@ -58,32 +197,76 @@ export const buildFactorySeedPayload = (restaurantCount = 12): FactorySeedPayloa
     deliveryTime: parseDeliveryTime(restaurant.deliveryTime),
     deliveryFee: restaurant.deliveryFee,
     minOrder: restaurant.minOrder,
-    imageUrl: restaurant.image,
+    imageUrl: restaurant.image ?? '',
     coverImageUrl: restaurant.bannerImage,
     isOpen: restaurant.isOpen,
     isFeatured: restaurant.isFeatured,
     tags: restaurant.tags,
     phone: restaurant.contact?.phone || '+91 9000000000',
     location: restaurant.location,
-    contact: restaurant.contact,
+    contact: restaurant.contact ? { phone: restaurant.contact.phone || '+91 9000000000', email: restaurant.contact.email } : undefined,
     openingHours: restaurant.openingHours,
   }));
 
-  const selectedFactoryIds = new Set(restaurants.map((restaurant) => restaurant.factoryId));
-  const menus = generateMenus()
-    .filter((menuItem) => selectedFactoryIds.has(menuItem.restaurantId))
-    .map((menuItem) => ({
-      factoryRestaurantId: menuItem.restaurantId,
-      name: menuItem.name,
-      description: menuItem.description,
-      price: menuItem.price,
-      category: 'General',
-      imageUrl: menuItem.image,
-      isAvailable: true,
-    }));
+  const foodItems = (generated.foodItems as GeneratedFoodItem[]).map((menuItem) => ({
+    factoryRestaurantId: menuItem.restaurantId,
+    name: menuItem.name,
+    description: menuItem.description,
+    price: menuItem.price,
+    category: menuItem.category || 'General',
+    imageUrl: menuItem.image,
+    isAvailable: menuItem.isAvailable,
+  }));
+
+  const users = (generated.users as GeneratedUser[]).map((user) => ({
+    factoryId: user.id,
+    name: user.name,
+    email: user.email,
+    password: user.password ?? 'Password123!',
+    role: (user.role === 'admin' ? 'admin' : 'user') as FactoryUserSeedEntry['role'],
+    phone: user.phone,
+    address: user.address,
+  }));
+
+  const orders = (generated.orders as GeneratedOrder[]).map((order) => ({
+    factoryId: order.id,
+    userId: order.userId,
+    restaurantId: order.restaurantId,
+    restaurantName: order.restaurantName ?? 'Demo Restaurant',
+    items: (order.items ?? []).map((item) => ({
+      menuItemId: `${item.name}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'item',
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity ?? 1,
+    })),
+    totalAmount: order.total ?? order.totalAmount ?? 0,
+    status: (order.status === 'completed' ? 'delivered' : (order.status ?? 'pending')) as FactoryOrderSeedEntry['status'],
+    deliveryAddress: 'Demo delivery address',
+    paymentMethod: 'cash' as FactoryOrderSeedEntry['paymentMethod'],
+    note: 'Seeded via dev console',
+    createdAt: order.createdAt,
+  }));
+
+  const reviews = (generated.reviews as GeneratedReview[]).map((review) => ({
+    factoryId: review.id,
+    userId: review.userId,
+    restaurantId: review.restaurantId,
+    rating: review.rating,
+    comment: review.comment,
+    userName: review.userName,
+    createdAt: review.createdAt,
+  }));
 
   return {
-    restaurants,
-    menus,
+    schemaVersion: 'factory-types-v1',
+    targets,
+    config,
+    data: {
+      restaurants: targets.includes('restaurants') || targets.includes('foodItems') || targets.includes('orders') || targets.includes('reviews') ? restaurants : [],
+      foodItems: targets.includes('foodItems') ? foodItems : [],
+      users: targets.includes('users') || targets.includes('orders') || targets.includes('reviews') ? users : [],
+      orders: targets.includes('orders') ? orders : [],
+      reviews: targets.includes('reviews') ? reviews : [],
+    },
   };
 };
