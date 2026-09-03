@@ -12,7 +12,8 @@ import RestaurantDetail from '../../pages/RestaurantDetails';
 import Checkout from '../../pages/Checkout';
 import Cart from '../../pages/Cart';
 import Restaurants from '../../pages/restaurantListings';
-
+import Orderconfirmation from '../../pages/OrderConfirmation';
+// import orderTracking from '../../pages/Orders/OrderTracking';
 import Orders from '../../pages/Orders';
 // import Profile from '../../pages/zothers/Profile';
 import {
@@ -70,7 +71,7 @@ import DocumentationViewer from '@/core/dev/ui/pages/DocumentationViewer';
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* user and public routes */}
+{/* user and public routes */}
       <Route path="/" element={<MainLayout />}>
         {/* Public Routes */}
         <Route index element={<Home />} />
@@ -84,6 +85,7 @@ const AppRoutes: React.FC = () => {
         <Route path='notification' element={<Notifications />} />
         <Route path='search' element={<SearchPage />} />
         <Route path='settings' element={<Settings />} />
+        <Route path='orders/confirmation' element={<Orderconfirmation />} />
         {/* Protected Routes */}
         <Route path="profile" element={
           <ProtectedRoute allowedRoles={['user', 'admin']}>
@@ -115,7 +117,7 @@ const AppRoutes: React.FC = () => {
         {/* <Route path="*" element={<NotFound />} /> */}
       </Route>
 
-      {/* admin routes */}
+{/* admin routes */}
       <Route path="/admin/*" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <AdminLayout />
@@ -133,7 +135,7 @@ const AppRoutes: React.FC = () => {
         <Route path='profile' element={<AdminProfile />} />
       </Route>
 
-      {/* partner routes */}
+{/* partner routes */}
       <Route path="/partner/*" element={
         <ProtectedRoute allowedRoles={['delivery_partner']}>
           <PartnerLayout />
@@ -149,7 +151,7 @@ const AppRoutes: React.FC = () => {
         <Route path='settings' element={<PartnerSettings />} />
       </Route>
 
-      {/* owner routes  */}
+{/* owner routes  */}
       <Route path="/owner/*" element={
         <ProtectedRoute allowedRoles={['restaurant_owner']}>
           <OwnerLayout />
@@ -160,7 +162,7 @@ const AppRoutes: React.FC = () => {
         {/* <Route path='s' */}
       </Route>
 
-      {/* dev */}
+{/* dev */}
       <Route path="/dev" element={<DevLayout />} >
         <Route index element={<DevDashboard />} />
         <Route path='component-tree' element={<ComponentTreeExplorer />} />
