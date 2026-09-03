@@ -9,7 +9,7 @@ import Signup from '../../pages/Auth/Signup';
 import ForgotPassword from '../../pages/Auth/ForgotPassword';
 import ResetPassword from '../../pages/Auth/ResetPassword';
 import RestaurantDetail from '../../pages/RestaurantDetails';
-import Checkout from '../../pages/Cart/Checkout/Checkout';
+import Checkout from '../../pages/Checkout';
 import Cart from '../../pages/Cart';
 import Restaurants from '../../pages/restaurantListings';
 

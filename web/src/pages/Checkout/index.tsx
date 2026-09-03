@@ -5,6 +5,7 @@ import CheckoutContainer from '@features/cart/components/Checkout/Checkout';
 const Checkout: React.FC = () => {
   return (
     <SectionWrapper>
+      {/* <PageHeader title="Checkout" /> */}
       <CheckoutContainer />
     </SectionWrapper>
   );
