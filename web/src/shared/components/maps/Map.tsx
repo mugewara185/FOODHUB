@@ -52,6 +52,48 @@ const mapOptions: google.maps.MapOptions = {
   zoomControl: false,
 };
 
+const decodePolyline = (encoded: string): google.maps.LatLngLiteral[] => {
+  const points: google.maps.LatLngLiteral[] = [];
+  let index = 0;
+  const len = encoded.length;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < len) {
+    let b;
+    let shift = 0;
+    let result = 0;
+
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+
+    const dlat = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+
+    const dlng = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+    lng += dlng;
+
+    points.push({
+      lat: lat / 1e5,
+      lng: lng / 1e5,
+    });
+  }
+
+  return points;
+};
+
 const Map: React.FC<MapProps> = ({
   markers = [],
   center = defaultCenter,
@@ -66,9 +108,9 @@ const Map: React.FC<MapProps> = ({
   polylines,
 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
+    id: 'script-loader',
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: ['places', 'geometry'],
+    libraries: ['places'],
   });
 
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -119,10 +161,8 @@ const Map: React.FC<MapProps> = ({
     }
   }, [isLoaded, showTraffic, trafficLayer]);
 
-  // Decode and draw polylines
-  const decodedPolylines = polylines?.map(polyline => 
-    google.maps.geometry.encoding.decodePath(polyline)
-  );
+  // Decode and draw polylines without requiring the geometry library
+  const decodedPolylines = polylines?.map((polyline) => decodePolyline(polyline));
 
   if (loadError) {
     return (
@@ -234,7 +274,7 @@ const Map: React.FC<MapProps> = ({
         {/* Single polyline */}
         {polyline && (
           <Polyline
-            path={google.maps.geometry.encoding.decodePath(polyline)}
+            path={decodePolyline(polyline)}
             options={{
               strokeColor: '#2196F3',
               strokeOpacity: 0.6,
