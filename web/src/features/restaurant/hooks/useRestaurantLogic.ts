@@ -20,6 +20,7 @@ import {
 } from '../../cart/cartSlice';
 import { showToast, selectCartDrawerOpen } from '../../ui/uiSlice';
 import type { CustomizedCartItem, FoodItem } from '@core/types';
+import { logger } from '@/core/dev/logger';
 
 const calculateCustomizationPrice = (customizedItem: CustomizedCartItem) => {
   // console.log('calculateCustomizationPrice:', { customizedItem });
@@ -81,6 +82,7 @@ export function useRestaurantLogic(id?: string) {
 useEffect(() => {
   // console.log('useRestaurantLogic mounted with id:', id);
   console.log('%cuseRestauratnLogic:hook()','color:red',ref.current,':',id)
+  logger.debug('mount state','useRestaurantLogic mounted with id:', id,);
   ref.current++
 },[])
   useEffect(() => {

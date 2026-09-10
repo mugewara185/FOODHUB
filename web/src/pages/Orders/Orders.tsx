@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -10,7 +10,6 @@ import {
   Tab,
   Card,
   CardContent,
-  CardMedia,
   Chip,
   Button,
   Rating,
@@ -20,6 +19,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Alert,
 } from '@mui/material';
 import {
   AccessTime,
@@ -36,96 +36,38 @@ import {
   LocalShipping,
   Kitchen,
 } from '@mui/icons-material';
+import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
+import {
+  fetchOrdersThunk,
+  cancelOrderThunk,
+  selectOrders,
+  selectOrdersLoading,
+  selectOrderCancelling,
+  selectOrderError,
+} from '@/features/orders/orderSlice';
+import type { Order } from '@/core/types';
 
-interface Order {
-  id: string;
-  restaurant: {
-    name: string;
-    image: string;
-  };
-  items: { name: string; quantity: number }[];
-  total: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
-  date: string;
-  deliveryTime: string;
-  rating?: number;
-}
-
-const mockOrders: Order[] = [
-  {
-    id: 'ORD-001',
-    restaurant: {
-      name: 'Spice Garden',
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
-    },
-    items: [
-      { name: 'Butter Chicken', quantity: 1 },
-      { name: 'Garlic Naan', quantity: 2 },
-      { name: 'Veg Biryani', quantity: 1 },
-    ],
-    total: 890,
-    status: 'delivered',
-    date: '2024-01-15T19:30:00',
-    deliveryTime: '35 min',
-    rating: 5,
-  },
-  {
-    id: 'ORD-002',
-    restaurant: {
-      name: 'Pizza Paradise',
-      image: 'https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?w=400&h=300&fit=crop',
-    },
-    items: [
-      { name: 'Margherita Pizza', quantity: 1 },
-      { name: 'Garlic Bread', quantity: 1 },
-      { name: 'Coke', quantity: 2 },
-    ],
-    total: 650,
-    status: 'out_for_delivery',
-    date: '2024-01-16T12:15:00',
-    deliveryTime: '15 min',
-  },
-  {
-    id: 'ORD-003',
-    restaurant: {
-      name: 'Burger House',
-      image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400&h=300&fit=crop',
-    },
-    items: [
-      { name: 'Chicken Burger', quantity: 2 },
-      { name: 'French Fries', quantity: 1 },
-      { name: 'Milkshake', quantity: 1 },
-    ],
-    total: 520,
-    status: 'preparing',
-    date: '2024-01-16T13:00:00',
-    deliveryTime: '25 min',
-  },
-  {
-    id: 'ORD-004',
-    restaurant: {
-      name: 'Sushi Master',
-      image: 'https://images.unsplash.com/photo-1617196035154-1e7e6e28b0db?w=400&h=300&fit=crop',
-    },
-    items: [
-      { name: 'California Roll', quantity: 2 },
-      { name: 'Salmon Nigiri', quantity: 4 },
-      { name: 'Miso Soup', quantity: 1 },
-    ],
-    total: 1200,
-    status: 'cancelled',
-    date: '2024-01-14T20:00:00',
-    deliveryTime: '30 min',
-  },
-];
 
 const Orders: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  // Redux state
+  const orders = useAppSelector(selectOrders);
+  const isLoading = useAppSelector(selectOrdersLoading);
+  const isCancelling = useAppSelector(selectOrderCancelling);
+  const orderError = useAppSelector(selectOrderError);
+
   const [activeTab, setActiveTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
 
-  const filteredOrders = mockOrders.filter(order => {
+  // Fetch orders on mount
+  useEffect(() => {
+    dispatch(fetchOrdersThunk());
+  }, [dispatch]);
+
+  const filteredOrders = orders.filter((order) => {
     if (activeTab === 0) return true;
     if (activeTab === 1) return order.status === 'delivered';
     if (activeTab === 2) return ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status);
@@ -134,7 +76,7 @@ const Orders: React.FC = () => {
   });
 
   const getStatusColor = (status: Order['status']) => {
-    const colors = {
+    const colors: Record<Order['status'], string> = {
       pending: 'warning',
       confirmed: 'info',
       preparing: 'info',
@@ -146,7 +88,8 @@ const Orders: React.FC = () => {
   };
 
   const getStatusIcon = (status: Order['status']) => {
-    const icons = {
+    const icons: Record<Order['status'], React.ReactNode> = {
+
       pending: <AccessTime />,
       confirmed: <CheckCircle />,
       preparing: <Kitchen />,
@@ -181,6 +124,10 @@ const Orders: React.FC = () => {
       case 'help':
         navigate('/help');
         break;
+      case 'cancel':
+        // Dispatch cancel thunk — updates Redux state on success, shows error on failure
+        dispatch(cancelOrderThunk(orderId));
+        break;
       default:
         break;
     }
@@ -207,6 +154,16 @@ const Orders: React.FC = () => {
           Track, review, and reorder your meals
         </Typography>
       </Box>
+
+      {/* Loading indicator */}
+      {isLoading && <LinearProgress sx={{ mb: 2, borderRadius: 1 }} />}
+
+      {/* Error alert */}
+      {orderError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {orderError}
+        </Alert>
+      )}
 
       {/* Tabs */}
       <Paper sx={{ mb: 4, borderRadius: 3 }}>
@@ -271,7 +228,7 @@ const Orders: React.FC = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={8}>
                       <Box sx={{ display: 'flex', gap: 2 }}>
-                        {/* Restaurant Image */}
+                        {/* Restaurant placeholder image */}
                         <Box
                           sx={{
                             width: 80,
@@ -279,31 +236,31 @@ const Orders: React.FC = () => {
                             borderRadius: 2,
                             overflow: 'hidden',
                             flexShrink: 0,
+                            bgcolor: 'grey.200',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                         >
-                          <img
-                            src={order.restaurant.image}
-                            alt={order.restaurant.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
+                          <Restaurant sx={{ color: 'text.secondary' }} />
                         </Box>
 
-                        {/* Order Info */}
+                        {/* Order Info — using shared Order type fields */}
                         <Box sx={{ flex: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                             <Typography variant="h6" fontWeight={700}>
-                              {order.restaurant.name}
+                              {order.restaurantName}
                             </Typography>
                             <Chip
                               size="small"
-                              icon={getStatusIcon(order.status)}
+                              icon={getStatusIcon(order.status) as React.ReactElement}
                               label={getStatusText(order.status)}
                               color={getStatusColor(order.status) as any}
                             />
                           </Box>
                           
                           <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Order #{order.id} • {new Date(order.date).toLocaleDateString('en-US', {
+                            Order #{order.id} • {new Date(order.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
@@ -327,7 +284,7 @@ const Orders: React.FC = () => {
                                   Estimated Delivery
                                 </Typography>
                                 <Typography variant="body2" fontWeight={600} color="primary">
-                                  {order.deliveryTime}
+                                  In progress
                                 </Typography>
                               </Box>
                               <LinearProgress
@@ -351,17 +308,9 @@ const Orders: React.FC = () => {
                       }}>
                         <Typography variant="h6" fontWeight={700} color="primary.main" gutterBottom>
                           ₹{order.total}
+
                         </Typography>
                         
-                        {order.rating && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                            <Rating value={order.rating} readOnly size="small" />
-                            <Typography variant="body2" color="text.secondary">
-                              Rated
-                            </Typography>
-                          </Box>
-                        )}
-
                         <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
                           <Button
                             variant={order.status === 'cancelled' ? 'outlined' : 'contained'}
@@ -372,7 +321,7 @@ const Orders: React.FC = () => {
                             Reorder
                           </Button>
                           
-                          {order.status === 'delivered' && !order.rating && (
+                          {order.status === 'delivered' && (
                             <Button
                               variant="outlined"
                               size="small"

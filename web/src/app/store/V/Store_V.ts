@@ -17,6 +17,8 @@ import authReducer from "../../../features/auth/authSlice";
 import cartReducer from "../../../features/cart/cartSlice";
 import restaurantReducer from "../../../features/restaurant/restaurantSlice";
 import uislice from "../../../features/ui/uiSlice";
+import orderReducer from "../../../features/orders/orderSlice";
+
 
 // Import state initializers
 import { initializeAllStatesFromFactory } from "./stateInitializers";
@@ -31,6 +33,7 @@ const rootReducer = combineReducers({
   cart: cartReducer,
   restaurants: restaurantReducer,
   ui: uislice,
+  orders: orderReducer,
 });
 
 // Select storage engine: session isolation mode uses sessionStorage for multi-tab testing

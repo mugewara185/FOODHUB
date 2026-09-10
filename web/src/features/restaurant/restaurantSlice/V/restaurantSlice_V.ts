@@ -5,6 +5,9 @@ import type { RootState } from '../../../../app/store';
 import type { Restaurant, FoodItem, Category } from '@core/types';
 import getRestaurants from '../../../../data/factories/restaurants';
 import mockFoodItems from '../../../../data/factories/foodItems';
+import { APP_CONFIG } from '../../../../core/config/app.config';
+import { restaurantApi } from '../../../../services/api/restaurantApi';
+import { logger } from '@/core/dev/logger';
 
 export type RestaurantFilters = {
   searchQuery: string;
@@ -60,8 +63,11 @@ export const fetchRestaurants = createAsyncThunk(
   'restaurants/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
+      if (APP_CONFIG.DATA_SOURCE === 'api') {
+        return await restaurantApi.getAll();
+      }
+      // mock mode — existing behaviour preserved
       // throw new Error('Simulated API failure'); // Simulate error for testing
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
       return mockRestaurants;
     } catch (error) {
@@ -73,7 +79,13 @@ export const fetchRestaurants = createAsyncThunk(
 export const fetchRestaurantById = createAsyncThunk(
   'restaurants/fetchById',
   async (id: string, { rejectWithValue }) => {
+    logger.debug('fetchRestaurantById called with id:', id?.toString());
     try {
+      if (APP_CONFIG.DATA_SOURCE === 'api') {
+        console.log('api mode restaurantApi', APP_CONFIG);
+        return await restaurantApi.getById(id);
+      }
+      // mock mode — existing behaviour preserved
       await new Promise(resolve => setTimeout(resolve, 600));
       const restaurant = mockRestaurants.find(r => r.id === id);
       if (!restaurant) throw new Error('Restaurant not found');
@@ -86,6 +98,7 @@ export const fetchRestaurantById = createAsyncThunk(
     }
   }
 );
+
 
 const initialState: RestaurantState = {
   restaurants: [],
