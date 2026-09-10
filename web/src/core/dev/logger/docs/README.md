@@ -1,336 +1,89 @@
-# Logger System - Quick Reference
+# Developer Observability Foundation: Quick Start
 
-## 📁 File Structure
+The Developer Observability Foundation (`core/dev/logger`) is a highly structured, trace-aware execution timeline for debugging complex frontend flows.
 
-```
-core/dev/logger/
-├── types.ts                  # TypeScript types and interfaces
-├── Logger.ts                 # Core logger class (singleton)
-├── LoggerContext.tsx         # React context and hooks
-├── LogConsole.tsx            # Debug UI component
-├── logUtils.ts               # Helper functions for common patterns
-├── index.ts                  # Main export file
-├── LOGGER_GUIDE.md           # Complete documentation
-└── SETUP_EXAMPLES.ts         # Integration examples
-```
+## 1. Using the Logger in React Components
 
-## 🚀 Quick Start (30 seconds)
+Import `useLogger` from the context to get stable logging functions.
 
-### 1. Wrap App with Provider
-```typescript
-import { LoggerProvider } from '@/core/dev/logger';
+```tsx
+import { useLogger } from '@/core/dev/contexts/LoggerContext';
 
-<LoggerProvider>
-  <YourApp />
-</LoggerProvider>
-```
+export const MyComponent = () => {
+  const { info, error } = useLogger();
 
-### 2. Use in Components
-```typescript
-import { useLogger } from '@/core/dev/logger';
+  useEffect(() => {
+    info('MY_FEATURE', 'Component mounted', {
+      event: 'MOUNT',
+      source: 'MyComponent'
+    });
+  }, []);
 
-const { info, error, warn } = useLogger();
-
-info('COMPONENT', 'Something happened', { data });
-```
-
-### 3. View Logs
-Open the green **Log Console** UI or programmatically:
-```typescript
-const { getLogs, stats } = useLogger();
-```
-
----
-
-## 📊 Log Levels
-
-```
-DEBUG    → Detailed debugging info
-INFO     → Important events
-WARN     → Warning conditions  
-ERROR    → Error conditions
-CRITICAL → Critical failures
-```
-
----
-
-## 🎯 Common Tasks
-
-### Log API Request
-```typescript
-import { logAPI } from '@/core/dev/logger';
-
-logAPI.request('/api/users', 'GET', { id: 123 });
-logAPI.response('/api/users', 200, data);
-logAPI.error('/api/users', error);
-```
-
-### Log Redux State
-```typescript
-import { logRedux } from '@/core/dev/logger';
-
-logRedux.action('fetchUsers', payload);
-logRedux.state('users', newState);
-```
-
-### Log Component Lifecycle
-```typescript
-import { logComponent } from '@/core/dev/logger';
-
-useEffect(() => {
-  logComponent.mount('MyComponent');
-  return () => logComponent.unmount('MyComponent');
-}, []);
-```
-
-### Measure Performance
-```typescript
-import { PerformanceSpan } from '@/core/dev/logger';
-
-const span = new PerformanceSpan('operation-name');
-doWork();
-const duration = span.end(); // in ms
-```
-
-### Log Authentication
-```typescript
-import { logAuth } from '@/core/dev/logger';
-
-logAuth.login('user123', 'google');
-logAuth.error('Login failed', error);
-logAuth.logout('user123');
-```
-
----
-
-## 🔍 Finding Issues
-
-### Get All Errors
-```typescript
-const { getLogs } = useLogger();
-const errors = getLogs({ level: ['ERROR', 'CRITICAL'] });
-```
-
-### Find API Issues
-```typescript
-const apiErrors = getLogs({ category: 'API', level: 'ERROR' });
-```
-
-### Search in Logs
-```typescript
-const results = getLogs({ search: 'authentication' });
-```
-
-### Get Logs by Category
-```typescript
-const componentLogs = useCategoryLogs('COMPONENT');
-```
-
-### Get Statistics
-```typescript
-const { stats } = useLogger();
-// stats.total, stats.byLevel, stats.byCategory
-```
-
----
-
-## 💾 Storage & Export
-
-### Clear Logs
-```typescript
-const { clearLogs } = useLogger();
-clearLogs();
-```
-
-### Export as JSON
-```typescript
-const { exportLogs } = useLogger();
-const json = exportLogs('json');
-// Download via UI or saveFile()
-```
-
-### Direct Access (No React)
-```typescript
-import { logger } from '@/core/dev/logger';
-
-logger.info('INIT', 'App starting');
-logger.getLogs({ category: 'API' });
-```
-
----
-
-## ⚙️ Configuration
-
-```typescript
-const { setConfig } = useLogger();
-
-setConfig({
-  maxLogs: 500,              // Keep max 500 logs
-  persistLogs: true,         // Save to localStorage
-  logLevel: 'DEBUG',         // Minimum level to log
-  enableStackTrace: true,    // Capture stack traces
-  enableTimestamps: true,    // Include timestamps
-});
-```
-
----
-
-## 🪝 React Hooks
-
-```typescript
-// Get all logs
-const { logs } = useLogger();
-
-// Get filtered logs
-const debugLogs = useFilteredLogs({ level: 'DEBUG' });
-
-// Get by category
-const apiLogs = useCategoryLogs('API');
-
-// Get errors only
-const errors = useErrorLogs();
-
-// Get by level
-const warnings = useLogsByLevel(['WARN', 'ERROR']);
-```
-
----
-
-## 🎓 Best Practices
-
-✅ **DO:**
-- Use consistent category names (API, COMPONENT, REDUX, etc.)
-- Include relevant context data as 3rd parameter
-- Use helper functions (logAPI, logComponent, etc.)
-- Add source parameter to identify origin
-
-❌ **DON'T:**
-- Spam with DEBUG logs in production
-- Log sensitive information (passwords, tokens)
-- Use vague categories like "stuff"
-- Forget to log errors with context
-
----
-
-## 🔗 Integration Points
-
-### API Services
-```typescript
-// Intercept API calls
-apiClient.interceptors.request.use(config => {
-  logAPI.request(config.url, config.method, config.data);
-  return config;
-});
-```
-
-### Redux Middleware
-```typescript
-const middleware = store => next => action => {
-  logRedux.action(action.type);
-  return next(action);
-};
-```
-
-### Error Boundaries
-```typescript
-componentDidCatch(error, info) {
-  logError('COMPONENT', error, info);
+  return <div />;
 }
 ```
 
-### Route Changes
-```typescript
-useEffect(() => {
-  logPerformance.navigation(location.pathname);
-}, [location]);
-```
+## 2. Using Traces for Flow Correlation
 
----
+When debugging complex async flows (e.g. checkout, authentication), start a trace. All logs emitted from the trace will automatically share a `traceId`, grouping them in the UI.
 
-## 📈 Real-World Examples
+```ts
+import { logger } from '@/core/dev/logger/Logger';
 
-### Example 1: Track User Flow
-```typescript
-const { info } = useLogger();
+const myThunk = async () => {
+  const trace = logger.startTrace('FEATURE_NAME', 'Started complex process');
 
-const handleCheckout = async () => {
-  info('CHECKOUT', 'Started', {}, 'CheckoutFlow');
-  const cart = await getCart();
-  info('CHECKOUT', 'Cart loaded', { items: cart.length });
-  const order = await createOrder(cart);
-  info('CHECKOUT', 'Completed', { orderId: order.id });
-};
-```
-
-### Example 2: Debug API Performance
-```typescript
-import { PerformanceSpan } from '@/core/dev/logger';
-
-async function fetchData(url) {
-  const span = new PerformanceSpan(`fetch-${url}`);
   try {
-    const data = await fetch(url);
-    const duration = span.end();
-    if (duration > 3000) warn('PERFORMANCE', 'Slow fetch', { url, duration });
-    return data;
-  } catch (error) {
-    span.end();
-    error('API', 'Fetch failed', { url, error });
+    trace.debug('Validating data...');
+    // ...
+    trace.info('API Call Success', { data: { status: 200 } });
+    trace.end('Process complete');
+  } catch (err) {
+    trace.error('Process failed', { error: err });
+    trace.end('Process aborted');
   }
 }
 ```
 
-### Example 3: Error Tracking
-```typescript
-try {
-  // risky operation
-} catch (error) {
-  logError('OPERATION', error, {
-    operation: 'saveData',
-    userId: currentUser.id,
-    recoverable: true,
-  }, 'DataService');
-}
+## 3. Specialized Helper Utilities
+
+Use `logUtils.ts` for standardized domain actions.
+
+```ts
+import { logAPI, logComponent, logRedux, logError } from '@/core/dev/logger/logUtils';
+
+// 1. API Instrumentation
+logAPI.request('GET', '/users');
+logAPI.response('GET', '/users', 200, 150, responseData);
+
+// 2. Component Lifecycle (Opt-in via config)
+logComponent.render('UserProfile', props);
+
+// 3. Performance Timing
+import { PerformanceSpan } from '@/core/dev/logger/logUtils';
+const span = new PerformanceSpan('HeavyCalculation');
+// ... do work ...
+span.end();
+
+// 4. Error Tracking
+logError('FEATURE_NAME', error, { contextData: 'foo' });
 ```
 
----
+## 4. The Dev Logger UI (`LogPanel.tsx`)
 
-## 🐛 Troubleshooting
+The Logger UI provides a real-time, scannable timeline of execution.
 
-| Problem | Solution |
-|---------|----------|
-| Logs not showing | Check LoggerProvider wraps app, check log level |
-| Performance slow | Reduce maxLogs, disable persistence in dev |
-| localStorage full | Export logs and clear them |
-| Can't find issue | Use filters/search in Log Console |
-| Stack trace empty | Set enableStackTrace: true in config |
+**Features:**
+- **Pause/Resume:** Freeze the UI while logs continue collecting in the background.
+- **Browser Console Toggle:** Mute the browser console output without stopping internal timeline tracking.
+- **Persistence Toggle:** Save logs to `localStorage` across page reloads.
+- **Expandable Details:** Click any log row to see structured JSON, stack traces, and copy buttons.
+- **Filters:** Search by `traceId`, `message`, `category`, or filter by severity `Level`.
 
----
+## 5. Configuration Defaults
 
-## 📚 Documentation Files
-
-- **LOGGER_GUIDE.md** - Complete comprehensive guide
-- **SETUP_EXAMPLES.ts** - Real integration examples
-- **types.ts** - All TypeScript types
-- **logUtils.ts** - Helper function reference
-
----
-
-## 💡 Pro Tips
-
-1. **Use categories consistently** across your app for easier filtering
-2. **Add context data** to all logs (user ID, component name, etc.)
-3. **Monitor performance** with PerformanceSpan for critical operations
-4. **Export logs** periodically for analysis and debugging
-5. **Use Log Console UI** to visualize patterns and find root causes
-6. **Set up alerts** for CRITICAL logs in production
-7. **Integrate with error tracking** service like Sentry
-
----
-
-## 📞 Support
-
-For detailed usage examples, see **SETUP_EXAMPLES.ts**
-For complete API reference, see **LOGGER_GUIDE.md**
-
-Happy debugging! 🚀
+Configuration is managed in the singleton and respects updates from the UI.
+- `consoleLoggingEnabled: true` - Outputs to browser console.
+- `renderLoggingEnabled: false` - Component render logs are muted by default.
+- `persistLogs: true` - Keeps the last 500 logs in `localStorage`.
+- `enableStackTrace: true` - Automatically captures stack traces on `ERROR` and `CRITICAL`.

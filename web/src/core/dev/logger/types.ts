@@ -7,10 +7,18 @@ export interface LogEntry {
   level: LogLevel;
   category: string; // e.g., 'API', 'Auth', 'Redux', 'Component'
   message: string;
-  data?: unknown; // Additional context data
-  stackTrace?: string; // For errors
-  tags?: string[]; // For filtering
   source?: string; // File/component that logged
+  event?: string; // What kind of execution event this represents
+  data?: unknown; // Optional structured debugging information
+  traceId?: string; // Correlation / flow tracking
+  parentId?: string;
+  duration?: number; // Optional duration
+  route?: string; // Environment/session information
+  error?: {
+    name?: string;
+    message?: string;
+    stack?: string;
+  };
 }
 
 export interface LogStats {
@@ -20,21 +28,28 @@ export interface LogStats {
 }
 
 export interface LoggerConfig {
-  maxLogs: number; // Max logs to keep in memory (default: 500)
-  persistLogs: boolean; // Save to localStorage (default: true)
-  logLevel: LogLevel; // Minimum level to log (default: 'DEBUG')
-  enableStackTrace: boolean; // Capture stack traces (default: true)
-  enableTimestamps: boolean; // Include timestamps (default: true)
-  groupByCategory: boolean; // Auto-group logs (default: true)
+  maxLogs: number;
+  persistLogs: boolean;
+  logLevel: LogLevel;
+  enableStackTrace: boolean;
+  enableTimestamps: boolean;
+  consoleLoggingEnabled: boolean;
+  renderLoggingEnabled: boolean;
+  routeTrackingEnabled: boolean;
+  reduxLoggingEnabled: boolean;
+  apiLoggingEnabled: boolean;
 }
 
 export interface FilterOptions {
   level?: LogLevel | LogLevel[];
   category?: string;
-  search?: string; // Search in message
-  tags?: string[];
+  search?: string; // Search in message or data
+  traceId?: string;
+  route?: string;
+  event?: string;
   timeRange?: {
     start: number;
     end: number;
   };
 }
+

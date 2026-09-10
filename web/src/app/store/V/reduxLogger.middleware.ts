@@ -189,7 +189,7 @@ export const createReduxLoggerMiddleware = (): Middleware<{}, RootState> => {
       if (config.enableSlowActionWarning && duration > config.slowActionThreshold) {
         const warning = `Action took ${duration}ms (threshold: ${config.slowActionThreshold}ms)`;
         logData.warning = warning;
-        logger.warn('REDUX', warning, { action: actionType, duration }, 'ReduxMiddleware');
+        logger.warn('REDUX', warning, { data: { action: actionType, duration }, source: 'ReduxMiddleware' });
       }
     }
 
@@ -200,7 +200,7 @@ export const createReduxLoggerMiddleware = (): Middleware<{}, RootState> => {
 
     // Dispatch dispatch event and write to logger
     logData.source = 'ReduxMiddleware';
-    logger.debug('REDUX', `Action: ${actionType}`, logData, 'Redux');
+    logger.debug('REDUX', `Action: ${actionType}`, { data: logData, source: 'Redux' });
 
     // Pretty print if configured
     if (config.prettyPrint) {

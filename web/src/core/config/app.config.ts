@@ -7,7 +7,7 @@ export const APP_CONFIG = {
   // DEV ONLY: Bypasses authentication checks for rapid UI development
   // WARNING: MUST BE FALSE IN PRODUCTION!
   DEV_BYPASS_AUTH: import.meta.env.VITE_DEV_BYPASS_AUTH === 'true' && IS_DEV
-  && false  
+  // && false  
   ,
 
   // Analytics and tracking

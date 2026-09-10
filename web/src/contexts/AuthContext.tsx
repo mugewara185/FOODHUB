@@ -19,6 +19,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
+    import('../core/dev/logger/Logger').then(({ logger }) => {
+      logger.info('AUTH', 'AuthProvider mounted, starting auth restoration', { event: 'MOUNT', source: 'AuthProvider' });
+    });
     void dispatch(restoreAuthThunk());
   }, [dispatch]);
 

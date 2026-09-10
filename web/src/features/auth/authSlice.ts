@@ -107,13 +107,30 @@ export const resetPasswordThunk = createAsyncThunk<void, ResetPasswordData, { re
 export const restoreAuthThunk = createAsyncThunk<AuthUser | null, void, { rejectValue: string }>(
   "auth/restore",
   async (_, { rejectWithValue }) => {
+    // Dynamically import logger to avoid circular dependency issues at boot
+    const { logger } = await import('../../core/dev/logger/Logger');
+    const trace = logger.startTrace('AUTH', 'restoreAuthThunk started');
+    
     try {
       const storedSession = readStoredSession();
-      if (!storedSession?.token) return null;
-
+      if (!storedSession?.token) {
+        trace.info('No stored session found, skipping restore');
+        trace.end('restoreAuthThunk completed (unauthenticated)');
+        return null;
+      }
+      
+      trace.debug('Stored session found, token extracted');
+      trace.info('Calling /auth/me');
+      
       const freshUser = await authApi.getMe(storedSession.token);
+      
+      trace.info('/auth/me completed', { data: { status: 200 } });
+      trace.end('Authentication restored successfully');
+      
       return freshUser;
     } catch (err) {
+      trace.error('Restore auth failed', { error: err });
+      trace.end('Authentication restoration failed');
       return rejectWithValue(getErrorMessage(err));
     }
   }
