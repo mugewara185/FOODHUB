@@ -28,8 +28,8 @@ import {
   AttachMoney,
   RadioButtonChecked,
 } from '@mui/icons-material';
-import Map from '../maps/Map';
-import { socketService } from '../../../services/socket';
+import Map from '../../../../shared/components/maps/Map';
+import { socketService } from '../../../../services/socket';
 import { Coordinates, DeliveryPartner } from '../../types/location';
 
 interface PartnerTrackingProps {
@@ -66,7 +66,7 @@ const PartnerTracking: React.FC<PartnerTrackingProps> = ({
             lng: position.coords.longitude,
           };
           setCurrentLocation(pos);
-          
+
           // Send location to server
           socketService.updatePartnerLocation(partnerId, pos);
         },

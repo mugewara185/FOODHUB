@@ -3,8 +3,11 @@ import { AuthProvider } from "./contexts/AuthContext";
 import AppRoutes from "./app/routes";
 import FloatingDevConsole from "@/core/dev/ui/modals/FloatingDevConsole";
 import { CUISINES } from "@core/constants/food";
-import { selectAllRestaurants, selectFeaturedRestaurants, selectRestaurantLoading } from "./features/restaurant/restaurantSlice";
-import { useAppSelector, useAppDispatch } from "@app/store/hooks";
+import { selectAllRestaurants } from "./features/restaurant/restaurantSlice";
+import { selectFeaturedRestaurants } from "./features/restaurant/restaurantSlice";
+import { selectRestaurantLoading } from "./features/restaurant/restaurantSlice";
+import { useAppDispatch, useAppSelector } from "@app/store/hooks";
+//context
 import { useDevContext } from "@core/dev/contexts/DevContext";
 import { useLogger } from "./core/dev/logger";
 import LogConsole from "./core/dev/logger";
@@ -13,7 +16,6 @@ import { Toast } from "./shared/components/notifications";
 import { socketService } from "./services/socket";
 import { showToast } from "./features/ui/uiSlice";
 import { updateOrderStatusLocally } from "./features/orders/orderSlice";
-import { addNotification } from "./core/notifications/notificationSlice";
 
 const App: React.FC = () => {
   const allRestaurants = useAppSelector(selectAllRestaurants);
@@ -27,20 +29,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isInitialized && isAuthenticated && user) {
-      const socket = socketService.connect(user.id);
+      socketService.connect(user.id);
 
       const handleNotification = (data: { title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error', orderId?: string, status?: string }) => {
         const notifType = data.type || 'info';
         // Transient UI Toast
         dispatch(showToast({ message: data.message, type: notifType }));
-        // Persistent In-App Notification
-        dispatch(addNotification({
-          title: data.title,
-          message: data.message,
-          type: notifType,
-          orderId: data.orderId,
-          status: data.status
-        }));
+        logger.info('APP', 'Notification received via socket', { event: 'NOTIFICATION.RECEIVED', data });
       };
 
       const handleOrderStatusUpdate = (data: { orderId: string, status: any }) => {

@@ -44,15 +44,26 @@ class SocketService {
   }
 
   onNotification(callback: (data: { title: string; message: string; orderId: string; status: string }) => void) {
-    this.socket?.on('notification', callback);
+    this.socket?.on('notification', (data) => {
+      logger.info('SOCKET', `Notification received: ${data.title}`, { event: 'NOTIFICATION.RECEIVED', data: { title: data.title, hasOrderId: !!data.orderId }, source: 'socketService' });
+      callback(data);
+    });
   }
 
-  offOrderStatusUpdate(callback?: any) {
+  offNotification(callback?: (data: any) => void) {
+    this.socket?.off('notification', callback);
+  }
+
+  offOrderStatusUpdate(callback?: (data: any) => void) {
     this.socket?.off('order_status_update', callback);
   }
 
-  offNotification(callback?: any) {
-    this.socket?.off('notification', callback);
+  onOrderStatusChanged(callback: (data: any) => void) {
+    this.socket?.on('order:status_changed', callback);
+  }
+
+  onPartnerLocationUpdated(callback: (data: any) => void) {
+    this.socket?.on('partner:location_updated', callback);
   }
 
   removeAllListeners() {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * orderSlice.ts
  *
  * Redux slice for the order domain.
@@ -227,13 +227,13 @@ const orderSlice = createSlice({
     },
     updateOrderStatusLocally(state, action: PayloadAction<{ orderId: string; status: Order['status'] }>) {
       const { orderId, status } = action.payload;
-      
+
       // Update in history list if present
       const index = state.items.findIndex(o => o.id === orderId);
       if (index !== -1) {
         state.items[index].status = status;
       }
-      
+
       // Update current order if it's the one being tracked
       if (state.currentOrder && state.currentOrder.id === orderId) {
         state.currentOrder.status = status;
@@ -317,6 +317,7 @@ const orderSlice = createSlice({
   },
 });
 
+export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = orderSlice.actions;
 export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = orderSlice.actions;
 
 // ---------------------------------------------------------------------------
