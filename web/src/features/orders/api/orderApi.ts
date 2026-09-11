@@ -138,9 +138,9 @@ const request = async <T>(
   if (!response.ok) {
     const msg =
       typeof payload === 'object' &&
-      payload !== null &&
-      'message' in payload &&
-      payload.message
+        payload !== null &&
+        'message' in payload &&
+        payload.message
         ? String(payload.message)
         : `Request failed (${response.status})`;
     throw new Error(msg);
@@ -163,11 +163,13 @@ export const orderApi = {
   },
 
   async getUserOrders(token: string): Promise<Order[]> {
+    console.log("getUserOrders called from api");
     const dtos = await request<OrderApiDTO[]>('/orders', token);
     return dtos.map(normalizeOrder);
   },
 
   async getById(id: string, token: string): Promise<Order> {
+    console.log('getById called from api')
     const dto = await request<OrderApiDTO>(`/orders/${id}`, token);
     return normalizeOrder(dto);
   },

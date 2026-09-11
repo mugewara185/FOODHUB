@@ -5,6 +5,39 @@ import { Restaurant } from '../restaurants/restaurant.model';
 import { AppError } from '../../shared/middleware/errorHandler';
 import { sendSuccess } from '../../shared/utils/response';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
+import { getIO } from '../../socket';
+
+// Helper to simulate order progression for demonstration of real-time tracking
+const simulateOrderProgression = async (orderId: string, userId: string) => {
+  const statuses = ['confirmed', 'preparing', 'out_for_delivery', 'delivered'];
+  let delay = 10000; // 10s between states
+
+  for (const status of statuses) {
+    setTimeout(async () => {
+      try {
+        const order = await Order.findById(orderId);
+        if (order && order.status !== 'cancelled') {
+          order.status = status as any;
+          await order.save();
+          
+          const io = getIO();
+          // Emit to the specific order tracking room
+          io.to(orderId).emit('order_status_update', { orderId, status });
+          // Emit a notification to the user's personal room
+          io.to(userId).emit('notification', { 
+            title: 'Order Update', 
+            message: `Your order is now ${status.replace('_', ' ')}`,
+            orderId,
+            status 
+          });
+        }
+      } catch (err) {
+        console.error('Simulation error:', err);
+      }
+    }, delay);
+    delay += 10000;
+  }
+};
 
 const createOrderSchema = z.object({
   restaurantId: z.string().min(1),
@@ -54,6 +87,9 @@ export async function createOrder(req: AuthRequest, res: Response, next: NextFun
       note: body.note,
     });
 
+    // Start background simulation
+    simulateOrderProgression(order.id, req.user!.id);
+
     sendSuccess({ res, statusCode: 201, message: 'Order placed successfully', data: order });
   } catch (err) {
     next(err);
@@ -102,6 +138,15 @@ export async function cancelOrder(req: AuthRequest, res: Response, next: NextFun
 
     order.status = 'cancelled';
     await order.save();
+
+    const io = getIO();
+    io.to(order.id).emit('order_status_update', { orderId: order.id, status: 'cancelled' });
+    io.to(req.user!.id).emit('notification', { 
+      title: 'Order Cancelled', 
+      message: `Your order from ${order.restaurantName} was cancelled.`,
+      orderId: order.id,
+      status: 'cancelled' 
+    });
 
     sendSuccess({ res, message: 'Order cancelled', data: order });
   } catch (err) {

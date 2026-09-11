@@ -30,12 +30,12 @@ import {
   Star,
 } from '@mui/icons-material';
 import Map from '../maps/Map';
-import { socketService } from '../../../services/socket';
 import type { Coordinates, LiveTracking, DeliveryPartner } from '../../../data/types/location';
-import { formatDuration, formatDistance } from '../../../core/utils/location';
+import { formatDuration } from '../../../core/utils/location';
 
 interface LiveDeliveryTrackerProps {
   orderId: string;
+  orderStatus: string;
   restaurantLocation: Coordinates;
   customerLocation: Coordinates;
   onStatusChange?: (status: string) => void;
@@ -43,6 +43,7 @@ interface LiveDeliveryTrackerProps {
 
 const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
   orderId,
+  orderStatus,
   restaurantLocation,
   customerLocation,
   onStatusChange,
@@ -52,8 +53,8 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
   const [route, setRoute] = useState<google.maps.DirectionsResult | null>(null);
   const [eta, setEta] = useState<string>('');
 
-  // Mock delivery partner data (replace with real API)
   useEffect(() => {
+    // Mock delivery partner data
     const mockPartner: DeliveryPartner = {
       id: 'DP001',
       name: 'Rahul Sharma',
@@ -69,31 +70,29 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
     };
     setPartner(mockPartner);
 
-    // Mock tracking data
-    const mockTracking: LiveTracking = {
+    const statusToStep: Record<string, number> = {
+      pending: 0,
+      confirmed: 1,
+      preparing: 2,
+      out_for_delivery: 3,
+      delivered: 4,
+      cancelled: 0,
+    };
+    const currentStep = statusToStep[orderStatus] ?? 0;
+
+    // Map tracking data
+    const newTracking: LiveTracking = {
       orderId,
       partnerId: 'DP001',
       partnerLocation: { lat: 19.0760, lng: 72.8777 },
       estimatedArrival: new Date(Date.now() + 25 * 60000), // 25 minutes from now
-      currentStep: 2,
-      totalSteps: 5,
-      status: 'on_the_way',
+      currentStep,
+      totalSteps: 4,
+      status: orderStatus as any,
       lastUpdate: new Date(),
     };
-    setTracking(mockTracking);
-
-    // Connect to socket
-    socketService.connect('customer123', 'customer');
-    socketService.subscribeToOrder(orderId, (data) => {
-      setTracking(data.tracking);
-      setPartner(data.partner);
-    });
-
-    return () => {
-      socketService.unsubscribeFromOrder(orderId);
-      socketService.disconnect();
-    };
-  }, [orderId]);
+    setTracking(newTracking);
+  }, [orderId, orderStatus]);
 
   // Calculate route when both locations are available
   useEffect(() => {

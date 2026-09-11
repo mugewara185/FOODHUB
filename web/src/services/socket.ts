@@ -3,17 +3,18 @@ import { io, Socket } from 'socket.io-client';
 class SocketService {
   private socket: Socket | null = null;
 
-  connect(userId: string, userType: 'customer' | 'partner' | 'admin') {
-    this.socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001', {
-      query: {
-        userId,
-        userType,
-      },
+  connect(userId?: string) {
+    if (this.socket) return this.socket;
+
+    this.socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
       transports: ['websocket'],
     });
 
     this.socket.on('connect', () => {
       console.log('Socket connected:', this.socket?.id);
+      if (userId) {
+        this.joinUserRoom(userId);
+      }
     });
 
     this.socket.on('disconnect', () => {
@@ -30,41 +31,28 @@ class SocketService {
     }
   }
 
-  // Order tracking events
-  subscribeToOrder(orderId: string, callback: (data: any) => void) {
-    this.socket?.on(`order:${orderId}:location`, callback);
+  joinUserRoom(userId: string) {
+    this.socket?.emit('join_user_room', userId);
   }
 
-  unsubscribeFromOrder(orderId: string) {
-    this.socket?.off(`order:${orderId}:location`);
+  joinOrderRoom(orderId: string) {
+    this.socket?.emit('join_order_room', orderId);
   }
 
-  // Partner location updates
-  updatePartnerLocation(partnerId: string, location: { lat: number; lng: number }) {
-    this.socket?.emit('partner:location', { partnerId, location });
+  onOrderStatusUpdate(callback: (data: { orderId: string; status: string }) => void) {
+    this.socket?.on('order_status_update', callback);
   }
 
-  // Order status updates
-  updateOrderStatus(orderId: string, status: string, location?: any) {
-    this.socket?.emit('order:status', { orderId, status, location });
+  onNotification(callback: (data: { title: string; message: string; orderId: string; status: string }) => void) {
+    this.socket?.on('notification', callback);
   }
 
-  // Driver assignment
-  assignDriver(orderId: string, driverId: string) {
-    this.socket?.emit('order:assign', { orderId, driverId });
+  offOrderStatusUpdate(callback?: any) {
+    this.socket?.off('order_status_update', callback);
   }
 
-  // Event listeners
-  onOrderAssigned(callback: (data: any) => void) {
-    this.socket?.on('order:assigned', callback);
-  }
-
-  onOrderStatusChanged(callback: (data: any) => void) {
-    this.socket?.on('order:status_changed', callback);
-  }
-
-  onPartnerLocationUpdated(callback: (data: any) => void) {
-    this.socket?.on('partner:location_updated', callback);
+  offNotification(callback?: any) {
+    this.socket?.off('notification', callback);
   }
 
   removeAllListeners() {
