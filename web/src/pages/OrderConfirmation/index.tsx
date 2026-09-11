@@ -127,23 +127,81 @@ const statusSteps = [
   { label: 'Delivered', icon: <CheckCircle />, time: '3:15 PM' },
 ];
 
+import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
+import { fetchOrderByIdThunk, selectCurrentOrder, selectOrdersLoading } from '../../features/orders/orderSlice';
+
+// Map real order to mock-compatible details
+const mapOrderToDetails = (order: any): OrderDetails => ({
+  id: order.id,
+  orderDate: order.createdAt,
+  estimatedDelivery: order.estimatedDelivery || order.createdAt, // Fallback
+  status: order.status as any,
+  restaurant: {
+    id: order.restaurantId,
+    name: order.restaurantName || 'Restaurant',
+    image: '/api/placeholder/100/100', // Real image if available
+    address: order.restaurantAddress || 'Address',
+    phone: '+91 0000000000',
+  },
+  items: order.items.map((item: any) => ({
+    id: item.foodItemId,
+    name: item.name,
+    quantity: item.quantity,
+    price: item.price,
+  })),
+  deliveryAddress: {
+    name: 'Customer',
+    street: order.deliveryInfo?.address || 'Delivery Address',
+    city: '',
+    state: '',
+    zipCode: '',
+    phone: '',
+  },
+  paymentMethod: order.paymentMethod,
+  orderSummary: {
+    itemTotal: order.subtotal,
+    deliveryFee: order.deliveryFee,
+    tax: order.tax,
+    discount: order.discount,
+    total: order.total,
+  },
+});
+
 const OrderConfirmation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  const [order, setOrder] = useState<OrderDetails>(ORDER_DATA);
+  
+  const currentOrder = useAppSelector(selectCurrentOrder);
+  const isLoading = useAppSelector(selectOrdersLoading);
+  
+  const [order, setOrder] = useState<OrderDetails | null>(null);
   const [currentStatusIndex, setCurrentStatusIndex] = useState(0);
   const [showSuccess, setShowSuccess] = useState(true);
 
   // In real app, fetch order data from API/Redux
   useEffect(() => {
-    // Simulate loading order data
-    const orderId = location.state?.orderId || ORDER_DATA.id;
-    // Fetch order details here
-    console.log('Loading order:', orderId);
-  }, [location]);
+    const orderId = location.state?.orderId;
+    if (orderId) {
+      if (currentOrder && currentOrder.id === orderId) {
+        setOrder(mapOrderToDetails(currentOrder));
+      } else {
+        dispatch(fetchOrderByIdThunk(orderId))
+          .unwrap()
+          .then((fetchedOrder) => {
+            setOrder(mapOrderToDetails(fetchedOrder));
+          })
+          .catch(() => {
+            console.error('Failed to fetch order');
+          });
+      }
+    } else if (currentOrder) {
+       setOrder(mapOrderToDetails(currentOrder));
+    }
+  }, [location, currentOrder, dispatch]);
 
   // Animate status progress
   useEffect(() => {
@@ -196,6 +254,14 @@ const OrderConfirmation: React.FC = () => {
       });
     }
   };
+
+  if (!order) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography>Loading order details...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box

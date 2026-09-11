@@ -144,7 +144,7 @@ const Checkout: React.FC = () => {
     if (createOrderThunk.fulfilled.match(result)) {
       // Only clear cart AFTER successful order creation
       dispatch(clearCart());
-      navigate('/orders/confirmation');
+      navigate('/orders/confirmation', { state: { orderId: result.payload.id } });
     }
     // On failure: error is in Redux state (orderError), cart is preserved
   };

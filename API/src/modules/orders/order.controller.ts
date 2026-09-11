@@ -29,13 +29,25 @@ export async function createOrder(req: AuthRequest, res: Response, next: NextFun
     if (!restaurant) throw new AppError('Restaurant not found', 404);
     if (!restaurant.isOpen) throw new AppError('Restaurant is currently closed', 400);
 
-    const totalAmount = body.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Securely calculate total amount using authoritative menu prices
+    let totalAmount = 0;
+    const validatedItems = body.items.map(item => {
+      const menuItem = restaurant.menu.find(m => (m as any)._id?.toString() === item.menuItemId);
+      if (!menuItem) {
+        throw new AppError(`Menu item ${item.menuItemId} not found in restaurant`, 400);
+      }
+      totalAmount += menuItem.price * item.quantity;
+      return {
+        ...item,
+        price: menuItem.price // Overwrite client price with authoritative price
+      };
+    });
 
     const order = await Order.create({
       userId: req.user!.id,
       restaurantId: body.restaurantId,
       restaurantName: restaurant.name,
-      items: body.items,
+      items: validatedItems,
       totalAmount,
       deliveryAddress: body.deliveryAddress,
       paymentMethod: body.paymentMethod ?? 'cash',
