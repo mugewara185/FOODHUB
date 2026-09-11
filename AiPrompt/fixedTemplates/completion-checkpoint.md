@@ -12,6 +12,7 @@ A feature is COMPLETE only when:
 8. Dead/obsolete code introduced by the work is removed.
 9. Relevant context.md is updated with actual final state.
 10. No explicitly requested functionality remains unfinished.
+11. For data-backed features, persistence is verified across refresh/re-login, and server-side ownership/authorization is verified.
 
 Never declare a feature complete based solely on static inspection when
 runtime verification is possible.
