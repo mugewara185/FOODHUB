@@ -18,7 +18,7 @@ import cartReducer from "../../../features/cart/cartSlice";
 import restaurantReducer from "../../../features/restaurant/restaurantSlice";
 import uislice from "../../../features/ui/uiSlice";
 import orderReducer from "../../../features/orders/orderSlice";
-
+import notificationReducer from "../../../core/notifications/notificationSlice";
 
 // Import state initializers
 import { initializeAllStatesFromFactory } from "./stateInitializers";
@@ -34,6 +34,7 @@ const rootReducer = combineReducers({
   restaurants: restaurantReducer,
   ui: uislice,
   orders: orderReducer,
+  notifications: notificationReducer,
 });
 
 // Select storage engine: session isolation mode uses sessionStorage for multi-tab testing
@@ -45,7 +46,7 @@ const persistConfig = {
   key: "root",
   version: 1,
   storage: storageEngine,
-  whitelist: ["cart"], // Preserving only cart. Auth is manually persisted via token for backend authority
+  whitelist: ["cart", "notifications"], // Preserving cart and notifications.
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

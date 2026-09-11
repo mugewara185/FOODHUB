@@ -13,6 +13,7 @@ import { Toast } from "./shared/components/notifications";
 import { socketService } from "./services/socket";
 import { showToast } from "./features/ui/uiSlice";
 import { updateOrderStatusLocally } from "./features/orders/orderSlice";
+import { addNotification } from "./core/notifications/notificationSlice";
 
 const App: React.FC = () => {
   const allRestaurants = useAppSelector(selectAllRestaurants);
@@ -28,8 +29,18 @@ const App: React.FC = () => {
     if (isInitialized && isAuthenticated && user) {
       const socket = socketService.connect(user.id);
       
-      const handleNotification = (data: { title: string, message: string }) => {
-        dispatch(showToast({ message: data.message, type: 'info' }));
+      const handleNotification = (data: { title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error', orderId?: string, status?: string }) => {
+        const notifType = data.type || 'info';
+        // Transient UI Toast
+        dispatch(showToast({ message: data.message, type: notifType }));
+        // Persistent In-App Notification
+        dispatch(addNotification({
+          title: data.title,
+          message: data.message,
+          type: notifType,
+          orderId: data.orderId,
+          status: data.status
+        }));
       };
       
       const handleOrderStatusUpdate = (data: { orderId: string, status: any }) => {

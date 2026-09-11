@@ -6,7 +6,7 @@ class SocketService {
   connect(userId?: string) {
     if (this.socket) return this.socket;
 
-    this.socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    this.socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
       transports: ['websocket'],
     });
 

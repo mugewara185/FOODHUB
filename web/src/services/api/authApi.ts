@@ -143,21 +143,21 @@ export const authApi = {
     }
   },
 
-  async getMe(token: string): Promise<AuthUser> {
-    try {
-      const payload = await request<AuthApiPayload>('/auth/me', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      return buildAuthUser({
-        ...payload,
-        token,
-      });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  },
+    async getMe(token: string): Promise<AuthUser> {
+      try {
+        const userPayload = await request<AuthApiUserPayload>('/auth/me', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
+        return buildAuthUser({
+          token,
+          user: userPayload,
+        });
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
 };
