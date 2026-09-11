@@ -111,7 +111,7 @@ const enhancedComponentTree = {
 const treeToGraph = (tree: ComponentNode): { nodes: Node[]; edges: Edge[] } => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
-    let nodeId = 0;
+    const nodeId = 0;
 
     const traverse = (node: ComponentNode, parentId: string | null, x: number, y: number, level: number) => {
         const currentNodeId = node.id;

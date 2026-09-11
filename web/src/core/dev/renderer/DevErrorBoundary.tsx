@@ -26,7 +26,12 @@ export class DevErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('DevErrorBoundary caught an error:', error, errorInfo);
+    import('../logger/logUtils').then(({ logError }) => {
+      logError('REACT_ERROR', error, {
+        componentStack: errorInfo.componentStack,
+        fallbackVersionName: this.props.fallbackVersionName,
+      }, 'ErrorBoundary');
+    });
     this.setState({ errorInfo });
   }
 

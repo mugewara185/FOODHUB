@@ -20,9 +20,17 @@ export interface IRestaurant extends Document {
   priceRange: 1 | 2 | 3 | 4;
   imageUrl: string;
   coverImageUrl?: string;
+  image?: string;
+  bannerImage?: string;
   isOpen: boolean;
   deliveryTime: number;
   minOrder: number;
+  deliveryFee?: number;
+  isFeatured?: boolean;
+  tags?: string[];
+  location?: { lat: number; lng: number };
+  contact?: { phone: string; email?: string };
+  openingHours?: Array<{ day: string; open: string; close: string }>;
   menu: IMenuItem[];
   phone: string;
   createdAt: Date;
@@ -49,9 +57,23 @@ const restaurantSchema = new Schema<IRestaurant>(
     priceRange: { type: Number, enum: [1, 2, 3, 4], default: 2 },
     imageUrl: { type: String, default: '' },
     coverImageUrl: { type: String },
+    image: { type: String },
+    bannerImage: { type: String },
     isOpen: { type: Boolean, default: true },
     deliveryTime: { type: Number, default: 30 },
     minOrder: { type: Number, default: 0 },
+    deliveryFee: { type: Number, default: 0 },
+    isFeatured: { type: Boolean, default: false },
+    tags: [{ type: String }],
+    location: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
+    contact: {
+      phone: { type: String },
+      email: { type: String },
+    },
+    openingHours: [{ day: String, open: String, close: String }],
     menu: [menuItemSchema],
     phone: { type: String, required: true },
   },

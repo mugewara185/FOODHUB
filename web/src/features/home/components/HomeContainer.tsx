@@ -1,5 +1,5 @@
 import React from 'react';
-import Hero from './Hero';
+import Hero from './hero/Hero';
 import PromoSection from './PromoSection';
 import CuisinesSection from './CuisinesSection';
 import HowItWorksSection from './HowItWorksSection';

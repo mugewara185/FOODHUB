@@ -1,20 +1,36 @@
-import { logger } from './Logger';
+import { logger, type TraceLogger } from './Logger';
 
 /**
  * API request/response logging helper
  */
 export const logAPI = {
-  request: (endpoint: string, method: string, data?: unknown) => {
-    logger.debug('API', `[REQUEST] ${method} ${endpoint}`, data, 'API');
+  request: (method: string, url: string, data?: unknown, traceId?: string) => {
+    logger.debug('API', `${method} ${url}`, {
+      event: 'REQUEST',
+      data: { method, url, ...((typeof data === 'object' && data !== null) ? data : { data }) },
+      traceId,
+      source: 'logAPI',
+    });
   },
 
-  response: (endpoint: string, status: number, data?: unknown) => {
+  response: (method: string, url: string, status: number, durationMs?: number, data?: unknown, traceId?: string) => {
     const level = status >= 400 ? 'warn' : 'info';
-    logger[level]('API', `[RESPONSE] ${status} ${endpoint}`, data, 'API');
+    logger[level]('API', `${status} ${method} ${url}`, {
+      event: 'RESPONSE',
+      data: { status, durationMs, ...((typeof data === 'object' && data !== null) ? data : { data }) },
+      duration: durationMs,
+      traceId,
+      source: 'logAPI',
+    });
   },
 
-  error: (endpoint: string, error: unknown) => {
-    logger.error('API', `[ERROR] ${endpoint}`, error, 'API');
+  error: (method: string, url: string, error: unknown, traceId?: string) => {
+    logger.error('API', `Failed ${method} ${url}`, {
+      event: 'ERROR',
+      error,
+      traceId,
+      source: 'logAPI',
+    });
   },
 };
 
@@ -23,15 +39,27 @@ export const logAPI = {
  */
 export const logRedux = {
   action: (actionType: string, payload?: unknown) => {
-    logger.debug('REDUX', `[ACTION] ${actionType}`, payload, 'Redux');
+    // We default to debug level so it's muted in UI unless selected
+    logger.debug('REDUX', actionType, {
+      event: 'ACTION',
+      data: payload,
+      source: 'logRedux',
+    });
   },
 
   state: (sliceName: string, newState: unknown) => {
-    logger.debug('REDUX', `[STATE] ${sliceName}`, newState, 'Redux');
+    logger.debug('REDUX', `State Updated: ${sliceName}`, {
+      event: 'STATE_UPDATE',
+      data: newState,
+      source: 'logRedux',
+    });
   },
 
   dispatch: (actionType: string) => {
-    logger.info('REDUX', `[DISPATCH] ${actionType}`, undefined, 'Redux');
+    logger.debug('REDUX', `Dispatch: ${actionType}`, {
+      event: 'DISPATCH',
+      source: 'logRedux',
+    });
   },
 };
 
@@ -40,23 +68,24 @@ export const logRedux = {
  */
 export const logComponent = {
   mount: (componentName: string) => {
-    logger.debug('COMPONENT', `[MOUNT] ${componentName}`, undefined, componentName);
+    logger.debug('COMPONENT', `${componentName} mounted`, { event: 'MOUNT', source: componentName });
   },
 
   unmount: (componentName: string) => {
-    logger.debug('COMPONENT', `[UNMOUNT] ${componentName}`, undefined, componentName);
+    logger.debug('COMPONENT', `${componentName} unmounted`, { event: 'UNMOUNT', source: componentName });
   },
 
   render: (componentName: string, props?: unknown) => {
-    logger.debug('COMPONENT', `[RENDER] ${componentName}`, props, componentName);
+    // This goes as debug and is additionally gated by renderLoggingEnabled in Logger config
+    logger.debug('COMPONENT', `${componentName} render`, { event: 'RENDER', data: props, source: componentName });
   },
 
   effect: (componentName: string, effectName: string) => {
-    logger.debug('COMPONENT', `[EFFECT] ${componentName} - ${effectName}`, undefined, componentName);
+    logger.debug('COMPONENT', `${componentName} effect: ${effectName}`, { event: 'EFFECT', source: componentName });
   },
 
   error: (componentName: string, error: unknown) => {
-    logger.error('COMPONENT', `[ERROR] ${componentName}`, error, componentName);
+    logger.error('COMPONENT', `${componentName} error`, { event: 'ERROR', error, source: componentName });
   },
 };
 
@@ -76,15 +105,20 @@ export const logPerformance = {
       try {
         window.performance.measure(label, `${label}-start`, `${label}-end`);
         const measure = window.performance.getEntriesByName(label)[0];
-        logger.info('PERFORMANCE', `[MEASURE] ${label}`, { duration: measure.duration }, 'Performance');
+        logger.info('PERFORMANCE', `Measured ${label}`, {
+          event: 'MEASURE',
+          duration: measure.duration,
+          source: 'Performance',
+        });
       } catch (e) {
-        logger.warn('PERFORMANCE', `[ERROR] Failed to measure ${label}`, e, 'Performance');
+        logger.warn('PERFORMANCE', `Failed to measure ${label}`, { error: e, source: 'Performance' });
       }
     }
   },
 
   navigation: (route: string) => {
-    logger.info('PERFORMANCE', `[NAVIGATION] ${route}`, undefined, 'Navigation');
+    logger.info('NAVIGATION', `Navigated to ${route}`, { event: 'ROUTE_CHANGE', route, source: 'Router' });
+    logger.setCurrentRoute(route);
   },
 };
 
@@ -93,19 +127,20 @@ export const logPerformance = {
  */
 export const logAuth = {
   login: (userId: string, method: string) => {
-    logger.info('AUTH', `[LOGIN] User: ${userId}, Method: ${method}`, undefined, 'Auth');
+    logger.info('AUTH', `User login: ${method}`, { event: 'LOGIN', data: { userId }, source: 'logAuth' });
   },
 
   logout: (userId: string) => {
-    logger.info('AUTH', `[LOGOUT] User: ${userId}`, undefined, 'Auth');
+    logger.info('AUTH', 'User logout', { event: 'LOGOUT', data: { userId }, source: 'logAuth' });
   },
 
   error: (message: string, error?: unknown) => {
-    logger.error('AUTH', `[ERROR] ${message}`, error, 'Auth');
+    logger.error('AUTH', message, { event: 'ERROR', error, source: 'logAuth' });
   },
 
   token: (action: string, token?: string) => {
-    logger.debug('AUTH', `[TOKEN] ${action}`, { tokenExists: !!token }, 'Auth');
+    // Token itself is never logged
+    logger.debug('AUTH', `Token ${action}`, { event: 'TOKEN_EVENT', data: { tokenExists: !!token }, source: 'logAuth' });
   },
 };
 
@@ -116,16 +151,16 @@ export const logError = (
   category: string,
   error: unknown,
   context?: Record<string, unknown>,
-  source?: string
+  source?: string,
+  traceId?: string
 ) => {
-  const errorData = {
-    message: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined,
-    type: error instanceof Error ? error.constructor.name : typeof error,
-    context,
-  };
-
-  logger.error(category, `[ERROR] ${errorData.message}`, errorData, source);
+  logger.error(category, error instanceof Error ? error.message : String(error), {
+    event: 'ERROR',
+    error,
+    data: context,
+    source,
+    traceId,
+  });
 };
 
 /**
@@ -142,9 +177,9 @@ export const logWithThreshold = (
   
   if (value !== undefined && value > threshold) {
     if (useWarning) {
-      logger.warn(category, `[THRESHOLD] ${message} (${value} > ${threshold})`, { value, threshold });
+      logger.warn(category, `${message} (${value} > ${threshold})`, { event: 'THRESHOLD', data: { value, threshold } });
     } else {
-      logger.info(category, `[THRESHOLD] ${message}`, { value, threshold });
+      logger.info(category, message, { event: 'THRESHOLD', data: { value, threshold } });
     }
   }
 };
@@ -156,7 +191,7 @@ export const exportDebugInfo = () => {
   return {
     timestamp: new Date().toISOString(),
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
-    logs: logger.exportLogs('json'),
+    logs: JSON.parse(logger.exportLogs('json')),
     stats: logger.getStats(),
   };
 };
@@ -180,3 +215,4 @@ export class PerformanceSpan {
     return duration;
   }
 }
+

@@ -13,6 +13,6 @@ export { default as Settings } from './Profile/Settings/Settings';
 export { default as Signup } from '@pages/Auth/Signup';
 export { default as ForgotPassword } from '@pages/Auth/ForgotPassword';
 export { default as ResetPassword } from '@pages/Auth/ResetPassword';
-export { default as Checkout } from '@pages/Cart/Checkout/Checkout';
+export { default as Checkout } from '@/pages/Checkout';
 export { default as Orders } from '@pages/Orders';
 export { default as OrderTracking } from '@pages/Orders/OrderTracking';

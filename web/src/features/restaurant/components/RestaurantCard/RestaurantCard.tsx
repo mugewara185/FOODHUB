@@ -10,7 +10,7 @@ const RestaurantCard = ({restaurant}: { restaurant: Restaurant }) => {
 const { id, name, image, address, cuisine, rating, deliveryTime, minOrder, deliveryFee }=restaurant;
 const fallBackImgSrc='https://th.bing.com/th/id/OIP.PLyeERi4uNYToVEWGHbhngHaEK?w=321&h=181&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3'
 const [fallBackImg, setfallBackImg] = useState<string | null>(null)
-  let ref= React.useRef(0); let i=0;
+  const ref= React.useRef(0); let i=0;
   console.log('%cRestaurantCard rendering...',ref.current++,':',i,':',restaurant.id)
   i=i+1;
   return (

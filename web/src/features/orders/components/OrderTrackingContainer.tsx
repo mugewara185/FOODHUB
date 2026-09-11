@@ -1,21 +1,41 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
   Button,
   Container,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import LiveDeliveryTracker from '@shared/components/tracking/LiveDeliveryTracker';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { fetchOrderByIdThunk, selectCurrentOrder } from '../orderSlice';
 
 const OrderTracking: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const currentOrder = useAppSelector(selectCurrentOrder);
+
+  useEffect(() => {
+    if (id && (!currentOrder || currentOrder.id !== id)) {
+      dispatch(fetchOrderByIdThunk(id));
+    }
+  }, [id, currentOrder, dispatch]);
 
   // Mock locations (replace with actual data from API)
   const restaurantLocation = { lat: 19.1136, lng: 72.8697 };
   const customerLocation = { lat: 19.0760, lng: 72.8777 };
+
+  if (!currentOrder) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4, textAlign: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -34,12 +54,15 @@ const OrderTracking: React.FC = () => {
       </Box>
 
       <LiveDeliveryTracker
-        orderId={id || 'ORD-001'}
+        orderId={currentOrder.id}
+        orderStatus={currentOrder.status}
         restaurantLocation={restaurantLocation}
         customerLocation={customerLocation}
       />
     </Container>
   );
 };
+
+export default OrderTracking;
 
 

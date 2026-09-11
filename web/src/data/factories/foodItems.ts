@@ -1,181 +1,210 @@
-import type { FoodItem } from "../../core/types";
+import type {
+  FoodItem,
+  Restaurant,
+} from "../types";
 
-export const mockFoodItems: FoodItem[] =
-  [
-    {
-      id: "f1",
-      name: "Classic Margherita Pizza",
-      description: "Fresh mozzarella, basil, and tomato sauce on a crispy base.",
-      price: 299,
-      originalPrice: 349,
-      image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&h=450&fit=crop&q=80",
-      category: "Pizza",
-      restaurantId: "r2",
-      restaurantName: "Pizza Palace",
-      isVeg: true,
-      isSpicy: false,
-      isBestSeller: true,
-      isAvailable: true,
-      rating: 4.5,
+import restaurants from "./restaurants";
 
-      addons: [
-        { id: "a1", name: "Extra Cheese", price: 50, isAvailable: true },
-        { id: "a2", name: "Olives", price: 30, isAvailable: true },
-      ],
+import {
+  foodImages,
+} from "../seeds/Images";
 
-      variants: [
-        { id: "v1", name: "Regular", price: 299 },
-        { id: "v2", name: "Medium", price: 399 },
-        { id: "v3", name: "Large", price: 499 },
-      ],
+const foodNames = [
+  "Chicken Burger",
+  "Veg Burger",
+  "Margherita Pizza",
+  "Pepperoni Pizza",
+  "Paneer Butter Masala",
+  "Chicken Biryani",
+  "Hakka Noodles",
+  "Fried Rice",
+  "Tandoori Chicken",
+  "Pasta Alfredo",
+  "Ice Cream Sundae",
+  "Chocolate Shake",
+];
 
-      ingredients: ["Flour", "Cheese", "Tomato", "Basil"],
+const categories = [
+  "Burger",
+  "Pizza",
+  "Indian",
+  "Chinese",
+  "Dessert",
+  "Beverage",
+];
 
-      dietaryInfo: {
-        calories: 250,
-        protein: 10,
-        carbs: 30,
-        fat: 8,
-      },
-    },
+const ingredientsPool = [
+  "Cheese",
+  "Chicken",
+  "Paneer",
+  "Tomato",
+  "Onion",
+  "Garlic",
+  "Butter",
+  "Cream",
+  "Spices",
+  "Capsicum",
+];
 
-    {
-      id: "f2",
-      name: "Chicken Burger",
-      description: "Juicy grilled chicken patty with lettuce and mayo.",
-      price: 199,
-      image: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&h=450&fit=crop&q=80",
-      category: "Burger",
-      restaurantId: "r2",
-      restaurantName: "Burger Hub",
-      isVeg: false,
-      isSpicy: true,
-      isBestSeller: true,
-      isAvailable: true,
-      rating: 4.3,
+export const generateFoodItems = (
+  restaurantData: Restaurant[],
+  itemsPerRestaurant = 8
+): FoodItem[] =>
+  restaurantData.flatMap(
+    (restaurant, restaurantIndex) =>
+      Array.from({
+        length: itemsPerRestaurant,
+      }).map((_, itemIndex) => {
+        const globalIndex =
+          restaurantIndex *
+          itemsPerRestaurant +
+          itemIndex;
 
-      addons: [
-        { id: "a3", name: "Extra Patty", price: 80, isAvailable: true },
-        { id: "a4", name: "Cheese Slice", price: 40, isAvailable: true },
-      ],
+        const basePrice =
+          Math.floor(
+            Math.random() * 300
+          ) + 120;
 
-      variants: [
-        { id: "v4", name: "Single", price: 199 },
-        { id: "v5", name: "Double", price: 279 },
-      ],
+        return {
+          id: `f${globalIndex + 1}`,
 
-      ingredients: ["Chicken", "Bun", "Lettuce", "Mayo"],
+          restaurantId:
+            restaurant.id,
 
-      dietaryInfo: {
-        calories: 320,
-        protein: 20,
-        carbs: 25,
-        fat: 15,
-      },
-    },
+          restaurantName:
+            restaurant.name,
 
-    {
-      id: "f3",
-      name: "Paneer Butter Masala",
-      description: "Rich creamy curry with soft paneer cubes.",
-      price: 249,
-      image: "https://images.unsplash.com/photo-1604908176997-4318b3e0cfe6?w=800&h=450&fit=crop&q=80",
-      category: "Indian",
-      restaurantId: "r2",
-      restaurantName: "Spice Kitchen",
-      isVeg: true,
-      isSpicy: false,
-      isBestSeller: false,
-      isAvailable: true,
-      rating: 4.4,
+          name: `${foodNames[
+            globalIndex %
+            foodNames.length
+            ]
+            } Special`,
 
-      // addons: [
-      //   { id: "a5", name: "Extra Paneer", price: 60, isAvailable: true },
-      //   { id: "a6", name: "Butter Topping", price: 30, isAvailable: true },
-      // ],
+          description: `Freshly prepared ${foodNames[
+            globalIndex %
+            foodNames.length
+            ]
+            } with premium ingredients and authentic flavors.`,
 
-      // variants: [
-      //   { id: "v6", name: "Half", price: 249 },
-      //   { id: "v7", name: "Full", price: 399 },
-      // ],
+          category:
+            categories[
+            globalIndex %
+            categories.length
+            ],
 
-      ingredients: ["Paneer", "Tomato", "Butter", "Cream"],
+          cuisine:
+            restaurant.cuisine,
 
-      dietaryInfo: {
-        calories: 400,
-        protein: 18,
-        carbs: 20,
-        fat: 25,
-      },
-    },
+          price: basePrice,
 
-    {
-      id: "f4",
-      name: "Veg Fried Rice",
-      description: "Stir-fried rice with vegetables and soy sauce.",
-      price: 179,
-      image: "https://images.unsplash.com/photo-1512058564366-c9e3f5f93f8b?w=800&h=450&fit=crop&q=80",
-      category: "Chinese",
-      restaurantId: "r2",
-      restaurantName: "Wok Express",
-      isVeg: true,
-      isSpicy: true,
-      isBestSeller: false,
-      isAvailable: true,
-      rating: 4.2,
+          originalPrice:
+            Math.random() > 0.5
+              ? basePrice + 80
+              : undefined,
 
-      // addons: [
-      //   { id: "a7", name: "Extra Sauce", price: 20, isAvailable: true },
-      //   { id: "a8", name: "Spring Roll", price: 50, isAvailable: true },
-      // ],
+          image:
+            foodImages[
+            globalIndex %
+            foodImages.length
+            ],
 
-      variants: [
-        { id: "v8", name: "Regular", price: 179 },
-        { id: "v9", name: "Large", price: 249 },
-      ],
+          rating: parseFloat(
+            (
+              Math.random() * 2 +
+              3
+            ).toFixed(1)
+          ),
 
-      ingredients: ["Rice", "Vegetables", "Soy Sauce"],
+          isVeg:
+            Math.random() > 0.5,
 
-      dietaryInfo: {
-        calories: 300,
-        protein: 8,
-        carbs: 50,
-        fat: 10,
-      },
-    },
+          isSpicy:
+            Math.random() > 0.6,
 
-    {
-      id: "f5",
-      name: "Chocolate Milkshake",
-      description: "Rich chocolate shake topped with whipped cream.",
-      price: 149,
-      image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=800&h=450&fit=crop&q=80",
-      category: "Beverage",
-      restaurantId: "r2",
-      restaurantName: "Cool Drinks Co.",
-      isVeg: true,
-      isSpicy: false,
-      isBestSeller: true,
-      isAvailable: true,
-      rating: 4.6,
+          isBestSeller:
+            Math.random() > 0.75,
 
-      addons: [
-        { id: "a9", name: "Extra Chocolate", price: 30, isAvailable: true },
-        { id: "a10", name: "Ice Cream Scoop", price: 50, isAvailable: true },
-      ],
+          isAvailable:
+            Math.random() > 0.1,
 
-      variants: [
-        { id: "v10", name: "Regular", price: 149 },
-        { id: "v11", name: "Large", price: 199 },
-      ],
+          preparationTime: `${Math.floor(
+            Math.random() * 20
+          ) + 10
+            } min`,
 
-      ingredients: ["Milk", "Chocolate", "Sugar"],
+          ingredients:
+            ingredientsPool
+              .sort(
+                () =>
+                  0.5 -
+                  Math.random()
+              )
+              .slice(0, 5),
 
-      dietaryInfo: {
-        calories: 350,
-        protein: 6,
-        carbs: 45,
-        fat: 15,
-      },
-    },
-  ];
+          addons: [
+            {
+              id: `addon-${globalIndex}-1`,
+              name: "Extra Cheese",
+              price: 40,
+              isAvailable: true,
+            },
+            {
+              id: `addon-${globalIndex}-2`,
+              name: "Coke",
+              price: 60,
+              isAvailable: true,
+            },
+          ],
+
+          variants: [
+            {
+              id: `variant-${globalIndex}-1`,
+              name: "Regular",
+              price: basePrice,
+            },
+            {
+              id: `variant-${globalIndex}-2`,
+              name: "Medium",
+              price:
+                basePrice + 80,
+            },
+            {
+              id: `variant-${globalIndex}-3`,
+              name: "Large",
+              price:
+                basePrice + 160,
+            },
+          ],
+
+          dietaryInfo: {
+            calories:
+              Math.floor(
+                Math.random() * 600
+              ) + 200,
+
+            protein:
+              Math.floor(
+                Math.random() * 40
+              ) + 10,
+
+            carbs:
+              Math.floor(
+                Math.random() * 100
+              ) + 20,
+
+            fat:
+              Math.floor(
+                Math.random() * 40
+              ) + 5,
+          },
+        };
+      })
+  );
+
+const foodItems =
+  generateFoodItems(
+    restaurants,
+    80
+  );
+// console.log("%cGenerated food items:", "color: #7f15ad;", foodItems);
+export default foodItems;

@@ -6,9 +6,11 @@ import {
   selectMenuCategories,
   selectRestaurantLoading,
   selectRestaurantError,
+  clearSelectedRestaurant,
   toggleFavorite,
   selectFavorites,
 } from '../restaurantSlice';
+import { toggleFavoriteThunk } from '../../auth/authSlice';
 import {
   addToCart,
   selectCartItems,
@@ -20,6 +22,7 @@ import {
 } from '../../cart/cartSlice';
 import { showToast, selectCartDrawerOpen } from '../../ui/uiSlice';
 import type { CustomizedCartItem, FoodItem } from '@core/types';
+import { logger } from '@/core/dev/logger';
 
 const calculateCustomizationPrice = (customizedItem: CustomizedCartItem) => {
   // console.log('calculateCustomizationPrice:', { customizedItem });
@@ -37,9 +40,8 @@ const buildCustomizedItemName = (customizedItem: CustomizedCartItem) => {
 };
 
 export function useRestaurantLogic(id?: string) {
-  // const ref= React.useRef(0);
-  // console.log('%cuseRestauratnLogic:hook()','color:red',ref.current++,':',id)
-  // ref.current++
+  const ref= React.useRef(0);
+  
   const dispatch = useAppDispatch();
 
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(null);
@@ -79,7 +81,12 @@ export function useRestaurantLogic(id?: string) {
     () => !isCartEmpty && Boolean(SelectedRestaurant?.id && cartRestaurant.id && cartRestaurant.id !== SelectedRestaurant.id),
     [cartRestaurant.id, isCartEmpty, SelectedRestaurant]
   );
-
+useEffect(() => {
+  // console.log('useRestaurantLogic mounted with id:', id);
+  console.log('%cuseRestauratnLogic:hook()','color:red',ref.current,':',id)
+  logger.debug('mount state','useRestaurantLogic mounted with id:', id,);
+  ref.current++
+},[])
   useEffect(() => {
     if (id) {
       dispatch(fetchRestaurantById(id));
@@ -194,13 +201,24 @@ export function useRestaurantLogic(id?: string) {
         return;
       }
       // console.log("dispatch toggel fav")
-      dispatch(toggleFavorite(restaurantId));
-      dispatch(
-        showToast({
-          message: isRestaurantFavorite ? 'Removed SelectedRestaurant from favorites' : 'Added SelectedRestaurant to favorites',
-          type: 'success',
+      dispatch(toggleFavoriteThunk(restaurantId))
+        .unwrap()
+        .then(() => {
+          dispatch(
+            showToast({
+              message: isRestaurantFavorite ? 'Removed SelectedRestaurant from favorites' : 'Added SelectedRestaurant to favorites',
+              type: 'success',
+            })
+          );
         })
-      );
+        .catch((error) => {
+          dispatch(
+            showToast({
+              message: error || 'Failed to update favorites',
+              type: 'error',
+            })
+          );
+        });
     },
     [dispatch, isRestaurantFavorite, SelectedRestaurant]
   );

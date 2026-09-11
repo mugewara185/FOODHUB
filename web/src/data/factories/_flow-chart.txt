@@ -1,0 +1,19 @@
+Users
+ │
+ ├── Addresses
+ ├── Notifications
+ ├── Favorites
+ │
+ └── Orders
+        │
+        ├── FoodItems
+        │      │
+        │      └── Restaurants
+        │
+        └── Reviews
+
+Restaurants
+ │
+ ├── FoodItems
+ ├── Offers
+ └── Reviews

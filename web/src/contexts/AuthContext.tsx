@@ -1,11 +1,12 @@
-import React, { type ReactNode, useCallback } from 'react';
+import React, { type ReactNode, useCallback, useEffect } from 'react';
 import type { AuthContextType, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData, UpdateProfileData } from '../data/types/auth';
 import { useAppDispatch, useAppSelector } from '../app/store/hooks';
-import { 
-  loginThunk, 
-  signupThunk, 
-  forgotPasswordThunk, 
-  resetPasswordThunk, 
+import {
+  loginThunk,
+  signupThunk,
+  forgotPasswordThunk,
+  resetPasswordThunk,
+  restoreAuthThunk,
   logout as logoutAction,
   clearError as clearErrorAction
 } from '../features/auth/authSlice';
@@ -14,15 +15,24 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Keep the provider as a pass-through so App.tsx does not break
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    import('../core/dev/logger/Logger').then(({ logger }) => {
+      logger.info('AUTH', 'AuthProvider mounted, starting auth restoration', { event: 'MOUNT', source: 'AuthProvider' });
+    });
+    void dispatch(restoreAuthThunk());
+  }, [dispatch]);
+
   return <>{children}</>;
 };
 
 // Facade hook that translates the old context signature into Redux actions
 export const useAuth = (): AuthContextType => {
   const dispatch = useAppDispatch();
-  const { user, isAuthenticated, loading: isLoading, error } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated, loading: isLoading, isInitialized, error } = useAppSelector((state) => state.auth);
+  // console.log('useAuth:', { user, isAuthenticated });
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     await dispatch(loginThunk(credentials)).unwrap();
@@ -57,6 +67,7 @@ export const useAuth = (): AuthContextType => {
     user,
     isAuthenticated,
     isLoading,
+    isInitialized,
     error,
     login,
     signup,

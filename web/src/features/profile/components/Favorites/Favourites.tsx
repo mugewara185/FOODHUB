@@ -31,20 +31,29 @@ import RestaurantCard from '@/features/restaurant/components/RestaurantCard';
 import FoodItemCard from '@/features/food/components/FoodItemCard';
 import { MOCK_FOOD_ITEMS } from '@/core/constants/food';
 //redux
-import { useAppSelector } from '@/app/store';
-import { selectSelectedRestaurant, selectAllRestaurants } from '@/features/restaurant/restaurantSlice';
+import { useAppSelector, useAppDispatch } from '@/app/store';
+import { selectAllRestaurants, fetchRestaurants } from '@/features/restaurant/restaurantSlice';
 import type { Restaurant as restaurantType } from '@/core/types';
 
 const Favorites: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { info, debug } = useLogger();
   const [activeTab, setActiveTab] = useState(0);
-  const [favoriteRestaurants, setFavoriteRestaurants] = useState<restaurantType[]>(
-    useAppSelector(selectAllRestaurants)
-  );
+
+  const allRestaurants = useAppSelector(selectAllRestaurants);
+  const userFavoriteIds = useAppSelector((state) => state.auth.user?.favoriteRestaurants || []);
+  const favoriteRestaurants = allRestaurants.filter((r) => userFavoriteIds.includes(r.id));
+
   const [favoriteFoods, setFavoriteFoods] = useState(
     MOCK_FOOD_ITEMS.slice(0, 4)
   );
+
+  useEffect(() => {
+    if (allRestaurants.length === 0) {
+      dispatch(fetchRestaurants());
+    }
+  }, [allRestaurants.length, dispatch]);
 
   useEffect(() => {
     logComponent.mount('Favorites');

@@ -523,6 +523,7 @@ import { APP_NAME } from '../../core/constants/food';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppSelector, useAppDispatch } from '../../app/store';
 import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
+import { NotificationBell } from '../../core/notifications/components/NotificationBell';
 
 //cartSelector
 import { selectCartItems } from '../../features/cart/cartSlice';
@@ -593,6 +594,8 @@ const MainLayout: React.FC = () => {
               </Typography>
             </Box>
           </Button>
+
+          <NotificationBell />
 
           {/* Cart */}
           <IconButton color="inherit" onClick={() => navigate('/cart')}>

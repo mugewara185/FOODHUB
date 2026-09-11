@@ -18,10 +18,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   redirectTo = '/login',
   allowedRoles,
 }) => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, isInitialized } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  // Block route resolution until we actually know if the user is logged in
+  if (!isInitialized || isLoading) {
     return (
       <Box
         sx={{
@@ -42,6 +43,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireAuth && !isAuthenticated) {
+    import('../../core/dev/logger/Logger').then(({ logger }) => {
+      logger.warn('ROUTER', 'ProtectedRoute observing unauthenticated state, redirecting to login', {
+        event: 'AUTH_REDIRECT',
+        route: location.pathname,
+        source: 'ProtectedRoute'
+      });
+    });
     // Redirect to login page, but save the current location
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }

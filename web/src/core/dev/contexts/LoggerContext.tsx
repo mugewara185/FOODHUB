@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
-import { logger } from '../logger/Logger';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { logger, type TraceLogger, type LogOptions } from '../logger/Logger';
 import type { LogEntry, LogLevel, FilterOptions, LogStats, LoggerConfig } from '../logger/types';
 
 interface LoggerContextType {
@@ -7,11 +7,17 @@ interface LoggerContextType {
   open: boolean;
   setOpen: (open: boolean) => void;
   stats: LogStats;
-  debug: (category: string, message: string, data?: unknown, source?: string) => LogEntry;
-  info: (category: string, message: string, data?: unknown, source?: string) => LogEntry;
-  warn: (category: string, message: string, data?: unknown, source?: string) => LogEntry;
-  error: (category: string, message: string, data?: unknown, source?: string) => LogEntry;
-  critical: (category: string, message: string, data?: unknown, source?: string) => LogEntry;
+  config: LoggerConfig;
+
+  // Stable logger methods
+  debug: (category: string, message: string, options?: LogOptions) => LogEntry | undefined;
+  info: (category: string, message: string, options?: LogOptions) => LogEntry | undefined;
+  warn: (category: string, message: string, options?: LogOptions) => LogEntry | undefined;
+  error: (category: string, message: string, options?: LogOptions) => LogEntry | undefined;
+  critical: (category: string, message: string, options?: LogOptions) => LogEntry | undefined;
+
+  startTrace: (category: string, startMessage?: string, options?: Omit<LogOptions, 'traceId'>) => TraceLogger;
+
   getLogs: (filters?: FilterOptions) => LogEntry[];
   clearLogs: () => void;
   clearByLevel: (level: LogLevel) => void;
@@ -24,34 +30,45 @@ const LoggerContext = createContext<LoggerContextType | undefined>(undefined);
 export const LoggerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [open, setOpen] = useState(false);
+  const [config, setConfigState] = useState<LoggerConfig>(logger.getConfig());
+
   useEffect(() => {
     // Subscribe to logger updates
     const unsubscribe = logger.subscribe((updatedLogs) => {
       setLogs([...updatedLogs]);
+      setConfigState(logger.getConfig());
     });
+
+    // Initial load
+    setLogs(logger.getLogs());
 
     return unsubscribe;
   }, []);
 
-  const contextValue: LoggerContextType = {
-    logs,
-    open,
-    setOpen,
-    stats: logger.getStats(),
-    debug: logger.debug.bind(logger),
-    info: logger.info.bind(logger), //?
-    warn: logger.warn.bind(logger),
-    error: logger.error.bind(logger),
-    critical: logger.critical.bind(logger),
-    getLogs: logger.getLogs.bind(logger),
-    clearLogs: logger.clearLogs.bind(logger),
-    clearByLevel: logger.clearByLevel.bind(logger),
-    exportLogs: logger.exportLogs.bind(logger),
-    setConfig: logger.setConfig.bind(logger),
-  };
+  // Using a stable reference for contextValue to prevent unnecessary re-renders in consumers
+  const [contextValue] = useState<Omit<LoggerContextType, 'logs' | 'open' | 'setOpen' | 'stats' | 'config'>>({
+    debug: logger.debug,
+    info: logger.info,
+    warn: logger.warn,
+    error: logger.error,
+    critical: logger.critical,
+    startTrace: logger.startTrace,
+    getLogs: logger.getLogs,
+    clearLogs: logger.clearLogs,
+    clearByLevel: logger.clearByLevel,
+    exportLogs: logger.exportLogs,
+    setConfig: logger.setConfig,
+  });
 
   return (
-    <LoggerContext.Provider value={contextValue}>
+    <LoggerContext.Provider value={{
+      ...contextValue,
+      logs,
+      open,
+      setOpen,
+      stats: logger.getStats(),
+      config,
+    }}>
       {children}
     </LoggerContext.Provider>
   );
@@ -65,6 +82,7 @@ export const useLogger = () => {
   if (!context) {
     throw new Error('useLogger must be used within LoggerProvider');
   }
+  // console.log('%cuseLogger:hook()','color:orange',context)
   return context;
 };
 
@@ -86,19 +104,23 @@ export const useFilteredLogs = (filters?: FilterOptions) => {
  * Hook to track a specific category
  */
 export const useCategoryLogs = (category: string) => {
-  return useFilteredLogs({ category });
+  const filters = React.useMemo(() => ({ category }), [category]);
+  return useFilteredLogs(filters);
 };
 
 /**
  * Hook to get error logs
  */
 export const useErrorLogs = () => {
-  return useFilteredLogs({ level: ['ERROR', 'CRITICAL'] });
+  const filters = React.useMemo(() => ({ level: ['ERROR', 'CRITICAL'] as LogLevel[] }), []);
+  return useFilteredLogs(filters);
 };
 
 /**
  * Hook to get logs by level
  */
 export const useLogsByLevel = (level: LogLevel | LogLevel[]) => {
-  return useFilteredLogs({ level });
+  const filters = React.useMemo(() => ({ level }), [level]);
+  return useFilteredLogs(filters);
 };
+

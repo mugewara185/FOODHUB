@@ -1,6 +1,7 @@
 import { config } from './config/env';
 import { connectDB } from './config/db';
 import app from './app';
+import { initSocket } from './socket';
 
 async function bootstrap(): Promise<void> {
   await connectDB();
@@ -8,6 +9,9 @@ async function bootstrap(): Promise<void> {
   const server = app.listen(config.port, () => {
     console.log(`Server running in ${config.nodeEnv} mode on port ${config.port}`);
   });
+
+  // Initialize socket.io
+  initSocket(server);
 
   // Graceful shutdown
   const shutdown = (signal: string) => {

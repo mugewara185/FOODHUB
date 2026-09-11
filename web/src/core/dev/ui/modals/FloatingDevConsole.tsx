@@ -14,6 +14,8 @@ import {
   Tab,
   Tabs,
   Table,
+  Checkbox,
+  FormControlLabel,
   TableBody,
   TableCell,
   TableContainer,
@@ -38,6 +40,7 @@ import {
 } from "@mui/icons-material";
 import type { Restaurant } from "@core/types";
 import { useLogger } from "../../logger";
+import { buildFactorySeedPayload, type FactorySeedTarget } from "../../utils/factorySeed";
 
 interface FloatingDevConsoleProps {
   allRestaurants: Record<string, unknown>[] | Restaurant[];
@@ -78,7 +81,9 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
   cuisineLength,
 }) => {
   //contexts
-  const { open: LogConsoleOpen, setOpen: setLogConsoleOpen } = useLogger();
+  const { open: _logConsoleOpen, setOpen: _setLogConsoleOpen } = useLogger();
+  void _logConsoleOpen;
+  void _setLogConsoleOpen;
   //debounce click to prevent open from doubleclick
   const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const DOUBLE_CLICK_DELAY = 300;
@@ -93,6 +98,18 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [position, setPosition] = useState({ x: defaultX, y: defaultY }); // Will be set after mount
+  const [seedStatus, setSeedStatus] = useState<{ loading: boolean; message: string | null; error: string | null }>({
+    loading: false,
+    message: null,
+    error: null,
+  });
+  const [selectedSeedTargets, setSelectedSeedTargets] = useState<FactorySeedTarget[]>([
+    "restaurants",
+    "foodItems",
+    "users",
+    "orders",
+    "reviews",
+  ]);
   const dragDistance = useRef(0);
   const dragStartPos = useRef({ x: defaultX, y: defaultY });
   const fabRef = useRef<HTMLDivElement>(null);
@@ -189,7 +206,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     const bounds = getDragBounds();
 
     // Use the drag offset from motion
-    const dragOffset = (info as any).offset;
+    const dragOffset = (info as { offset?: { x: number; y: number } }).offset;
     if (dragOffset) {
       let newX = position.x + dragOffset.x;
       let newY = position.y + dragOffset.y;
@@ -237,6 +254,53 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     setTabValue(newValue);
   };
 
+  const handleSeedTargetToggle = (target: FactorySeedTarget) => {
+    setSelectedSeedTargets((prev) =>
+      prev.includes(target) ? prev.filter((item) => item !== target) : [...prev, target]
+    );
+  };
+
+  const handleSeedFactoryData = async () => {
+    setSeedStatus({ loading: true, message: "Generating factory-based demo data...", error: null });
+
+    try {
+      const payload = buildFactorySeedPayload(12, { targets: selectedSeedTargets });
+      const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiBaseUrl}/dev/seed-factory-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result?.message || "The seed request failed.");
+      }
+
+      const summary = [
+        `${payload.data.restaurants.length} restaurants`,
+        `${payload.data.foodItems.length} food items`,
+        `${payload.data.users.length} users`,
+        `${payload.data.orders.length} orders`,
+        `${payload.data.reviews.length} reviews`,
+      ].filter((item) => !item.startsWith("0 "));
+
+      setSeedStatus({
+        loading: false,
+        message: `${result?.message || "Factory data seeded successfully."} (${summary.join(" / ")})`,
+        error: null,
+      });
+    } catch (error) {
+      setSeedStatus({
+        loading: false,
+        message: null,
+        error: error instanceof Error ? error.message : "Unable to seed factory data right now.",
+      });
+    }
+  };
+
   return (
     <>
       {/* Floating FAB Icon */}
@@ -251,7 +315,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
         onDragEnd={handleDragEnd}
         animate={{ x: position.x, y: position.y }}
         initial={{ x: position.x, y: position.y }}
-        transition={{ type: "just" }}
+        transition={{ type: "tween", duration: 0.2 }}
         style={{
           position: "fixed",
           top: 0,
@@ -263,8 +327,8 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
       >
         <Box
           onClick={handleFabClick}
-          onDoubleClick={resetPosition}
-          // onDoubleClick={() => setLogConsoleOpen(!LogConsoleOpen)}
+          // onDoubleClick={resetPosition}
+          onDoubleClick={() => _setLogConsoleOpen(!_logConsoleOpen)}
           sx={{
             width: FAB_WIDTH,
             height: FAB_HEIGHT,
@@ -462,6 +526,55 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                   </CardContent>
                 </Card>
               </Box>
+
+              <Card sx={{ mt: 2 }}>
+                <CardContent>
+                  <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                    Seed demo data from factories
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Push the generated factory data into MongoDB so you can prototype against realistic records immediately.
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+                    {(["restaurants", "foodItems", "users", "orders", "reviews"] as FactorySeedTarget[]).map((target) => (
+                      <FormControlLabel
+                        key={target}
+                        control={
+                          <Checkbox
+                            checked={selectedSeedTargets.includes(target)}
+                            onChange={() => handleSeedTargetToggle(target)}
+                            size="small"
+                          />
+                        }
+                        label={target.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())}
+                      />
+                    ))}
+                  </Stack>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "flex-start", sm: "center" }}>
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      onClick={handleSeedFactoryData}
+                      disabled={seedStatus.loading || selectedSeedTargets.length === 0}
+                    >
+                      {seedStatus.loading ? "Seeding..." : "Seed factory data"}
+                    </Button>
+                    <Typography variant="caption" color="text.secondary">
+                      This is intended for local development and demo work.
+                    </Typography>
+                  </Stack>
+                  {seedStatus.message && (
+                    <Alert severity="success" sx={{ mt: 2 }}>
+                      {seedStatus.message}
+                    </Alert>
+                  )}
+                  {seedStatus.error && (
+                    <Alert severity="error" sx={{ mt: 2 }}>
+                      {seedStatus.error}
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
             </Box>
           </TabPanel>
 

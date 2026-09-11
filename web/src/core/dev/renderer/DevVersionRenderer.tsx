@@ -42,15 +42,18 @@ export const DevVersionRenderer: React.FC<DevVersionRendererProps> = ({
   // Determine active component to load
   const activeVersion = selectedVersions[pageKey] || defaultVersion;
   
+  // Pre-declared fallback component to avoid creating components during render
+  const NotFoundComponent: React.FC<{ version: string }> = ({ version }) => (
+    <div>Component Version "{version}" Not Found in /versions/ directory.</div>
+  );
+
   const Component = useMemo(() => {
     const loaderFn = availableVersionsMap[activeVersion];
     if (!loaderFn) {
-      // Fallback loader if dev selected a deleted file
-      return React.lazy(() => Promise.resolve({
-         default: () => <div>Component Version "{activeVersion}" Not Found in /versions/ directory.</div>
-      }));
+      // Return the plain component (not a lazily-created one) when missing
+      return NotFoundComponent as React.ComponentType<any>;
     }
-    return React.lazy(loaderFn);
+    return React.lazy(loaderFn) as React.ComponentType<any>;
   }, [activeVersion, availableVersionsMap]);
 
   return (

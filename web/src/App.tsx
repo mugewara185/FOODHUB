@@ -1,22 +1,21 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { AuthProvider } from "./contexts/AuthContext";
 import AppRoutes from "./app/routes";
 import FloatingDevConsole from "@/core/dev/ui/modals/FloatingDevConsole";
-// import { ErrorBoundary } from "./shared/components/ErrorBoundary";
 import { CUISINES } from "@core/constants/food";
 import { selectAllRestaurants } from "./features/restaurant/restaurantSlice";
 import { selectFeaturedRestaurants } from "./features/restaurant/restaurantSlice";
 import { selectRestaurantLoading } from "./features/restaurant/restaurantSlice";
-import { useAppSelector } from "@app/store/hooks";
+import { useAppDispatch, useAppSelector } from "@app/store/hooks";
 //context
 import { useDevContext } from "@core/dev/contexts/DevContext";
 import { useLogger } from "./core/dev/logger";
-//ui-dev:
-  //modals
 import LogConsole from "./core/dev/logger";
 import { APP_CONFIG } from "./core/config/app.config";
-//ui-shared
 import { Toast } from "./shared/components/notifications";
+import { socketService } from "./services/socket";
+import { showToast } from "./features/ui/uiSlice";
+import { updateOrderStatusLocally } from "./features/orders/orderSlice";
 
 const App: React.FC = () => {
   const allRestaurants = useAppSelector(selectAllRestaurants);
@@ -24,14 +23,42 @@ const App: React.FC = () => {
   const loading = useAppSelector(selectRestaurantLoading);
   const { availableVersions, selectedVersions } = useDevContext();
   const { open: LogConsoleOpen, setOpen: setLogConsoleOpen } = useLogger();
-  // console.log('%c<App/>','color:orange')
+
+  const dispatch = useAppDispatch();
+  const { user, isAuthenticated, isInitialized } = useAppSelector(state => state.auth);
+
+  useEffect(() => {
+    if (isInitialized && isAuthenticated && user) {
+      socketService.connect(user.id);
+
+      const handleNotification = (data: { title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error', orderId?: string, status?: string }) => {
+        const notifType = data.type || 'info';
+        // Transient UI Toast
+        dispatch(showToast({ message: data.message, type: notifType }));
+        logger.info('APP', 'Notification received via socket', { event: 'NOTIFICATION.RECEIVED', data });
+      };
+
+      const handleOrderStatusUpdate = (data: { orderId: string, status: any }) => {
+        dispatch(updateOrderStatusLocally(data));
+      };
+
+      socketService.onNotification(handleNotification);
+      socketService.onOrderStatusUpdate(handleOrderStatusUpdate);
+
+      return () => {
+        socketService.offNotification(handleNotification);
+        socketService.offOrderStatusUpdate(handleOrderStatusUpdate);
+      };
+    } else if (isInitialized && !isAuthenticated) {
+      socketService.disconnect();
+    }
+  }, [isAuthenticated, isInitialized, user?.id, dispatch]);
+
   return (
-    // <ErrorBoundary>
     <AuthProvider>
-      <Toast/>
+      <Toast />
       <AppRoutes />
-      {/* Floating Dev Console */}
-      {APP_CONFIG.DEV_BYPASS_AUTH && (
+      {(APP_CONFIG.DEV_BYPASS_AUTH || user?.role === 'dev') && (
         <FloatingDevConsole
           allRestaurants={allRestaurants}
           featuredRestaurants={featuredRestaurants}
@@ -41,16 +68,11 @@ const App: React.FC = () => {
           cuisineLength={CUISINES.length}
         />
       )}
-      {/* Logger-Console    */}
       <LogConsole
         open={LogConsoleOpen}
-        onClose={() => {
-          setLogConsoleOpen(false);
-        }}
+        onClose={() => setLogConsoleOpen(false)}
       />
     </AuthProvider>
-
-    // </ErrorBoundary>
   );
 };
 

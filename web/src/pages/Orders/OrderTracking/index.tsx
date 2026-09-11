@@ -7,7 +7,7 @@ import {
   Container,
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
-import LiveDeliveryTracker from '../../../shared/components/tracking/LiveDeliveryTracker';
+import LiveDeliveryTracker from '../../../features/orders/components/tracking/LiveDeliveryTracker';
 
 const OrderTracking: React.FC = () => {
   const { id } = useParams<{ id: string }>();
