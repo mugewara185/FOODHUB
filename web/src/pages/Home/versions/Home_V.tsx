@@ -57,6 +57,7 @@ import StatsSection from '@features/home/components/StatsSection';
 import TopDishesSection from '@features/home/components/TopDishesSection';
 import QuickDeliverySection from '@features/home/components/QuickDeliverySection';
 import Hero from '@/features/home/components/hero/Hero_V';
+import HeroCompact from '@/features/home/components/hero/HeroCompact';
 import FeaturedRestaurantsSection from '@/features/home/components/FeaturedRestaurantsSection';
 
 
@@ -112,6 +113,7 @@ const HomeV2: React.FC = () => {
     <Box sx={{ overflowX: 'hidden' }}>
       {/*Vref: Hero Section with Parallax Effect */}
       {/* <Hero heroImageLoaded={heroImageLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleSearch={handleSearch} stats={stats} /> */}
+      <HeroCompact heroImageLoaded={heroImageLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleSearch={handleSearch} stats={stats} />
 
 {/*Vref: Main Content */}
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>

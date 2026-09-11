@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 // Facade hook that translates the old context signature into Redux actions
 export const useAuth = (): AuthContextType => {
   const dispatch = useAppDispatch();
-  const { user, isAuthenticated, loading: isLoading, error } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated, loading: isLoading, isInitialized, error } = useAppSelector((state) => state.auth);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     await dispatch(loginThunk(credentials)).unwrap();
@@ -66,6 +66,7 @@ export const useAuth = (): AuthContextType => {
     user,
     isAuthenticated,
     isLoading,
+    isInitialized,
     error,
     login,
     signup,

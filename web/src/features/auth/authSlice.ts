@@ -7,6 +7,7 @@ type AuthState = {
   isLoggedIn: boolean;
   loading: boolean;
   isAuthenticated: boolean;
+  isInitialized: boolean;
   error: string | null;
 };
 
@@ -15,6 +16,7 @@ const initialState: AuthState = {
   isLoggedIn: false,
   loading: false,
   isAuthenticated: false,
+  isInitialized: false,
   error: null,
 };
 
@@ -23,24 +25,26 @@ const AUTH_STORAGE_KEY = "zom2.auth.session";
 const persistSession = (user: AuthUser | null): void => {
   if (typeof window === "undefined") return;
 
-  if (user) {
-    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  if (user && user.token) {
+    // Only persist the token, not the entire PII payload
+    const sessionData = { token: user.token };
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
   } else {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
   }
 };
 
-const readStoredSession = (): AuthUser | null => {
+const readStoredSession = (): { token: string } | null => {
   if (typeof window === "undefined") return null;
 
   try {
     const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
     if (!raw) return null;
 
-    const parsed = JSON.parse(raw) as Partial<AuthUser> | null;
-    if (!parsed || !parsed.token || !parsed.email) return null;
+    const parsed = JSON.parse(raw) as { token?: string } | null;
+    if (!parsed || !parsed.token) return null;
 
-    return parsed as AuthUser;
+    return { token: parsed.token };
   } catch {
     return null;
   }
@@ -227,6 +231,7 @@ const authSlice = createSlice({
       })
       .addCase(restoreAuthThunk.fulfilled, (state, action) => {
         state.loading = false;
+        state.isInitialized = true;
         if (action.payload) {
           state.user = action.payload;
           state.isLoggedIn = true;
@@ -241,6 +246,7 @@ const authSlice = createSlice({
       })
       .addCase(restoreAuthThunk.rejected, (state, action) => {
         state.loading = false;
+        state.isInitialized = true;
         state.error = action.payload as string;
         state.user = null;
         state.isLoggedIn = false;

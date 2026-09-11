@@ -45,7 +45,7 @@ const persistConfig = {
   key: "root",
   version: 1,
   storage: storageEngine,
-  whitelist: ["auth", "cart"], // Preserving auth and cart
+  whitelist: ["cart"], // Preserving only cart. Auth is manually persisted via token for backend authority
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
