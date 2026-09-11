@@ -82,6 +82,7 @@ export const useLogger = () => {
   if (!context) {
     throw new Error('useLogger must be used within LoggerProvider');
   }
+  // console.log('%cuseLogger:hook()','color:orange',context)
   return context;
 };
 

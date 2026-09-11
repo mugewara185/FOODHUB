@@ -104,13 +104,13 @@ const Signup: React.FC = () => {
     }
 
     // Password validation
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
-    } else if (passwordStrength < 75) {
-      errors.password = 'Password is too weak';
-    }
+    // if (!formData.password) {
+    //   errors.password = 'Password is required';
+    // } else if (formData.password.length < 8) {
+    //   errors.password = 'Password must be at least 8 characters';
+    // } else if (passwordStrength < 75) {
+    //   errors.password = 'Password is too weak';
+    // }
 
     // Confirm password validation
     if (!formData.confirmPassword) {
@@ -153,7 +153,7 @@ const Signup: React.FC = () => {
     
     // Clear validation error for this field
     if (validationErrors[field as keyof typeof validationErrors]) {
-      setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+      // setValidationErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
 

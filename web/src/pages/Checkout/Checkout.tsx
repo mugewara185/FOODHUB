@@ -34,6 +34,7 @@ import {
   DialogContent,
   DialogActions,
   Checkbox,
+  CircularProgress,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -49,6 +50,10 @@ import {
 } from '@mui/icons-material';
 import { type Address } from '@/data/types/food';
 import LocationPicker from '@/shared/components/maps/LocationPicker';
+import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
+import { createOrderThunk, selectOrderCreating, selectOrderError, clearOrderError } from '@/features/orders/orderSlice';
+import { clearCart } from '@/features/cart/cartSlice';
+
 
 // Mock addresses
 const MOCK_ADDRESSES: Address[] = [
@@ -88,6 +93,15 @@ const steps = ['Delivery Address', 'Payment Method', 'Review Order'];
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  // Cart state from Redux
+  const cart = useAppSelector((state) => state.cart);
+
+  // Order state from Redux
+  const isCreating = useAppSelector(selectOrderCreating);
+  const orderError = useAppSelector(selectOrderError);
+
   const [activeStep, setActiveStep] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState<string>('1');
   const [paymentMethod, setPaymentMethod] = useState<string>('cod');
@@ -113,16 +127,26 @@ const Checkout: React.FC = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  // Handle place order
-  const handlePlaceOrder = () => {
-    // In real app, this would make an API call
-    console.log('Placing order with:', {
-      addressId: selectedAddress,
-      paymentMethod,
-    });
+  // Handle place order — dispatches createOrderThunk, clears cart on success
+  const handlePlaceOrder = async () => {
+    // Build the delivery address string from the selected mock address
+    const address = MOCK_ADDRESSES.find((a) => a.id === selectedAddress);
+    const deliveryAddress = address
+      ? `${address.name}, ${address.street}, ${address.city}, ${address.state} - ${address.zipCode}`
+      : '123 Main Street, Mumbai, Maharashtra - 400001';
 
-    // Navigate to order confirmation
-    navigate('/orders/confirmation');
+    dispatch(clearOrderError());
+
+    const result = await dispatch(
+      createOrderThunk({ deliveryAddress, paymentMethod }),
+    );
+
+    if (createOrderThunk.fulfilled.match(result)) {
+      // Only clear cart AFTER successful order creation
+      dispatch(clearCart());
+      navigate('/orders/confirmation');
+    }
+    // On failure: error is in Redux state (orderError), cart is preserved
   };
 
   // Handle add new address
@@ -136,13 +160,14 @@ const Checkout: React.FC = () => {
     });
   };
 
-  // Calculate order summary (using mock data)
+  // Order summary computed from real cart Redux state
   const orderSummary = {
-    itemTotal: 1040,
-    deliveryFee: 29,
-    tax: 52,
-    discount: 104,
-    total: 1017,
+    itemTotal: cart.subtotal,
+    deliveryFee: cart.deliveryFee,
+    tax: cart.tax,
+    discount: cart.discount,
+    total: cart.total,
+
   };
 
   return (
@@ -454,52 +479,63 @@ const Checkout: React.FC = () => {
                       </Box>
                     </Paper>
 
-                    {/* Order Items Review */}
+                    {/* Order Items Review — real cart items from Redux */}
                     <Paper sx={{ p: 3, borderRadius: 2 }}>
                       <Typography variant="h6" fontWeight={600} gutterBottom>
                         Order Items
                       </Typography>
                       <List>
-                        {[
-                          { name: 'Butter Chicken', quantity: 2, price: 320 },
-                          { name: 'Garlic Naan', quantity: 3, price: 80 },
-                          { name: 'Extra Butter', quantity: 1, price: 30 },
-                        ].map((item, index) => (
-                          <ListItem key={index} sx={{ px: 0 }}>
-                            <ListItemAvatar>
-                              <Avatar>{item.quantity}</Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={item.name}
-                              secondary={`₹${item.price} each`}
-                            />
-                            <Typography variant="body1" fontWeight={600}>
-                              ₹{item.price * item.quantity}
-                            </Typography>
+                        {cart.items.length > 0 ? (
+                          cart.items.map((item, index) => (
+                            <ListItem key={item.id ?? index} sx={{ px: 0 }}>
+                              <ListItemAvatar>
+                                <Avatar>{item.quantity}</Avatar>
+                              </ListItemAvatar>
+                              <ListItemText
+                                primary={item.name}
+                                secondary={`₹${item.price} each`}
+                              />
+                              <Typography variant="body1" fontWeight={600}>
+                                ₹{item.price * item.quantity}
+                              </Typography>
+                            </ListItem>
+                          ))
+                        ) : (
+                          <ListItem sx={{ px: 0 }}>
+                            <ListItemText primary="Your cart is empty" />
                           </ListItem>
-                        ))}
+                        )}
                       </List>
                     </Paper>
                   </Box>
+
+                  {/* Error alert — shown if createOrderThunk fails */}
+                  {orderError && (
+                    <Alert severity="error" sx={{ mb: 3 }}>
+                      {orderError}
+                    </Alert>
+                  )}
 
                   <Alert severity="info" sx={{ mb: 3 }}>
                     By placing your order, you agree to our Terms of Service and Privacy Policy.
                   </Alert>
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Button onClick={handleBack}>
+                    <Button onClick={handleBack} disabled={isCreating}>
                       Back
                     </Button>
                     <Button
                       variant="contained"
                       size="large"
-                      startIcon={<CheckCircle />}
+                      startIcon={isCreating ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
                       onClick={handlePlaceOrder}
+                      disabled={isCreating || cart.items.length === 0}
                       sx={{ minWidth: 180 }}
                     >
-                      Place Order
+                      {isCreating ? 'Placing Order…' : 'Place Order'}
                     </Button>
                   </Box>
+
                 </StepContent>
               </Step>
             </Stepper>

@@ -57,7 +57,7 @@ export const generateFoodItems = (
       }).map((_, itemIndex) => {
         const globalIndex =
           restaurantIndex *
-            itemsPerRestaurant +
+          itemsPerRestaurant +
           itemIndex;
 
         const basePrice =
@@ -74,24 +74,22 @@ export const generateFoodItems = (
           restaurantName:
             restaurant.name,
 
-          name: `${
-            foodNames[
-              globalIndex %
-                foodNames.length
+          name: `${foodNames[
+            globalIndex %
+            foodNames.length
             ]
-          } Special`,
+            } Special`,
 
-          description: `Freshly prepared ${
-            foodNames[
-              globalIndex %
-                foodNames.length
+          description: `Freshly prepared ${foodNames[
+            globalIndex %
+            foodNames.length
             ]
-          } with premium ingredients and authentic flavors.`,
+            } with premium ingredients and authentic flavors.`,
 
           category:
             categories[
-              globalIndex %
-                categories.length
+            globalIndex %
+            categories.length
             ],
 
           cuisine:
@@ -106,8 +104,8 @@ export const generateFoodItems = (
 
           image:
             foodImages[
-              globalIndex %
-                foodImages.length
+            globalIndex %
+            foodImages.length
             ],
 
           rating: parseFloat(
@@ -129,11 +127,10 @@ export const generateFoodItems = (
           isAvailable:
             Math.random() > 0.1,
 
-          preparationTime: `${
-            Math.floor(
-              Math.random() * 20
-            ) + 10
-          } min`,
+          preparationTime: `${Math.floor(
+            Math.random() * 20
+          ) + 10
+            } min`,
 
           ingredients:
             ingredientsPool
@@ -209,5 +206,5 @@ const foodItems =
     restaurants,
     80
   );
-console.log("%cGenerated food items:", "color: #7f15ad;", foodItems);
+// console.log("%cGenerated food items:", "color: #7f15ad;", foodItems);
 export default foodItems;

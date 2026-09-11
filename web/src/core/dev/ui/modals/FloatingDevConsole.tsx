@@ -327,8 +327,8 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
       >
         <Box
           onClick={handleFabClick}
-          onDoubleClick={resetPosition}
-          // onDoubleClick={() => setLogConsoleOpen(!LogConsoleOpen)}
+          // onDoubleClick={resetPosition}
+          onDoubleClick={() => _setLogConsoleOpen(!_logConsoleOpen)}
           sx={{
             width: FAB_WIDTH,
             height: FAB_HEIGHT,
