@@ -120,36 +120,57 @@ export const mapPaymentMethod = (
 };
 
 // HTTP helper
+import { logAPI } from '../../../core/dev/logger';
+import { v4 as uuidv4 } from 'uuid';
+
 const request = async <T>(
   endpoint: string,
   token: string,
   init?: RequestInit,
 ): Promise<T> => {
-  const response = await fetch(`${APP_CONFIG.API_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    ...init,
-  });
+  const traceId = uuidv4().substring(0, 8);
+  const method = init?.method || 'GET';
+  const url = `${APP_CONFIG.API_URL}${endpoint}`;
+  const startTime = Date.now();
 
-  const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> | { message?: string };
+  logAPI.request(method, endpoint, undefined, traceId);
 
-  if (!response.ok) {
-    const msg =
-      typeof payload === 'object' &&
-      payload !== null &&
-      'message' in payload &&
-      payload.message
-        ? String(payload.message)
-        : `Request failed (${response.status})`;
-    throw new Error(msg);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      ...init,
+    });
+
+    const durationMs = Date.now() - startTime;
+    const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> | { message?: string };
+
+    if (!response.ok) {
+      const msg =
+        typeof payload === 'object' &&
+          payload !== null &&
+          'message' in payload &&
+          payload.message
+          ? String(payload.message)
+          : `Request failed (${response.status})`;
+      logAPI.response(method, endpoint, response.status, durationMs, undefined, traceId);
+      logAPI.error(method, endpoint, new Error(msg), traceId);
+      throw new Error(msg);
+    }
+
+    logAPI.response(method, endpoint, response.status, durationMs, undefined, traceId);
+
+    if (typeof payload === 'object' && payload !== null && 'data' in payload) {
+      return (payload as ApiEnvelope<T>).data as T;
+    }
+    return payload as T;
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    logAPI.error(method, endpoint, err, traceId);
+    throw err;
   }
-
-  if (typeof payload === 'object' && payload !== null && 'data' in payload) {
-    return (payload as ApiEnvelope<T>).data as T;
-  }
-  return payload as T;
 };
 
 // Public API

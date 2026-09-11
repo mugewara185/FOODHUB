@@ -54,7 +54,7 @@ const reduxLoggerUtils = {
    */
   truncateData: (data: unknown, maxSize: number = 1000): unknown => {
     const str = JSON.stringify(data);
-    if (str.length > maxSize) {
+    if (str?.length > maxSize) {
       return JSON.parse(str.substring(0, maxSize)) + '...[TRUNCATED]';
     }
     return data;

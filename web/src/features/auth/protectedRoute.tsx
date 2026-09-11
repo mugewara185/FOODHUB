@@ -38,7 +38,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Developer mode bypass (or Dev God User bypass)
-  if (APP_CONFIG.DEV_BYPASS_AUTH || (user && user.email === 'dev@')) {
+  if (APP_CONFIG.DEV_BYPASS_AUTH || (user && user.role === 'dev')) {
     return <>{children}</>;
   }
 

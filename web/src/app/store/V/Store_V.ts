@@ -76,40 +76,40 @@ const store = configureStore({
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     })
-    // .concat(
-    //   // Add Redux logger middleware
-    //   createReduxLoggerMiddleware()
-    // )
+    .concat(
+      // Add Redux logger middleware
+      createReduxLoggerMiddleware()
+    )
   ,devTools: IS_DEV, //true
 });
 
 console.log("Redux store initialized with factory data:", store.getState());
 
 // Initialize Redux logger control with config
-// if (IS_DEV) {
-//   // Make logger control available globally for debugging
-//   (window as any).reduxLoggerControl = reduxLoggerControl;
+if (IS_DEV) {
+  // Make logger control available globally for debugging
+  (window as any).reduxLoggerControl = reduxLoggerControl;
   
-//   console.log(
-//     '%c[REDUX_LOGGER] Initialized with config:',
-//     'color: #1976d2; font-weight: bold;',
-//   );
-//   console.table({
-//     'Enabled': REDUX_LOGGER_CONFIG.enabled,
-//     'Log Actions': REDUX_LOGGER_CONFIG.logActions,
-//     'Log State Changes': REDUX_LOGGER_CONFIG.logStateChanges,
-//     'Performance': REDUX_LOGGER_CONFIG.enablePerformanceMetrics,
-//     'Auth Logging': REDUX_LOGGER_CONFIG.featureLogging.auth,
-//     'Cart Logging': REDUX_LOGGER_CONFIG.featureLogging.cart,
-//     'Restaurant Logging': REDUX_LOGGER_CONFIG.featureLogging.restaurants,
-//     'UI Logging': REDUX_LOGGER_CONFIG.featureLogging.ui,
-//   });
+  console.log(
+    '%c[REDUX_LOGGER] Initialized with config:',
+    'color: #1976d2; font-weight: bold;',
+  );
+  console.table({
+    'Enabled': REDUX_LOGGER_CONFIG.enabled,
+    'Log Actions': REDUX_LOGGER_CONFIG.logActions,
+    'Log State Changes': REDUX_LOGGER_CONFIG.logStateChanges,
+    'Performance': REDUX_LOGGER_CONFIG.enablePerformanceMetrics,
+    'Auth Logging': REDUX_LOGGER_CONFIG.featureLogging.auth,
+    'Cart Logging': REDUX_LOGGER_CONFIG.featureLogging.cart,
+    'Restaurant Logging': REDUX_LOGGER_CONFIG.featureLogging.restaurants,
+    'UI Logging': REDUX_LOGGER_CONFIG.featureLogging.ui,
+  });
   
-//   console.log(
-//     '%cUsage: reduxLoggerControl.setEnabled(false) to disable, reduxLoggerControl.printStatus() for quick status',
-//     'color: #666; font-style: italic;'
-//   );
-// }
+  console.log(
+    '%cUsage: reduxLoggerControl.setEnabled(false) to disable, reduxLoggerControl.printStatus() for quick status',
+    'color: #666; font-style: italic;'
+  );
+}
 
 export const persistor = persistStore(store);
 

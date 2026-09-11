@@ -1,23 +1,31 @@
 import { io, Socket } from 'socket.io-client';
+import { logger } from '../core/dev/logger';
 
 class SocketService {
   private socket: Socket | null = null;
 
-  connect(userId: string, userType: 'customer' | 'partner' | 'admin') {
-    this.socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001', {
-      query: {
-        userId,
-        userType,
-      },
+  connect(userId?: string) {
+    if (this.socket) return this.socket;
+
+    logger.info('SOCKET', 'Connecting to socket server', { event: 'CONNECT.START', source: 'socketService' });
+
+    this.socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
       transports: ['websocket'],
     });
 
     this.socket.on('connect', () => {
-      console.log('Socket connected:', this.socket?.id);
+      logger.info('SOCKET', `Socket connected: ${this.socket?.id}`, { event: 'CONNECT.SUCCESS', source: 'socketService' });
+      if (userId) {
+        this.joinUserRoom(userId);
+      }
+    });
+
+    this.socket.on('connect_error', (error) => {
+      logger.error('SOCKET', 'Socket connection error', { event: 'CONNECT.ERROR', error, source: 'socketService' });
     });
 
     this.socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+      logger.info('SOCKET', 'Socket disconnected', { event: 'DISCONNECT', source: 'socketService' });
     });
 
     return this.socket;
@@ -25,38 +33,34 @@ class SocketService {
 
   disconnect() {
     if (this.socket) {
+      logger.info('SOCKET', 'Disconnecting socket', { event: 'DISCONNECT', source: 'socketService' });
       this.socket.disconnect();
       this.socket = null;
     }
   }
 
-  // Order tracking events
-  subscribeToOrder(orderId: string, callback: (data: any) => void) {
-    this.socket?.on(`order:${orderId}:location`, callback);
+  joinUserRoom(userId: string) {
+    logger.debug('SOCKET', 'Joining user room', { event: 'USER_ROOM.JOIN', data: { userIdPresent: !!userId }, source: 'socketService' });
+    this.socket?.emit('join_user_room', userId);
   }
 
-  unsubscribeFromOrder(orderId: string) {
-    this.socket?.off(`order:${orderId}:location`);
+  joinOrderRoom(orderId: string) {
+    logger.debug('SOCKET', `Joining order room: ${orderId}`, { event: 'ORDER_ROOM.JOIN', data: { orderId }, source: 'socketService' });
+    this.socket?.emit('join_order_room', orderId);
   }
 
-  // Partner location updates
-  updatePartnerLocation(partnerId: string, location: { lat: number; lng: number }) {
-    this.socket?.emit('partner:location', { partnerId, location });
+  onOrderStatusUpdate(callback: (data: { orderId: string; status: string }) => void) {
+    this.socket?.on('order_status_update', (data) => {
+      logger.info('SOCKET', `Order status update received: ${data.orderId}`, { event: 'ORDER.STATUS.UPDATE.RECEIVED', data, source: 'socketService' });
+      callback(data);
+    });
   }
 
-  // Order status updates
-  updateOrderStatus(orderId: string, status: string, location?: any) {
-    this.socket?.emit('order:status', { orderId, status, location });
-  }
-
-  // Driver assignment
-  assignDriver(orderId: string, driverId: string) {
-    this.socket?.emit('order:assign', { orderId, driverId });
-  }
-
-  // Event listeners
-  onOrderAssigned(callback: (data: any) => void) {
-    this.socket?.on('order:assigned', callback);
+  onNotification(callback: (data: { title: string; message: string; orderId: string; status: string }) => void) {
+    this.socket?.on('notification', (data) => {
+      logger.info('SOCKET', `Notification received: ${data.title}`, { event: 'NOTIFICATION.RECEIVED', data: { title: data.title, hasOrderId: !!data.orderId }, source: 'socketService' });
+      callback(data);
+    });
   }
 
   onOrderStatusChanged(callback: (data: any) => void) {

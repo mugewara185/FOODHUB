@@ -38,6 +38,7 @@ import {
 } from '../../../features/ui/components';
 import { reviewApi } from '../../../services/api/reviewApi';
 import type { ReviewItem } from '../../../shared/components/ui/ReviewComponents/ReviewComponents';
+import { logger, logComponent } from '../../../core/dev/logger';
 
 const RestaurantDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -73,6 +74,7 @@ const RestaurantDetail: React.FC = () => {
 
   useEffect(() => {
     let active = true;
+    logComponent.mount('RestaurantDetail');
 
     if (!id) {
       setReviews([]);
@@ -85,13 +87,16 @@ const RestaurantDetail: React.FC = () => {
     const loadReviews = async () => {
       setReviewLoading(true);
       setReviewError(null);
+      logger.info('REVIEW', `Loading reviews for restaurant ${id}`, { event: 'REVIEW.LOAD.START', data: { restaurantId: id } });
       try {
         const nextReviews = await reviewApi.listRestaurantReviews(id);
         if (active) {
+          logger.info('REVIEW', `Reviews loaded successfully`, { event: 'REVIEW.LOAD.SUCCESS', data: { count: nextReviews.length } });
           setReviews(nextReviews);
         }
       } catch (error) {
         if (active) {
+          logger.error('REVIEW', `Failed to load reviews`, { event: 'REVIEW.LOAD.FAILURE', error });
           setReviewError(error instanceof Error ? error.message : 'Unable to load reviews right now.');
         }
       } finally {
@@ -105,6 +110,7 @@ const RestaurantDetail: React.FC = () => {
 
     return () => {
       active = false;
+      logComponent.unmount('RestaurantDetail');
     };
   }, [id]);
 
@@ -113,23 +119,34 @@ const RestaurantDetail: React.FC = () => {
     : restaurant?.rating ?? 0;
   const reviewCount = reviews.length;
 
+// Replacing handleSubmitReview
   const handleSubmitReview = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    const trace = logger.startTrace('REVIEW', 'Review submission started', { event: 'REVIEW.SUBMIT.START' });
+
     if (!id) {
       setReviewError('Restaurant information is missing.');
+      trace.error('Missing restaurant ID', { event: 'REVIEW.SUBMIT.FAILURE' });
       return;
     }
 
     if (!authUser?.token) {
       setReviewError('Please sign in to leave a review.');
+      trace.error('Unauthenticated user', { event: 'REVIEW.SUBMIT.FAILURE' });
       return;
     }
 
     if (reviewForm.comment.trim().length < 5) {
       setReviewError('Please share a few more words so your review feels helpful.');
+      trace.error('Comment too short', { event: 'REVIEW.SUBMIT.FAILURE' });
       return;
     }
+
+    trace.info('Payload ready for submission', { 
+      event: 'REVIEW.SUBMIT.PAYLOAD_READY',
+      data: { restaurantId: id, rating: reviewForm.rating, commentLength: reviewForm.comment.length }
+    });
 
     setSubmittingReview(true);
     setReviewError(null);
@@ -145,10 +162,12 @@ const RestaurantDetail: React.FC = () => {
         authUser.token
       );
 
+      trace.end('Review submitted successfully', { event: 'REVIEW.SUBMIT.SUCCESS' });
       setReviews((current) => [newReview, ...current]);
       setReviewForm({ rating: 5, comment: '' });
       setReviewSuccess('Thanks! Your review has been posted.');
     } catch (error) {
+      trace.error('Review submission failed', { event: 'REVIEW.SUBMIT.FAILURE', error });
       setReviewError(error instanceof Error ? error.message : 'Unable to submit your review right now.');
     } finally {
       setSubmittingReview(false);

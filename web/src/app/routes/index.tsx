@@ -68,7 +68,16 @@ import PerformanceMetrics from '@/core/dev/ui/pages/PerformanceMetrics';
 import ComponentPlayground from '@/core/dev/ui/pages/ComponentPlayground';
 import DocumentationViewer from '@/core/dev/ui/pages/DocumentationViewer';
 
+import { useLocation } from 'react-router-dom';
+import { logPerformance } from '../../core/dev/logger';
+
 const AppRoutes: React.FC = () => {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    logPerformance.navigation(location.pathname + location.search);
+  }, [location.pathname, location.search]);
+
   return (
     <Routes>
 {/* user and public routes */}

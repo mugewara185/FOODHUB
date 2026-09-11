@@ -33,29 +33,52 @@ interface ReviewListPayload {
   };
 }
 
+import { logAPI } from '../../core/dev/logger';
+import { v4 as uuidv4 } from 'uuid';
+
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    ...init,
-  });
+  const { headers: customHeaders, ...restInit } = init || {};
+  const traceId = uuidv4().substring(0, 8);
+  const method = init?.method || 'GET';
+  const url = `${API_BASE_URL}${endpoint}`;
+  const startTime = Date.now();
 
-  const payload = (await response.json().catch(() => ({}))) as ApiResponse<T> | T;
+  logAPI.request(method, endpoint, undefined, traceId);
 
-  if (!response.ok) {
-    const message =
-      typeof payload === 'object' && payload && 'message' in payload && payload.message
-        ? String(payload.message)
-        : 'Request failed';
-    throw new Error(message);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...customHeaders,
+      },
+      ...restInit,
+    });
+
+    const durationMs = Date.now() - startTime;
+    const payload = (await response.json().catch(() => ({}))) as ApiResponse<T> | T;
+
+    if (!response.ok) {
+      const message =
+        typeof payload === 'object' && payload && 'message' in payload && payload.message
+          ? String(payload.message)
+          : 'Request failed';
+      logAPI.response(method, endpoint, response.status, durationMs, undefined, traceId);
+      logAPI.error(method, endpoint, new Error(message), traceId);
+      throw new Error(message);
+    }
+
+    logAPI.response(method, endpoint, response.status, durationMs, undefined, traceId);
+
+    if (typeof payload === 'object' && payload && 'data' in payload) {
+      return (payload as ApiResponse<T>).data as T;
+    }
+
+    return payload as T;
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    logAPI.error(method, endpoint, err, traceId);
+    throw err;
   }
-
-  if (typeof payload === 'object' && payload && 'data' in payload) {
-    return (payload as ApiResponse<T>).data as T;
-  }
-
-  return payload as T;
 };
 
 export const normalizeReview = (payload: ReviewPayload): ReviewItem => {

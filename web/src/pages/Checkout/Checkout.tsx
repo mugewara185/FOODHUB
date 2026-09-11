@@ -53,33 +53,8 @@ import LocationPicker from '@/shared/components/maps/LocationPicker';
 import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
 import { createOrderThunk, selectOrderCreating, selectOrderError, clearOrderError } from '@/features/orders/orderSlice';
 import { clearCart } from '@/features/cart/cartSlice';
-
-
-// Mock addresses
-const MOCK_ADDRESSES: Address[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    phone: '+91 9876543210',
-    street: '123 Main Street',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    zipCode: '400001',
-    isDefault: true,
-    type: 'home',
-  },
-  {
-    id: '2',
-    name: 'John Doe',
-    phone: '+91 9876543210',
-    street: '456 Office Building',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    zipCode: '400002',
-    isDefault: false,
-    type: 'work',
-  },
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { logger, logComponent } from '@/core/dev/logger';
 
 // Payment methods
 const PAYMENT_METHODS = [
@@ -111,10 +86,20 @@ const Checkout: React.FC = () => {
     isDefault: false,
   });
   const [deliveryLocation, setDeliveryLocation] = useState<Location | null>(null);
-
+  // Inside component
+  React.useEffect(() => {
+    logger.info('CHECKOUT', 'Checkout page opened', { event: 'CHECKOUT.OPEN', source: 'Checkout' });
+    logComponent.mount('Checkout');
+    return () => logComponent.unmount('Checkout');
+  }, []);
 
   // Handle next step
   const handleNext = () => {
+    logger.debug('CHECKOUT', `Checkout step completed: ${steps[activeStep]}`, {
+      event: 'CHECKOUT.STEP_COMPLETE',
+      data: { step: steps[activeStep], stepIndex: activeStep }
+    });
+
     if (activeStep === steps.length - 1) {
       handlePlaceOrder();
     } else {
@@ -129,6 +114,8 @@ const Checkout: React.FC = () => {
 
   // Handle place order — dispatches createOrderThunk, clears cart on success
   const handlePlaceOrder = async () => {
+    const trace = logger.startTrace('CHECKOUT', 'Order placement started', { event: 'CHECKOUT.SUBMIT.START' });
+
     // Build the delivery address string from the selected mock address
     const address = MOCK_ADDRESSES.find((a) => a.id === selectedAddress);
     const deliveryAddress = address
@@ -137,14 +124,18 @@ const Checkout: React.FC = () => {
 
     dispatch(clearOrderError());
 
+    trace.info('Validation successful, dispatching createOrderThunk', { event: 'CHECKOUT.VALIDATION.SUCCESS' });
     const result = await dispatch(
       createOrderThunk({ deliveryAddress, paymentMethod }),
     );
 
     if (createOrderThunk.fulfilled.match(result)) {
+      trace.end('Order placement successful', { event: 'CHECKOUT.SUBMIT.SUCCESS', data: { orderId: result.payload.id } });
       // Only clear cart AFTER successful order creation
       dispatch(clearCart());
-      navigate('/orders/confirmation');
+      navigate('/orders/confirmation', { state: { orderId: result.payload.id } });
+    } else {
+      trace.error('Order placement failed', { event: 'CHECKOUT.SUBMIT.FAILURE', error: result.payload });
     }
     // On failure: error is in Redux state (orderError), cart is preserved
   };

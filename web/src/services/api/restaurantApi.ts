@@ -144,31 +144,53 @@ export const normalizeMenuItems = (
 // HTTP helper — same minimal pattern as authApi.ts / reviewApi.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { logAPI } from '../../core/dev/logger';
+import { v4 as uuidv4 } from 'uuid';
+
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(`${APP_CONFIG.API_URL}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
+  const { headers: customHeaders, ...restInit } = init || {};
+  const traceId = uuidv4().substring(0, 8);
+  const method = init?.method || 'GET';
+  const url = `${APP_CONFIG.API_URL}${endpoint}`;
+  const startTime = Date.now();
 
-  const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> | T;
+  logAPI.request(method, endpoint, undefined, traceId);
 
-  if (!response.ok) {
-    const msg =
-      typeof payload === 'object' &&
-      payload !== null &&
-      'message' in payload &&
-      (payload as { message?: string }).message
-        ? String((payload as { message?: string }).message)
-        : `Request failed (${response.status})`;
-    throw new Error(msg);
+  try {
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...customHeaders },
+      ...restInit,
+    });
+
+    const durationMs = Date.now() - startTime;
+    const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> | T;
+
+    if (!response.ok) {
+      const msg =
+        typeof payload === 'object' &&
+          payload !== null &&
+          'message' in payload &&
+          (payload as { message?: string }).message
+          ? String((payload as { message?: string }).message)
+          : `Request failed (${response.status})`;
+      logAPI.response(method, endpoint, response.status, durationMs, undefined, traceId);
+      logAPI.error(method, endpoint, new Error(msg), traceId);
+      throw new Error(msg);
+    }
+
+    logAPI.response(method, endpoint, response.status, durationMs, undefined, traceId);
+
+    // Unwrap the { success, data } envelope if present
+    if (typeof payload === 'object' && payload !== null && 'data' in payload) {
+      return (payload as ApiEnvelope<T>).data as T;
+    }
+
+    return payload as T;
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    logAPI.error(method, endpoint, err, traceId);
+    throw err;
   }
-
-  // Unwrap the { success, data } envelope if present
-  if (typeof payload === 'object' && payload !== null && 'data' in payload) {
-    return (payload as ApiEnvelope<T>).data as T;
-  }
-
-  return payload as T;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
