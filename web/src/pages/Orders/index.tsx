@@ -159,14 +159,14 @@ const Orders: React.FC = () => {
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={8}>
                       <Box sx={{ display: 'flex', gap: 2 }}>
-                        <Box sx={{ width: 80, height: 80, borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
-                          <img src={order.restaurant?.image || ''} alt={order.restaurant?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <Box sx={{ width: 80, height: 80, borderRadius: 2, overflow: 'hidden', flexShrink: 0, bgcolor: 'grey.200' }}>
+                          <img src={'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80'} alt={order.restaurantName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </Box>
 
                         <Box sx={{ flex: 1 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                             <Typography variant="h6" fontWeight={700}>
-                              {order.restaurant?.name}
+                              {order.restaurantName}
                             </Typography>
                             <Chip size="small" icon={getStatusIcon(order.status)} label={getStatusText(order.status)} color={getStatusColor(order.status) as any} />
                           </Box>
@@ -200,7 +200,7 @@ const Orders: React.FC = () => {
                     <Grid item xs={12} md={4}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', md: 'flex-end' }, height: '100%' }}>
                         <Typography variant="h6" fontWeight={700} color="primary.main" gutterBottom>
-                          
+                          ₹{order.total?.toFixed(2)}
                         </Typography>
 
                         <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>

@@ -67,7 +67,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout, updateProfile, addAddress, removeAddress } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -75,7 +75,17 @@ const Profile: React.FC = () => {
     phone: user?.phone || '',
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    name: '',
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    type: 'home' as const,
+    isDefault: false
+  });
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
@@ -99,6 +109,24 @@ const Profile: React.FC = () => {
     console.log('Delete account');
     setDeleteDialogOpen(false);
     logout();
+  };
+
+  const handleAddAddress = async () => {
+    try {
+      await addAddress(addressForm);
+      setAddressDialogOpen(false);
+      setAddressForm({ name: '', phone: '', street: '', city: '', state: '', zipCode: '', type: 'home', isDefault: false });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleRemoveAddress = async (id: string) => {
+    try {
+      await removeAddress(id);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // Mock order history
@@ -427,28 +455,26 @@ const Profile: React.FC = () => {
                 <Typography variant="h5" fontWeight={700}>
                   Saved Addresses
                 </Typography>
-                <Button variant="contained" startIcon={<Add />}>
+                <Button variant="contained" startIcon={<Add />} onClick={() => setAddressDialogOpen(true)}>
                   Add New Address
                 </Button>
               </Box>
               
               <Grid container spacing={2}>
-                {savedAddresses.map((address, index) => (
-                  <Grid item xs={12} md={6} key={index}>
+                {user?.addresses?.map((address, index) => (
+                  <Grid item xs={12} md={6} key={address.id || index}>
                     <Card variant="outlined">
                       <CardContent>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                           <Chip label={address.type} size="small" />
                           <Box>
-                            <IconButton size="small">
-                              <Edit />
-                            </IconButton>
-                            <IconButton size="small" color="error">
+                            <IconButton size="small" color="error" onClick={() => handleRemoveAddress(address.id || address._id!)}>
                               <Delete />
                             </IconButton>
                           </Box>
                         </Box>
-                        <Typography variant="body1">{address.address}</Typography>
+                        <Typography variant="subtitle2">{address.name} ({address.phone})</Typography>
+                        <Typography variant="body2" color="text.secondary">{address.street}, {address.city}, {address.state} {address.zipCode}</Typography>
                         <Button
                           size="small"
                           sx={{ mt: 2 }}
@@ -456,7 +482,7 @@ const Profile: React.FC = () => {
                             // Set as default address
                           }}
                         >
-                          Set as Default
+                          {address.isDefault ? 'Default' : 'Set as Default'}
                         </Button>
                       </CardContent>
                     </Card>
@@ -639,6 +665,39 @@ const Profile: React.FC = () => {
           >
             Delete Account
           </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add New Address</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="Name" value={addressForm.name} onChange={(e) => setAddressForm({...addressForm, name: e.target.value})} fullWidth />
+            <TextField label="Phone" value={addressForm.phone} onChange={(e) => setAddressForm({...addressForm, phone: e.target.value})} fullWidth />
+            <TextField label="Street" value={addressForm.street} onChange={(e) => setAddressForm({...addressForm, street: e.target.value})} fullWidth />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField label="City" value={addressForm.city} onChange={(e) => setAddressForm({...addressForm, city: e.target.value})} fullWidth />
+              <TextField label="State" value={addressForm.state} onChange={(e) => setAddressForm({...addressForm, state: e.target.value})} fullWidth />
+              <TextField label="ZIP" value={addressForm.zipCode} onChange={(e) => setAddressForm({...addressForm, zipCode: e.target.value})} fullWidth />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {['home', 'work', 'other'].map(type => (
+                <Chip
+                  key={type}
+                  label={type.toUpperCase()}
+                  color={addressForm.type === type ? 'primary' : 'default'}
+                  onClick={() => setAddressForm({...addressForm, type: type as any})}
+                />
+              ))}
+            </Box>
+            <FormControlLabel
+              control={<Switch checked={addressForm.isDefault} onChange={(e) => setAddressForm({...addressForm, isDefault: e.target.checked})} />}
+              label="Set as default address"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddressDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddAddress}>Save Address</Button>
         </DialogActions>
       </Dialog>
     </Container>

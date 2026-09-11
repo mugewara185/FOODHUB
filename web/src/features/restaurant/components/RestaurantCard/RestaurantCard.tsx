@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import type { Restaurant } from "../../type";
-import { Box } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
 import React, { useState } from "react";
+import { Favorite, FavoriteBorder } from "@mui/icons-material";
+import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
+import { toggleFavoriteThunk } from "@/features/auth/authSlice";
 
 const RestaurantCard = ({restaurant}: { restaurant: Restaurant }) => {
   // console.log('restaurant mapped:',restaurant['address'])
@@ -11,7 +14,17 @@ const { id, name, image, address, cuisine, rating, deliveryTime, minOrder, deliv
 const fallBackImgSrc='https://th.bing.com/th/id/OIP.PLyeERi4uNYToVEWGHbhngHaEK?w=321&h=181&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3'
 const [fallBackImg, setfallBackImg] = useState<string | null>(null)
   const ref= React.useRef(0); let i=0;
-  console.log('%cRestaurantCard rendering...',ref.current++,':',i,':',restaurant.id)
+  // console.log('%cRestaurantCard rendering...',ref.current++,':',i,':',restaurant.id)
+  
+  const dispatch = useAppDispatch();
+  const userFavoriteIds = useAppSelector((state) => state.auth.user?.favoriteRestaurants || []);
+  const isFavorite = userFavoriteIds.includes(restaurant.id);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    dispatch(toggleFavoriteThunk(restaurant.id));
+  };
+
   i=i+1;
   return (
     // </motion.div>
@@ -67,6 +80,13 @@ const [fallBackImg, setfallBackImg] = useState<string | null>(null)
       <div className="absolute top-2 left-2 bg-white/90 text-xs px-2 py-1 rounded-md font-medium">
         {deliveryTime}
       </div>
+      <IconButton
+        onClick={handleFavoriteClick}
+        className="!absolute top-2 right-2 !bg-white/80 hover:!bg-white"
+        size="small"
+      >
+        {isFavorite ? <Favorite color="error" fontSize="small" /> : <FavoriteBorder fontSize="small" />}
+      </IconButton>
     </div>
 
     {/* Content */}

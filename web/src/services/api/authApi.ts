@@ -70,7 +70,7 @@ const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
     : ['place_order', 'view_profile', 'track_orders', 'cancel_orders'];
 
   return {
-    id: payload.user.id,
+    id: payload.user.id || (payload.user as any)._id,
     name: payload.user.name,
     email: payload.user.email,
     phone: payload.user.phone,
@@ -85,6 +85,11 @@ const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
     isActive: true,
     emailVerified: true,
     phoneVerified: true,
+    addresses: (payload.user.addresses || []).map((addr: any) => ({
+      ...addr,
+      id: addr.id || addr._id
+    })),
+    favoriteRestaurants: payload.user.favoriteRestaurants || [],
   };
 };
 
@@ -186,7 +191,7 @@ export const authApi = {
         headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(addressData)
       });
-      return payload.addresses;
+      return payload.addresses.map((addr: any) => ({ ...addr, id: addr.id || addr._id }));
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
@@ -198,7 +203,20 @@ export const authApi = {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      return payload.addresses;
+      return payload.addresses.map((addr: any) => ({ ...addr, id: addr.id || addr._id }));
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async updateProfile(data: any, token: string): Promise<AuthUser> {
+    try {
+      const payload = await request<{ user: AuthApiUserPayload }>('/users/profile', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data)
+      });
+      return buildAuthUser({ token, user: payload.user });
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }

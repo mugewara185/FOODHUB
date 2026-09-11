@@ -80,7 +80,7 @@ const Checkout: React.FC = () => {
   const orderError = useAppSelector(selectOrderError);
 
   const [activeStep, setActiveStep] = useState(0);
-  const [selectedAddress, setSelectedAddress] = useState<string>('1');
+  const [selectedAddress, setSelectedAddress] = useState<string>(MOCK_ADDRESSES[0]?.id || '');
   const [paymentMethod, setPaymentMethod] = useState<string>('cod');
   const [addAddressOpen, setAddAddressOpen] = useState(false);
   const [newAddress, setNewAddress] = useState<Partial<Address>>({

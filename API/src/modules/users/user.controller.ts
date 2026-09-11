@@ -60,3 +60,18 @@ export async function toggleFavorite(req: Request, res: Response, next: NextFunc
   } catch (err) { next(err); }
 }
 
+export async function updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = (req as any).user?.id;
+    const user = await User.findById(userId);
+    if (!user) throw new AppError('User not found', 404);
+    
+    if (req.body.name) user.name = req.body.name;
+    if (req.body.phone) user.phone = req.body.phone;
+    if (req.body.avatar !== undefined) (user as any).avatar = req.body.avatar;
+    
+    await user.save();
+    
+    sendSuccess({ res, data: { user }, message: 'Profile updated successfully' });
+  } catch (err) { next(err); }
+}

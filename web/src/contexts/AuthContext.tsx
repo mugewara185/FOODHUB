@@ -7,6 +7,9 @@ import {
   forgotPasswordThunk,
   resetPasswordThunk,
   restoreAuthThunk,
+  updateProfileThunk,
+  addAddressThunk,
+  removeAddressThunk,
   logout as logoutAction,
   clearError as clearErrorAction
 } from '../features/auth/authSlice';
@@ -51,9 +54,16 @@ export const useAuth = (): AuthContextType => {
   }, [dispatch]);
 
   const updateProfile = useCallback(async (data: UpdateProfileData) => {
-    // We haven't implemented updateProfileThunk yet, but here is a placeholder
-    console.log("Mock update profile", data);
-  }, []);
+    await dispatch(updateProfileThunk(data)).unwrap();
+  }, [dispatch]);
+
+  const addAddress = useCallback(async (data: any) => {
+    await dispatch(addAddressThunk(data)).unwrap();
+  }, [dispatch]);
+
+  const removeAddress = useCallback(async (id: string) => {
+    await dispatch(removeAddressThunk(id)).unwrap();
+  }, [dispatch]);
 
   const logout = useCallback(() => {
     dispatch(logoutAction());
@@ -75,6 +85,8 @@ export const useAuth = (): AuthContextType => {
     forgotPassword,
     resetPassword,
     updateProfile,
+    addAddress,
+    removeAddress,
     clearError,
   };
 };

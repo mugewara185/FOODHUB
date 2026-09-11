@@ -31,6 +31,8 @@ import {
   LocationOn,
   AccessTime,
 } from '@mui/icons-material';
+import { useAppDispatch, useAppSelector } from '@/app/store';
+import { fetchOrderByIdThunk } from '@/features/orders/orderSlice';
 
 interface OrderStatus {
   label: string;
@@ -43,8 +45,18 @@ interface OrderStatus {
 const OrderTracking: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [deliveryTime] = useState('8-10 minutes');
   const [progress, setProgress] = useState(65);
+
+  const { items, loading } = useAppSelector(state => state.orders);
+  const order = items.find(o => o.id === id);
+
+  useEffect(() => {
+    if (id && !order) {
+      dispatch(fetchOrderByIdThunk(id));
+    }
+  }, [id, dispatch, order]);
 
   const steps: OrderStatus[] = [
     {
@@ -273,11 +285,7 @@ const OrderTracking: React.FC = () => {
               </Box>
               <Box>
                 <Typography variant="subtitle1" fontWeight={600}>
-                  Spice Garden
-                </Typography>
-                <Rating value={4.5} readOnly size="small" />
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Indian, North Indian
+                  {order?.restaurantName || 'Restaurant'}
                 </Typography>
               </Box>
             </Box>
@@ -290,14 +298,14 @@ const OrderTracking: React.FC = () => {
                   Order Total
                 </Typography>
                 <Typography variant="body2" fontWeight={600}>
-                  ₹890
+                  ₹{order?.total?.toFixed(2) || '0.00'}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" color="text.secondary">
                   Payment Method
                 </Typography>
-                <Typography variant="body2">UPI • Google Pay</Typography>
+                <Typography variant="body2">{order?.paymentMethod?.toUpperCase()}</Typography>
               </Box>
             </Stack>
 
@@ -305,7 +313,7 @@ const OrderTracking: React.FC = () => {
               fullWidth
               variant="outlined"
               sx={{ mt: 3 }}
-              onClick={() => navigate(`/restaurants/1`)}
+              onClick={() => navigate(`/restaurants/${order?.restaurantId}`)}
             >
               View Restaurant
             </Button>

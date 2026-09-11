@@ -155,6 +155,48 @@ export const toggleFavoriteThunk = createAsyncThunk<string[], string, { rejectVa
   }
 );
 
+export const updateProfileThunk = createAsyncThunk<AuthUser, any, { rejectValue: string, state: any }>(
+  "auth/updateProfile",
+  async (data, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as any;
+      const token = state.auth.user?.token;
+      if (!token) return rejectWithValue("Not authenticated");
+      return await authApi.updateProfile(data, token);
+    } catch (err: any) {
+      return rejectWithValue(getErrorMessage(err));
+    }
+  }
+);
+
+export const addAddressThunk = createAsyncThunk<any[], any, { rejectValue: string, state: any }>(
+  "auth/addAddress",
+  async (data, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as any;
+      const token = state.auth.user?.token;
+      if (!token) return rejectWithValue("Not authenticated");
+      return await authApi.addAddress(data, token);
+    } catch (err: any) {
+      return rejectWithValue(getErrorMessage(err));
+    }
+  }
+);
+
+export const removeAddressThunk = createAsyncThunk<any[], string, { rejectValue: string, state: any }>(
+  "auth/removeAddress",
+  async (addressId, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as any;
+      const token = state.auth.user?.token;
+      if (!token) return rejectWithValue("Not authenticated");
+      return await authApi.removeAddress(addressId, token);
+    } catch (err: any) {
+      return rejectWithValue(getErrorMessage(err));
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -272,6 +314,34 @@ const authSlice = createSlice({
     builder.addCase(toggleFavoriteThunk.fulfilled, (state, action) => {
       if (state.user) {
         state.user.favoriteRestaurants = action.payload;
+        persistSession(state.user);
+      }
+    });
+
+    builder
+      .addCase(updateProfileThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfileThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        persistSession(action.payload);
+      })
+      .addCase(updateProfileThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+    builder.addCase(addAddressThunk.fulfilled, (state, action) => {
+      if (state.user) {
+        state.user.addresses = action.payload;
+        persistSession(state.user);
+      }
+    });
+
+    builder.addCase(removeAddressThunk.fulfilled, (state, action) => {
+      if (state.user) {
+        state.user.addresses = action.payload;
         persistSession(state.user);
       }
     });

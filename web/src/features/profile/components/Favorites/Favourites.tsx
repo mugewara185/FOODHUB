@@ -72,7 +72,9 @@ const Favorites: React.FC = () => {
     debug('INTERACTION', `Removing ${type} from favorites`, { id, type }, 'Favorites');
     
     if (type === 'restaurant') {
-      setFavoriteRestaurants(prev => prev?.filter(r => r.id !== id));
+      import('@/features/auth/authSlice').then(({ toggleFavoriteThunk }) => {
+        dispatch(toggleFavoriteThunk(id));
+      });
       info('ACTION', `Restaurant removed from favorites`, { restaurantId: id }, 'Favorites');
     } else {
       setFavoriteFoods(prev => prev.filter(f => f.id !== id));
