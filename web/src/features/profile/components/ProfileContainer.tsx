@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import ProfileHeader from '@features/profile/ProfileHeader';
 import ProfileInfoCard from '@features/profile/ProfileInfoCard';
+import Addresses from './Addresses';
 
 /**
  * Profile Container Component
@@ -58,16 +59,20 @@ const ProfileContainer: React.FC = () => {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Profile Header Section */}
       <Paper sx={{ p: 4, mb: 4, borderRadius: 2 }}>
+        prfileHeader
         <ProfileHeader />
       </Paper>
 
       {/* Profile Information Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={4}>
+          P
           <ProfileInfoCard />
         </Grid>
-        
-        {/* Additional Info Cards Can Be Added Here */}
+
+        <Grid item xs={12}>
+          <Addresses />
+        </Grid>
       </Grid>
 
       {/* Action Buttons */}
@@ -76,7 +81,7 @@ const ProfileContainer: React.FC = () => {
           Account Actions
         </Typography>
         <Divider sx={{ my: 2 }} />
-        
+
         <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap' }}>
           <Button
             variant="contained"

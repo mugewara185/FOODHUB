@@ -21,14 +21,14 @@ const App: React.FC = () => {
   const loading = useAppSelector(selectRestaurantLoading);
   const { availableVersions, selectedVersions } = useDevContext();
   const { open: LogConsoleOpen, setOpen: setLogConsoleOpen } = useLogger();
-  
+
   const dispatch = useAppDispatch();
   const { user, isAuthenticated, isInitialized } = useAppSelector(state => state.auth);
 
   useEffect(() => {
     if (isInitialized && isAuthenticated && user) {
       const socket = socketService.connect(user.id);
-      
+
       const handleNotification = (data: { title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error', orderId?: string, status?: string }) => {
         const notifType = data.type || 'info';
         // Transient UI Toast
@@ -42,14 +42,14 @@ const App: React.FC = () => {
           status: data.status
         }));
       };
-      
+
       const handleOrderStatusUpdate = (data: { orderId: string, status: any }) => {
         dispatch(updateOrderStatusLocally(data));
       };
-      
+
       socketService.onNotification(handleNotification);
       socketService.onOrderStatusUpdate(handleOrderStatusUpdate);
-      
+
       return () => {
         socketService.offNotification(handleNotification);
         socketService.offOrderStatusUpdate(handleOrderStatusUpdate);
@@ -61,9 +61,9 @@ const App: React.FC = () => {
 
   return (
     <AuthProvider>
-      <Toast/>
+      <Toast />
       <AppRoutes />
-      {APP_CONFIG.DEV_BYPASS_AUTH && (
+      {(APP_CONFIG.DEV_BYPASS_AUTH || user?.role === 'dev') && (
         <FloatingDevConsole
           allRestaurants={allRestaurants}
           featuredRestaurants={featuredRestaurants}

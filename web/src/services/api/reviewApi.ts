@@ -34,11 +34,13 @@ interface ReviewListPayload {
 }
 
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
+  const { headers: customHeaders, ...restInit } = init || {};
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...customHeaders,
     },
-    ...init,
+    ...restInit,
   });
 
   const payload = (await response.json().catch(() => ({}))) as ApiResponse<T> | T;

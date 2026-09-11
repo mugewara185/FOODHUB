@@ -6,9 +6,11 @@ import {
   selectMenuCategories,
   selectRestaurantLoading,
   selectRestaurantError,
+  clearSelectedRestaurant,
   toggleFavorite,
   selectFavorites,
 } from '../restaurantSlice';
+import { toggleFavoriteThunk } from '../../auth/authSlice';
 import {
   addToCart,
   selectCartItems,
@@ -199,13 +201,24 @@ useEffect(() => {
         return;
       }
       // console.log("dispatch toggel fav")
-      dispatch(toggleFavorite(restaurantId));
-      dispatch(
-        showToast({
-          message: isRestaurantFavorite ? 'Removed SelectedRestaurant from favorites' : 'Added SelectedRestaurant to favorites',
-          type: 'success',
+      dispatch(toggleFavoriteThunk(restaurantId))
+        .unwrap()
+        .then(() => {
+          dispatch(
+            showToast({
+              message: isRestaurantFavorite ? 'Removed SelectedRestaurant from favorites' : 'Added SelectedRestaurant to favorites',
+              type: 'success',
+            })
+          );
         })
-      );
+        .catch((error) => {
+          dispatch(
+            showToast({
+              message: error || 'Failed to update favorites',
+              type: 'error',
+            })
+          );
+        });
     },
     [dispatch, isRestaurantFavorite, SelectedRestaurant]
   );

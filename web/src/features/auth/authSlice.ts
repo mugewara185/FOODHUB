@@ -140,6 +140,21 @@ export const restoreAuthThunk = createAsyncThunk<AuthUser | null, void, { reject
   }
 );
 
+export const toggleFavoriteThunk = createAsyncThunk<string[], string, { rejectValue: string, state: any }>(
+  "auth/toggleFavorite",
+  async (restaurantId, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as any;
+      const token = state.auth.user?.token;
+      if (!token) return rejectWithValue("Not authenticated");
+      const updatedFavorites = await authApi.toggleFavorite(restaurantId, token);
+      return updatedFavorites;
+    } catch (err: any) {
+      return rejectWithValue(getErrorMessage(err));
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -253,9 +268,15 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         persistSession(null);
       });
+
+    builder.addCase(toggleFavoriteThunk.fulfilled, (state, action) => {
+      if (state.user) {
+        state.user.favoriteRestaurants = action.payload;
+        persistSession(state.user);
+      }
+    });
   },
 });
 
 export const { logout, clearError, setAuthSession } = authSlice.actions;
 export default authSlice.reducer;
-

@@ -350,4 +350,4 @@ export const selectActiveFiltersCount = createSelector(
   }
 );
 
-export const selectFavorites = (state: RootState) => state.restaurants.favorites;
+export const selectFavorites = (state: RootState) => state.auth.user?.favoriteRestaurants || [];

@@ -145,9 +145,10 @@ export const normalizeMenuItems = (
 // ─────────────────────────────────────────────────────────────────────────────
 
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
+  const { headers: customHeaders, ...restInit } = init || {};
   const response = await fetch(`${APP_CONFIG.API_URL}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
+    headers: { 'Content-Type': 'application/json', ...customHeaders },
+    ...restInit,
   });
 
   const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> | T;

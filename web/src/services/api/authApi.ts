@@ -36,11 +36,13 @@ const getErrorMessage = (error: unknown): string => {
 };
 
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
+  const { headers: customHeaders, ...restInit } = init || {};
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...customHeaders,
     },
-    ...init,
+    ...restInit,
   });
 
   const payload = (await response.json().catch(() => ({}))) as ApiResponse<T> | T;
@@ -60,7 +62,9 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
 };
 
 const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
-  const role = payload.user.role === 'admin' ? 'admin' : 'user';
+  console.log('buildAuthUser -> ', payload)
+  const role = payload.user.role ?? 'user'
+  // === 'admin' ? 'admin' : 'user';
   const permissions = role === 'admin'
     ? ['view_dashboard', 'manage_users', 'manage_restaurants', 'manage_menu', 'manage_orders', 'view_reports', 'place_order', 'view_profile']
     : ['place_order', 'view_profile', 'track_orders', 'cancel_orders'];
@@ -145,58 +149,58 @@ export const authApi = {
     }
   },
 
-    async getMe(token: string): Promise<AuthUser> {
-      try {
-        const userPayload = await request<AuthApiUserPayload>('/auth/me', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-  
-        return buildAuthUser({
-          token,
-          user: userPayload,
-        });
-      } catch (error) {
-        throw new Error(getErrorMessage(error));
-      }
-    },
+  async getMe(token: string): Promise<AuthUser> {
+    try {
+      const userPayload = await request<AuthApiUserPayload>('/auth/me', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    async toggleFavorite(restaurantId: string, token: string): Promise<string[]> {
-      try {
-        const payload = await request<{ favoriteRestaurants: string[] }>(`/users/favorites/${restaurantId}`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        return payload.favoriteRestaurants;
-      } catch (error) {
-        throw new Error(getErrorMessage(error));
-      }
-    },
-
-    async addAddress(addressData: any, token: string): Promise<any[]> {
-      try {
-        const payload = await request<{ addresses: any[] }>('/users/addresses', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: JSON.stringify(addressData)
-        });
-        return payload.addresses;
-      } catch (error) {
-        throw new Error(getErrorMessage(error));
-      }
-    },
-
-    async removeAddress(addressId: string, token: string): Promise<any[]> {
-      try {
-        const payload = await request<{ addresses: any[] }>(`/users/addresses/${addressId}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        return payload.addresses;
-      } catch (error) {
-        throw new Error(getErrorMessage(error));
-      }
+      return buildAuthUser({
+        token,
+        user: userPayload,
+      });
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
+  },
+
+  async toggleFavorite(restaurantId: string, token: string): Promise<string[]> {
+    try {
+      const payload = await request<{ favoriteRestaurants: string[] }>(`/users/favorites/${restaurantId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return payload.favoriteRestaurants;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async addAddress(addressData: any, token: string): Promise<any[]> {
+    try {
+      const payload = await request<{ addresses: any[] }>('/users/addresses', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify(addressData)
+      });
+      return payload.addresses;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  async removeAddress(addressId: string, token: string): Promise<any[]> {
+    try {
+      const payload = await request<{ addresses: any[] }>(`/users/addresses/${addressId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return payload.addresses;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  }
 };

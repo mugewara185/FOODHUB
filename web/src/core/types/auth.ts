@@ -1,8 +1,8 @@
 // Role types
-export type UserRole = 'admin' | 'restaurant_owner' | 'user' | 'delivery_partner';
+export type UserRole = 'admin' | 'dev' | 'restaurant_owner' | 'user' | 'delivery_partner';
 
 // Permissions
-export type Permission = 
+export type Permission =
   | 'view_dashboard'
   | 'manage_users'
   | 'manage_restaurants'

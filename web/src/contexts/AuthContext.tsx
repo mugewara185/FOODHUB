@@ -32,6 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const dispatch = useAppDispatch();
   const { user, isAuthenticated, loading: isLoading, isInitialized, error } = useAppSelector((state) => state.auth);
+  // console.log('useAuth:', { user, isAuthenticated });
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     await dispatch(loginThunk(credentials)).unwrap();
