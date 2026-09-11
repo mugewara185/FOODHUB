@@ -317,7 +317,7 @@ const orderSlice = createSlice({
   },
 });
 
-export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = orderSlice.actions;
+// export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = orderSlice.actions;
 export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = orderSlice.actions;
 
 // ---------------------------------------------------------------------------
