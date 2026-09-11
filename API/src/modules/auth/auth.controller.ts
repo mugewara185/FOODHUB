@@ -36,9 +36,10 @@ function signToken(id: string): string {
 }
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // console.log('Registering user with data:', req.body);
   try {
     const body = registerSchema.parse(req.body);
-
+    // const body= req.body
     const existing = await User.findOne({ email: body.email });
     if (existing) throw new AppError('Email already in use', 409);
 
@@ -55,6 +56,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
       },
     });
   } catch (err) {
+    console.error('Error during registration:', err);
     next(err);
   }
 }
