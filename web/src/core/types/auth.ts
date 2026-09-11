@@ -26,6 +26,20 @@ export interface Role {
   description: string;
 }
 
+// Authentication types
+export interface IAddress {
+  id: string;
+  _id?: string;
+  name: string;
+  phone: string;
+  street: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  type: 'home' | 'work' | 'other';
+  isDefault: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -39,6 +53,8 @@ export interface User {
   phoneVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  addresses?: IAddress[];
+  favoriteRestaurants?: string[];
 }
 
 export interface AuthUser extends User {
@@ -46,23 +62,6 @@ export interface AuthUser extends User {
   refreshToken: string;
   expiresAt: number;
   permissions: Permission[];
-}
-
-// Authentication types
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  avatar?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AuthUser extends User {
-  token: string;
-  refreshToken: string;
-  expiresAt: number;
 }
 
 export interface LoginCredentials {

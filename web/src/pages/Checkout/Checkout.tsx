@@ -48,38 +48,11 @@ import {
   Edit,
   Delete,
 } from '@mui/icons-material';
-import { type Address } from '@/data/types/food';
 import LocationPicker from '@/shared/components/maps/LocationPicker';
 import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
 import { createOrderThunk, selectOrderCreating, selectOrderError, clearOrderError } from '@/features/orders/orderSlice';
 import { clearCart } from '@/features/cart/cartSlice';
-
-
-// Mock addresses
-const MOCK_ADDRESSES: Address[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    phone: '+91 9876543210',
-    street: '123 Main Street',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    zipCode: '400001',
-    isDefault: true,
-    type: 'home',
-  },
-  {
-    id: '2',
-    name: 'John Doe',
-    phone: '+91 9876543210',
-    street: '456 Office Building',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    zipCode: '400002',
-    isDefault: false,
-    type: 'work',
-  },
-];
+import { useAuth } from '@/contexts/AuthContext';
 
 // Payment methods
 const PAYMENT_METHODS = [
@@ -94,6 +67,10 @@ const steps = ['Delivery Address', 'Payment Method', 'Review Order'];
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { user } = useAuth();
+  
+  // Real addresses from user profile
+  const MOCK_ADDRESSES = user?.addresses || [];
 
   // Cart state from Redux
   const cart = useAppSelector((state) => state.cart);

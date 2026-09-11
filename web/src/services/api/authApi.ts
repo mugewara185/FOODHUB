@@ -12,11 +12,13 @@ interface AuthApiUserPayload {
   id: string;
   name: string;
   email: string;
-  role?: 'user' | 'admin';
+  role?: 'user' | 'admin' | 'owner' | 'partner';
   phone?: string;
   avatar?: string;
   createdAt?: string;
   updatedAt?: string;
+  addresses?: any[];
+  favoriteRestaurants?: string[];
 }
 
 interface AuthApiPayload {
@@ -160,4 +162,41 @@ export const authApi = {
         throw new Error(getErrorMessage(error));
       }
     },
+
+    async toggleFavorite(restaurantId: string, token: string): Promise<string[]> {
+      try {
+        const payload = await request<{ favoriteRestaurants: string[] }>(`/users/favorites/${restaurantId}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return payload.favoriteRestaurants;
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+
+    async addAddress(addressData: any, token: string): Promise<any[]> {
+      try {
+        const payload = await request<{ addresses: any[] }>('/users/addresses', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: JSON.stringify(addressData)
+        });
+        return payload.addresses;
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+
+    async removeAddress(addressId: string, token: string): Promise<any[]> {
+      try {
+        const payload = await request<{ addresses: any[] }>(`/users/addresses/${addressId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return payload.addresses;
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    }
 };
