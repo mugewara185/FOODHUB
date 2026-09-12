@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import type { AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData } from "../../data/types/auth";
 import { authApi } from "../../services/api/authApi";
+import { IS_DEV } from "../../core/config/app.config";
 
 type AuthState = {
   user: AuthUser | null;
@@ -21,24 +22,37 @@ const initialState: AuthState = {
 };
 
 const AUTH_STORAGE_KEY = "zom2.auth.session";
+const SESSION_ISOLATION_KEY = "zom2_dev_session_isolation";
+
+const getStorage = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    if (IS_DEV && window.localStorage.getItem(SESSION_ISOLATION_KEY) === "true") {
+      return window.sessionStorage;
+    }
+  } catch (e) {}
+  return window.localStorage;
+};
 
 const persistSession = (user: AuthUser | null): void => {
-  if (typeof window === "undefined") return;
+  const storage = getStorage();
+  if (!storage) return;
 
   if (user && user.token) {
     // Only persist the token, not the entire PII payload
     const sessionData = { token: user.token };
-    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
+    storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
   } else {
-    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    storage.removeItem(AUTH_STORAGE_KEY);
   }
 };
 
 const readStoredSession = (): { token: string } | null => {
-  if (typeof window === "undefined") return null;
+  const storage = getStorage();
+  if (!storage) return null;
 
   try {
-    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    const raw = storage.getItem(AUTH_STORAGE_KEY);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as { token?: string } | null;

@@ -123,13 +123,11 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
         throw new Error(result?.message || "The seed request failed.");
       }
 
-      const summary = [
-        `${payload.data.restaurants.length} restaurants`,
-        `${payload.data.foodItems.length} food items`,
-        `${payload.data.users.length} users`,
-        `${payload.data.orders.length} orders`,
-        `${payload.data.reviews.length} reviews`,
-      ].filter((item) => !item.startsWith("0 "));
+      // result.data should be the generic Record<modelName, count> from backend
+      const seededCounts = result.data || {};
+      const summary = Object.entries(seededCounts)
+        .map(([model, count]) => `${count} ${model}s`)
+        .filter((item) => !item.startsWith("0 "));
 
       setSeedStatus({
         loading: false,
