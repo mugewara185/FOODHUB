@@ -113,7 +113,7 @@ export async function getOrderById(req: AuthRequest, res: Response, next: NextFu
     const order = await Order.findById(req.params.id).populate('restaurantId', 'name imageUrl address phone');
     if (!order) throw new AppError('Order not found', 404);
 
-    if (order.userId.toString() !== req.user!.id && req.user!.role !== 'admin') {
+    if (order.userId.toString() !== req.user!.id && !req.user!.roles.includes('admin')) {
       throw new AppError('Not authorized to view this order', 403);
     }
 

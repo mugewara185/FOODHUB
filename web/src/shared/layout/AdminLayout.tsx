@@ -49,13 +49,15 @@ import {
   LightMode,
 } from '@mui/icons-material';
 
+import { RoleSwitcher } from '../../shared/components/ui/RoleSwitcher';
+
 const drawerWidth = 280;
 
 const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/admin' },
-  { 
-    text: 'Orders', 
-    icon: <ShoppingBag />, 
+  {
+    text: 'Orders',
+    icon: <ShoppingBag />,
     path: '/admin/orders',
     badge: 24,
     children: [
@@ -63,9 +65,9 @@ const menuItems = [
       { text: 'Order Analytics', path: '/admin/orders/analytics' },
     ]
   },
-  { 
-    text: 'Restaurants', 
-    icon: <Restaurant />, 
+  {
+    text: 'Restaurants',
+    icon: <Restaurant />,
     path: '/admin/restaurants',
     children: [
       { text: 'All Restaurants', path: '/admin/restaurants' },
@@ -73,9 +75,9 @@ const menuItems = [
       { text: 'Categories', path: '/admin/restaurants/categories' },
     ]
   },
-  { 
-    text: 'Menu Management', 
-    icon: <Fastfood />, 
+  {
+    text: 'Menu Management',
+    icon: <Fastfood />,
     path: '/admin/menu',
     children: [
       { text: 'Menu Items', path: '/admin/menu' },
@@ -83,9 +85,9 @@ const menuItems = [
       { text: 'Add Item', path: '/admin/menu/add' },
     ]
   },
-  { 
-    text: 'Users', 
-    icon: <People />, 
+  {
+    text: 'Users',
+    icon: <People />,
     path: '/admin/users',
     children: [
       { text: 'Customers', path: '/admin/users' },
@@ -152,9 +154,9 @@ const AdminLayout: React.FC = () => {
           </Typography>
         </Box>
       </Toolbar>
-      
+
       <Divider />
-      
+
       {/* Admin Profile Summary */}
       <Box sx={{ p: 2, textAlign: 'center' }}>
         <Avatar
@@ -181,9 +183,9 @@ const AdminLayout: React.FC = () => {
           sx={{ mt: 1, fontSize: '0.7rem', height: 20 }}
         />
       </Box>
-      
+
       <Divider />
-      
+
       {/* Menu Items */}
       <List sx={{ flexGrow: 1, px: 1 }}>
         {menuItems.map((item) => (
@@ -212,8 +214,8 @@ const AdminLayout: React.FC = () => {
                 <ListItemIcon sx={{ minWidth: 40 }}>
                   {item.icon}
                 </ListItemIcon>
-                <ListItemText 
-                  primary={item.text} 
+                <ListItemText
+                  primary={item.text}
                   primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }}
                 />
                 {item.badge && (
@@ -229,7 +231,7 @@ const AdminLayout: React.FC = () => {
                 )}
               </ListItemButton>
             </ListItem>
-            
+
             {/* Submenu */}
             {item.children && expandedMenus.includes(item.text) && (
               <List sx={{ pl: 4 }}>
@@ -247,7 +249,7 @@ const AdminLayout: React.FC = () => {
                         },
                       }}
                     >
-                      <ListItemText 
+                      <ListItemText
                         primary={child.text}
                         primaryTypographyProps={{ fontSize: '0.85rem' }}
                       />
@@ -259,9 +261,9 @@ const AdminLayout: React.FC = () => {
           </React.Fragment>
         ))}
       </List>
-      
+
       <Divider />
-      
+
       {/* Footer */}
       <Box sx={{ p: 2 }}>
         <Typography variant="caption" color="text.secondary" align="center" display="block">
@@ -294,7 +296,7 @@ const AdminLayout: React.FC = () => {
           >
             <MenuIcon />
           </IconButton>
-          
+
           {/* Search */}
           <Paper
             elevation={0}
@@ -314,9 +316,9 @@ const AdminLayout: React.FC = () => {
               sx={{ flex: 1 }}
             />
           </Paper>
-          
+          <RoleSwitcher />
           <Box sx={{ flexGrow: 1 }} />
-          
+
           {/* Right Icons */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton onClick={handleNotificationOpen}>
@@ -324,17 +326,17 @@ const AdminLayout: React.FC = () => {
                 <Notifications />
               </Badge>
             </IconButton>
-            
+
             <DevVersionSwitcher />
-            
+
             <IconButton onClick={() => {
               // Toggle theme mode logic here
-                // You'll need to integrate this with your theme provider
+              // You'll need to integrate this with your theme provider
               console.log('Toggle theme mode');
             }}>
               {theme.palette.mode === 'dark' ? <LightMode /> : <DarkMode />}
             </IconButton>
-            
+
             <IconButton onClick={handleProfileMenuOpen}>
               <Avatar sx={{ width: 35, height: 35 }} src="https://i.pravatar.cc/150?img=7" />
             </IconButton>
@@ -362,7 +364,7 @@ const AdminLayout: React.FC = () => {
       </Drawer>
 
       {/* Main Content */}
-      <Box 
+      <Box
         // justifyItems={'left'}
         // display={'flex'}
         component="main"
@@ -375,7 +377,7 @@ const AdminLayout: React.FC = () => {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
-          ...(open && !isMobile && { marginLeft: `${drawerWidth-0}px` }),
+          ...(open && !isMobile && { marginLeft: `${drawerWidth - 0}px` }),
         }}
       >
         <Toolbar />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -21,10 +21,9 @@ import {
   Stack,
   Divider,
   useTheme,
+  CircularProgress,
 } from '@mui/material';
 import {
-  TrendingUp,
-  TrendingDown,
   ShoppingBag,
   Restaurant,
   People,
@@ -59,43 +58,10 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-
-// Mock data for charts
-const revenueData = [
-  { name: 'Mon', revenue: 45000, orders: 120 },
-  { name: 'Tue', revenue: 52000, orders: 135 },
-  { name: 'Wed', revenue: 48000, orders: 128 },
-  { name: 'Thu', revenue: 61000, orders: 145 },
-  { name: 'Fri', revenue: 75000, orders: 168 },
-  { name: 'Sat', revenue: 82000, orders: 185 },
-  { name: 'Sun', revenue: 55000, orders: 142 },
-];
-
-const categoryData = [
-  { name: 'Indian', value: 35 },
-  { name: 'Chinese', value: 25 },
-  { name: 'Italian', value: 20 },
-  { name: 'Fast Food', value: 15 },
-  { name: 'Others', value: 5 },
-];
+import { AdminAIAssistantTrigger } from './components/AdminAIAssistantTrigger';
+import { logger } from '../../core/dev/logger';
 
 const COLORS = ['#FF6B35', '#00C853', '#2196F3', '#FFC107', '#9C27B0'];
-
-const recentOrders = [
-  { id: 'ORD-001', customer: 'John Doe', restaurant: 'Spice Garden', amount: 890, status: 'delivered', time: '5 mins ago' },
-  { id: 'ORD-002', customer: 'Jane Smith', restaurant: 'Pizza Paradise', amount: 650, status: 'preparing', time: '12 mins ago' },
-  { id: 'ORD-003', customer: 'Mike Johnson', restaurant: 'Burger House', amount: 520, status: 'out_for_delivery', time: '18 mins ago' },
-  { id: 'ORD-004', customer: 'Sarah Williams', restaurant: 'Sushi Master', amount: 1200, status: 'pending', time: '25 mins ago' },
-  { id: 'ORD-005', customer: 'David Brown', restaurant: 'Taco Fiesta', amount: 430, status: 'delivered', time: '30 mins ago' },
-];
-
-const topRestaurants = [
-  { name: 'Spice Garden', orders: 145, revenue: 85000, rating: 4.8 },
-  { name: 'Pizza Paradise', orders: 132, revenue: 72000, rating: 4.7 },
-  { name: 'Burger House', orders: 98, revenue: 51000, rating: 4.6 },
-  { name: 'Sushi Master', orders: 87, revenue: 68000, rating: 4.9 },
-  { name: 'Taco Fiesta', orders: 76, revenue: 38000, rating: 4.5 },
-];
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -120,11 +86,73 @@ const getStatusIcon = (status: string) => {
 const Dashboard: React.FC = () => {
   const theme = useTheme();
   const [timeRange, setTimeRange] = useState('week');
+  const [loading, setLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    logger.info('ADMIN.PAGE.MOUNT', 'AdminDashboard component mounted');
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        logger.info('ADMIN.ANALYTICS.LOAD.START', `Loading analytics for period: ${timeRange}`);
+        
+        const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const tokenStr = localStorage.getItem("zom2.auth.session");
+        let token = "";
+        if (tokenStr) {
+          try {
+             token = JSON.parse(tokenStr).token;
+          } catch(e) {
+             // Fallback
+             token = tokenStr;
+          }
+        }
+
+        const response = await fetch(`${apiBaseUrl}/admin/analytics/dashboard?period=${timeRange}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch analytics');
+        
+        const json = await response.json();
+        setAnalyticsData(json.data);
+        logger.info('ADMIN.ANALYTICS.LOAD.SUCCESS', `Successfully loaded analytics for period: ${timeRange}`);
+      } catch (err) {
+        console.error(err);
+        setError((err as Error).message);
+        logger.error('ADMIN.ANALYTICS.LOAD.FAILURE', 'Failed to load analytics data', err as Error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [timeRange]);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !analyticsData) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
+        <Typography color="error">Error: {error || 'No data available'}</Typography>
+      </Box>
+    );
+  }
 
   const stats = [
     { 
       title: 'Total Revenue', 
-      value: '₹4,52,000', 
+      value: `₹${analyticsData.metrics.revenue.toLocaleString()}`, 
       change: '+12.5%', 
       trend: 'up',
       icon: <AttachMoney sx={{ fontSize: 32 }} />,
@@ -132,7 +160,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Total Orders', 
-      value: '1,245', 
+      value: analyticsData.metrics.orders.toLocaleString(), 
       change: '+8.2%', 
       trend: 'up',
       icon: <ShoppingBag sx={{ fontSize: 32 }} />,
@@ -140,7 +168,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Active Restaurants', 
-      value: '128', 
+      value: analyticsData.metrics.activeRestaurants, 
       change: '+4', 
       trend: 'up',
       icon: <Restaurant sx={{ fontSize: 32 }} />,
@@ -148,7 +176,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Total Users', 
-      value: '25.4K', 
+      value: (analyticsData.metrics.totalUsers / 1000).toFixed(1) + 'K', 
       change: '+15.3%', 
       trend: 'up',
       icon: <People sx={{ fontSize: 32 }} />,
@@ -156,7 +184,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Avg. Order Value', 
-      value: '₹363', 
+      value: `₹${analyticsData.metrics.averageOrderValue}`, 
       change: '+5.2%', 
       trend: 'up',
       icon: <Payment sx={{ fontSize: 32 }} />,
@@ -164,7 +192,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Delivery Success', 
-      value: '98.2%', 
+      value: `${analyticsData.metrics.deliverySuccessRate}%`, 
       change: '+1.2%', 
       trend: 'up',
       icon: <CheckCircle sx={{ fontSize: 32 }} />,
@@ -174,6 +202,8 @@ const Dashboard: React.FC = () => {
 
   return (
     <Box>
+      <AdminAIAssistantTrigger />
+      
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
@@ -265,7 +295,7 @@ const Dashboard: React.FC = () => {
             </Box>
             
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={revenueData}>
+              <AreaChart data={analyticsData.breakdowns.revenueByDay}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.8}/>
@@ -308,7 +338,7 @@ const Dashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={categoryData}
+                  data={analyticsData.breakdowns.categoryDistribution}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -316,7 +346,7 @@ const Dashboard: React.FC = () => {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {categoryData.map((entry, index) => (
+                  {analyticsData.breakdowns.categoryDistribution.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -326,7 +356,7 @@ const Dashboard: React.FC = () => {
             </ResponsiveContainer>
 
             <Box sx={{ mt: 2 }}>
-              {categoryData.map((category, index) => (
+              {analyticsData.breakdowns.categoryDistribution.map((category: any, index: number) => (
                 <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Box sx={{ width: 12, height: 12, borderRadius: 2, bgcolor: COLORS[index] }} />
@@ -374,7 +404,7 @@ const Dashboard: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {recentOrders.map((order) => (
+                  {analyticsData.breakdowns.recentOrders.map((order: any) => (
                     <TableRow key={order.id} hover>
                       <TableCell>
                         <Typography variant="body2" fontWeight={600}>
@@ -437,7 +467,7 @@ const Dashboard: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {topRestaurants.map((restaurant, index) => (
+                  {analyticsData.breakdowns.topRestaurants.map((restaurant: any, index: number) => (
                     <TableRow key={index} hover>
                       <TableCell>
                         <Typography variant="body2" fontWeight={600}>
@@ -464,7 +494,7 @@ const Dashboard: React.FC = () => {
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                Total Restaurants: 128
+                Total Restaurants: {analyticsData.metrics.activeRestaurants}
               </Typography>
               <Button size="small">View All</Button>
             </Box>

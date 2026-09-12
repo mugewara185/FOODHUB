@@ -38,7 +38,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Developer mode bypass (or Dev God User bypass)
-  if (APP_CONFIG.DEV_BYPASS_AUTH || (user && user.role === 'dev')) {
+  if (APP_CONFIG.DEV_BYPASS_AUTH || (user && user.roles?.includes('dev'))) {
     return <>{children}</>;
   }
 
@@ -60,26 +60,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // RBAC checks
-  if (requireAuth && isAuthenticated && allowedRoles && user && user.role) {
-    if (!allowedRoles.includes(user.role as UserRole)) {
+  if (requireAuth && isAuthenticated && allowedRoles && user && user.roles) {
+    const hasRequiredRole = user.roles.some(role => allowedRoles.includes(role as UserRole));
+    if (!hasRequiredRole) {
       // Bounce user back to their respective native dashboard if they aren't authorized here
-      switch (user.role) {
-        case 'admin':
-          return <Navigate to="/admin" replace />;
-        case 'restaurant_owner':
-          return <Navigate to="/owner" replace />;
-        case 'delivery_partner':
-          return <Navigate to="/partner" replace />;
-        case 'user':
-        default:
-          return <Navigate to="/" replace />;
+      // Priority: user homepage -> admin -> owner -> partner
+      if (user.roles.includes('user')) {
+        return <Navigate to="/" replace />;
       }
+      if (user.roles.includes('admin')) {
+        return <Navigate to="/admin" replace />;
+      }
+      if (user.roles.includes('restaurant_owner')) {
+        return <Navigate to="/owner" replace />;
+      }
+      if (user.roles.includes('delivery_partner')) {
+        return <Navigate to="/partner" replace />;
+      }
+      return <Navigate to="/" replace />;
     }
-  }
-
-  if (!requireAuth && isAuthenticated) {
-    // Redirect to home if trying to access auth pages while logged in
-    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

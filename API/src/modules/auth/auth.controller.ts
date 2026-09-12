@@ -52,7 +52,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
       message: 'Registration successful',
       data: {
         token,
-        user: { id: user._id, name: user.name, email: user.email, role: user.role },
+        user: { id: user._id, name: user.name, email: user.email, roles: user.roles },
       },
     });
   } catch (err) {
@@ -77,7 +77,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       message: 'Login successful',
       data: {
         token,
-        user: { id: user._id, name: user.name, email: user.email, role: user.role },
+        user: { id: user._id, name: user.name, email: user.email, roles: user.roles },
       },
     });
   } catch (err) {

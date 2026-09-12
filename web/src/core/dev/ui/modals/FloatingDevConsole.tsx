@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
 import {
   Box,
   Paper,
@@ -25,7 +24,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  // Grid,
 } from "@mui/material";
 import {
   Settings,
@@ -35,12 +33,12 @@ import {
   Palette,
   WidgetsOutlined,
   Close,
-  DragIndicator,
   RestartAlt,
 } from "@mui/icons-material";
 import type { Restaurant } from "@core/types";
 import { useLogger } from "../../logger";
 import { buildFactorySeedPayload, type FactorySeedTarget } from "../../utils/factorySeed";
+import { FloatingTrigger } from "../../../ui/floating/FloatingTrigger";
 
 interface FloatingDevConsoleProps {
   allRestaurants: Record<string, unknown>[] | Restaurant[];
@@ -80,24 +78,9 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
   selectedVersions,
   cuisineLength,
 }) => {
-  //contexts
   const { open: _logConsoleOpen, setOpen: _setLogConsoleOpen } = useLogger();
-  void _logConsoleOpen;
-  void _setLogConsoleOpen;
-  //debounce click to prevent open from doubleclick
-  const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const DOUBLE_CLICK_DELAY = 300;
-
-  // Constants for FAB dimensions
-  const FAB_WIDTH = 56;
-  const FAB_HEIGHT = 56;
-  const DRAG_THRESHOLD = 5; // pixels
-  const DEFAULT_OFFSET = 20; // pixels from bottom/right
-  const defaultX = window.innerWidth - FAB_WIDTH - DEFAULT_OFFSET;
-  const defaultY = window.innerHeight - FAB_HEIGHT - DEFAULT_OFFSET;
   const [isOpen, setIsOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
-  const [position, setPosition] = useState({ x: defaultX, y: defaultY }); // Will be set after mount
   const [seedStatus, setSeedStatus] = useState<{ loading: boolean; message: string | null; error: string | null }>({
     loading: false,
     message: null,
@@ -110,145 +93,6 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     "orders",
     "reviews",
   ]);
-  const dragDistance = useRef(0);
-  const dragStartPos = useRef({ x: defaultX, y: defaultY });
-  const fabRef = useRef<HTMLDivElement>(null);
-  const initialized = useRef(false);
-
-  // Get default position (bottom right)
-  const getDefaultPosition = () => {
-    return {
-      x: window.innerWidth - FAB_WIDTH - DEFAULT_OFFSET,
-      y: window.innerHeight - FAB_HEIGHT - DEFAULT_OFFSET,
-    };
-  };
-
-  // Load position from localStorage on mount or set to bottom right
-  useEffect(() => {
-    if (!initialized.current) {
-      initialized.current = true;
-      const savedPosition = localStorage.getItem("devConsolePosition");
-      if (savedPosition) {
-        try {
-          const parsed = JSON.parse(savedPosition);
-          // Validate and clamp the saved position
-          const clampedX = Math.max(
-            0,
-            Math.min(parsed.x, window.innerWidth - FAB_WIDTH),
-          );
-          const clampedY = Math.max(
-            0,
-            Math.min(parsed.y, window.innerHeight - FAB_HEIGHT),
-          );
-          setPosition({ x: clampedX, y: clampedY });
-        } catch (e) {
-          console.error("Failed to parse saved position", e);
-          localStorage.removeItem("devConsolePosition");
-          setPosition(getDefaultPosition());
-        }
-      } else {
-        // Set to bottom right by default
-        setPosition(getDefaultPosition());
-      }
-    }
-  }, []);
-
-  // Handle window resize - keep FAB within bounds
-  useEffect(() => {
-    const handleResize = () => {
-      setPosition((prev) => {
-        const newX = Math.max(
-          0,
-          Math.min(prev.x, window.innerWidth - FAB_WIDTH),
-        );
-        const newY = Math.max(
-          0,
-          Math.min(prev.y, window.innerHeight - FAB_HEIGHT),
-        );
-        if (newX !== prev.x || newY !== prev.y) {
-          return { x: newX, y: newY };
-        }
-        return prev;
-      });
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize)
-  }, []);
-
-  // Calculate bounds for dragging
-  const getDragBounds = () => { //ls-reason?
-    return {
-      left: 0,
-      right: window.innerWidth - FAB_WIDTH,
-      top: 0,
-      bottom: window.innerHeight - FAB_HEIGHT,
-    };
-  };
-
-  const handleDragStart = () => {
-    dragStartPos.current = position;
-    dragDistance.current = 0;
-  };
-
-  const handleDrag = (
-    _: unknown,
-    info: { offset: { x: number; y: number } },
-  ) => {
-    dragDistance.current = Math.sqrt(info.offset.x ** 2 + info.offset.y ** 2);
-  };
-
-  const handleDragEnd = (
-    _: unknown,
-    info: { point: { x: number; y: number } },
-  ) => {
-    // Get the bounds
-    const bounds = getDragBounds();
-
-    // Use the drag offset from motion
-    const dragOffset = (info as { offset?: { x: number; y: number } }).offset;
-    if (dragOffset) {
-      let newX = position.x + dragOffset.x;
-      let newY = position.y + dragOffset.y;
-
-      // Apply bounds
-      newX = Math.max(bounds.left, Math.min(newX, bounds.right));
-      newY = Math.max(bounds.top, Math.min(newY, bounds.bottom));
-
-      setPosition({ x: newX, y: newY });
-      localStorage.setItem(
-        "devConsolePosition",
-        JSON.stringify({ x: newX, y: newY }),
-      );
-    }
-    setTimeout(()=> // ts-s:set dragdistance to zero after clickTimeout.Current to stop opening modal right after drag
-      dragDistance.current = 0
-    ,DOUBLE_CLICK_DELAY+1)
-  };
-
-  const handleFabClick = () => {
-    // If a second click happens within delay → treat as double click → cancel
-    if (clickTimeout.current) {
-      clearTimeout(clickTimeout.current);
-      clickTimeout.current = null;
-      return;
-    }
-    // First click → wait to confirm it's not a double click
-    clickTimeout.current = setTimeout(() => {
-      // Only open modal if it wasn't actually dragged
-      if (dragDistance.current < DRAG_THRESHOLD) {
-      // if (dragDistance.current === 0) {
-        setIsOpen((prev) => !prev);
-      }
-      clickTimeout.current = null;
-    }, DOUBLE_CLICK_DELAY);
-  };
-
-  const resetPosition = () => {
-    const defaultPosition = getDefaultPosition();
-    setPosition(defaultPosition);
-    localStorage.setItem("devConsolePosition", JSON.stringify(defaultPosition));
-  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -301,68 +145,29 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     }
   };
 
+  const resetPosition = () => {
+    const defaultPosition = {
+      x: window.innerWidth - 56 - 20,
+      y: window.innerHeight - 56 - 20,
+    };
+    localStorage.setItem("devConsolePosition", JSON.stringify(defaultPosition));
+    // Provide a small visual cue or just force reload position by interacting with state if needed.
+    // FloatingTrigger handles its own internal position state based on local storage, 
+    // so forcing a re-render or letting the user drag again works.
+    window.location.reload(); // Simple solution for dev console reset
+  };
+
   return (
     <>
-      {/* Floating FAB Icon */}
-      <motion.div
-        ref={fabRef}
-        drag
-        dragMomentum={false}
-        dragElastic={10}
-        dragConstraints={getDragBounds()}
-        onDragStart={handleDragStart}
-        onDrag={handleDrag}
-        onDragEnd={handleDragEnd}
-        animate={{ x: position.x, y: position.y }}
-        initial={{ x: position.x, y: position.y }}
-        transition={{ type: "tween", duration: 0.2 }}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          zIndex: 9999,
-          cursor: "grab",
-        }}
-        whileDrag={{ cursor: "grabbing" }}
-      >
-        <Box
-          onClick={handleFabClick}
-          // onDoubleClick={resetPosition}
-          onDoubleClick={() => _setLogConsoleOpen(!_logConsoleOpen)}
-          sx={{
-            width: FAB_WIDTH,
-            height: FAB_HEIGHT,
-            borderRadius: "50%",
-            bgcolor: "warning.main",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            boxShadow: 4,
-            color: "white",
-            transition: "all 0.2s ease",
-            userSelect: "none",
-            "&:hover": {
-              transform: "scale(1.05)",
-              boxShadow: 6,
-            },
-            "&:active": {
-              cursor: "grabbing",
-            },
-          }}
-          role="button"
-          tabIndex={0}
-          title="Click to open console | Drag freely | Double-click to reset"
-          onKeyDown={(e) => e.key === "Enter" && handleFabClick()}
-        >
-          <Stack alignItems="center" spacing={0.5}>
-            <Code fontSize="small" sx={{ cursor: "grab" }} />
-            <DragIndicator sx={{ fontSize: 10, opacity: 0.7 }} />
-          </Stack>
-        </Box>
-      </motion.div>
+      <FloatingTrigger
+        icon={<Code fontSize="small" sx={{ cursor: "grab" }} />}
+        storageKey="devConsolePosition"
+        onClick={() => setIsOpen(true)}
+        onDoubleClick={() => _setLogConsoleOpen(!_logConsoleOpen)}
+        color="warning.main"
+        title="Click to open console | Drag freely | Double-click to reset"
+      />
 
-      {/* Modal Dialog */}
       <Dialog
         open={isOpen}
         onClose={() => setIsOpen(false)}
@@ -429,7 +234,6 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
             </Tabs>
           </Box>
 
-          {/* State Overview */}
           <TabPanel value={tabValue} index={0}>
             <Box sx={{ p: 3 }}>
               <Box
@@ -578,7 +382,6 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
             </Box>
           </TabPanel>
 
-          {/* Component Versions */}
           <TabPanel value={tabValue} index={1}>
             <Box sx={{ p: 3 }}>
               <Alert
@@ -664,7 +467,6 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
             </Box>
           </TabPanel>
 
-          {/* Redux Store Info */}
           <TabPanel value={tabValue} index={2}>
             <Box sx={{ p: 3 }}>
               <Card>
@@ -700,7 +502,6 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
             </Box>
           </TabPanel>
 
-          {/* Framework Info */}
           <TabPanel value={tabValue} index={3}>
             <Box sx={{ p: 3 }}>
               <Box

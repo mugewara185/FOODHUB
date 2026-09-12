@@ -12,7 +12,7 @@ interface AuthApiUserPayload {
   id: string;
   name: string;
   email: string;
-  role?: 'user' | 'admin' | 'owner' | 'partner';
+  role?: Array<'user' | 'admin' | 'owner' | 'partner'>;
   phone?: string;
   avatar?: string;
   createdAt?: string;
@@ -63,7 +63,7 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
 
 const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
   console.log('buildAuthUser -> ', payload)
-  const role = payload.user.role ?? 'user'
+  const role = payload.user.roles ?? 'user'
   // === 'admin' ? 'admin' : 'user';
   const permissions = role === 'admin'
     ? ['view_dashboard', 'manage_users', 'manage_restaurants', 'manage_menu', 'manage_orders', 'view_reports', 'place_order', 'view_profile']

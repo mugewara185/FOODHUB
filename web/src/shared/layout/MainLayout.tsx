@@ -528,6 +528,8 @@ import { NotificationBell } from '../../core/notifications/components/Notificati
 //cartSelector
 import { selectCartItems } from '../../features/cart/cartSlice';
 
+import { RoleSwitcher } from '../../shared/components/ui/RoleSwitcher';
+
 const MainLayout: React.FC = () => {
   // console.log('%c<MainLayout/>','color:orange')
   const { user, isAuthenticated, isLoading, logout } = useAuth(); // Get auth state
@@ -577,6 +579,7 @@ const MainLayout: React.FC = () => {
           </Typography>
           
 <DevVersionSwitcher />
+<RoleSwitcher />
 
           {/* Location Selector */}
           <Button

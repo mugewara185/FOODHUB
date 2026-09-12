@@ -55,7 +55,7 @@ export interface FactoryUserSeedEntry {
   name: string;
   email: string;
   password: string;
-  role: 'user' | 'admin';
+  roles: ('user' | 'admin' | 'dev' | 'owner' | 'partner')[];
   phone?: string;
   address?: string;
 }
@@ -132,7 +132,7 @@ type GeneratedUser = {
   name: string;
   email: string;
   password?: string;
-  role?: string;
+  roles?: string[];
   phone?: string;
   address?: string;
 };
@@ -223,7 +223,7 @@ export const buildFactorySeedPayload = (
     name: user.name,
     email: user.email,
     password: user.password ?? 'Password123!',
-    role: (user.role === 'admin' ? 'admin' : 'user') as FactoryUserSeedEntry['role'],
+    roles: user.roles?.length ? user.roles as any[] : ['user'],
     phone: user.phone,
     address: user.address,
   }));

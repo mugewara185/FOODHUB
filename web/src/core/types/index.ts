@@ -30,7 +30,7 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
-  role: UserRole;
+  role: UserRole[];
   restaurantId?: string; // For restaurant owners
   isActive: boolean;
   emailVerified: boolean;

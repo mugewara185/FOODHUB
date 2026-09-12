@@ -8,7 +8,7 @@ export interface AuthRequest extends Request {
   user?: {
     id: string;
     email: string;
-    role: string;
+    roles: string[];
     name?: string;
   };
 }
@@ -32,9 +32,18 @@ export async function protect(
       throw new AppError('User no longer exists', 401);
     }
 
-    req.user = { id: user._id.toString(), email: user.email, role: user.role, name: user.name };
+    req.user = { id: user._id.toString(), email: user.email, roles: user.roles, name: user.name };
     next();
   } catch (err) {
     next(err);
   }
+}
+
+export function authorize(...allowedRoles: string[]) {
+  return (req: AuthRequest, _res: Response, next: NextFunction) => {
+    if (!req.user || !req.user.roles.some(role => allowedRoles.includes(role))) {
+      return next(new AppError(`Not authorized, must be one of: ${allowedRoles.join(', ')}`, 403));
+    }
+    next();
+  };
 }

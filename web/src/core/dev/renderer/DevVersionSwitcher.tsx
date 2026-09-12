@@ -26,7 +26,7 @@ export const DevVersionSwitcher: React.FC = () => {
 
   // Strictly only Dev God user
   // if (!user || user.email !== 'dev@' ) {
-  if (!user || user.role !== 'dev') {
+  if (!user || !user.roles?.includes('dev')) {
     if (!APP_CONFIG.DEV_BYPASS_AUTH) return null;
   }
 

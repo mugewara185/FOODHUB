@@ -11,6 +11,7 @@ import orderRoutes from './modules/orders/order.routes';
 import reviewRoutes from './modules/reviews/review.routes';
 import userRoutes from './modules/users/user.routes';
 import devRoutes from './modules/dev/dev.routes';
+import { analyticsRoutes } from './modules/analytics/analytics.routes';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/dev', devRoutes);
+app.use('/api/admin/analytics', analyticsRoutes);
 
 // 404 handler
 app.use((_req, res) => {

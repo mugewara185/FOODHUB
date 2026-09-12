@@ -542,7 +542,7 @@ const DevLayout: React.FC = () => {
               borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
             }}
           >
-            
+
             <Toolbar>
               <Typography
                 variant="h6"
@@ -563,6 +563,7 @@ const DevLayout: React.FC = () => {
               </Typography>
 
               {/* Quick Actions */}
+              {/* <RoleSwitcher /> */}
               <Button
                 startIcon={<GitHub />}
                 color="inherit"

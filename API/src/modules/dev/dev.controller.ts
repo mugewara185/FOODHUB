@@ -46,7 +46,7 @@ interface FactoryUserPayload {
   name: string;
   email: string;
   password: string;
-  role: 'user' | 'admin';
+  roles: string[];
   phone?: string;
   address?: string;
 }
@@ -188,7 +188,7 @@ export async function seedFactoryData(req: Request, res: Response, next: NextFun
           name: user.name,
           email: user.email,
           password: user.password || 'Password123!',
-          role: user.role === 'admin' ? 'admin' : 'user',
+          roles: user.roles || ['user'],
           phone: user.phone,
           address: user.address,
         });
