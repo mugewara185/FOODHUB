@@ -1,10 +1,11 @@
 import { APP_CONFIG } from '../../core/config/app.config';
 
+import { getAuthToken } from './apiUtils';
 import { logAPI } from '../../core/dev/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+  const token = getAuthToken();
   const { headers: customHeaders, ...restInit } = init || {};
   const traceId = uuidv4().substring(0, 8);
   const method = init?.method || 'GET';

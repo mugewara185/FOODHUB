@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { type RootState } from '../../app/store';
 import {
   Box,
   Paper,
@@ -34,16 +36,18 @@ import {
 const AdminProfile: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
 
+  const { user } = useSelector((state: RootState) => state.auth);
+
   const admin = {
-    name: 'Admin User',
-    email: 'admin@foodhub.com',
-    phone: '+91 98765 43210',
-    role: 'Super Admin',
+    name: user?.name || 'Admin User',
+    email: user?.email || 'admin@foodhub.com',
+    phone: user?.phone || '+91 00000 00000',
+    role: user?.role || 'Admin',
     department: 'Platform Operations',
-    location: 'Mumbai, India',
-    joinDate: '2022-01-01',
-    lastLogin: '2024-01-20 09:30 AM',
-    permissions: ['full_access', 'user_management', 'restaurant_management', 'payment_management'],
+    location: 'India',
+    joinDate: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A',
+    lastLogin: new Date().toLocaleString(),
+    permissions: user?.permissions || [],
   };
 
   return (

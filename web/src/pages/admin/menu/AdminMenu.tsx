@@ -5,7 +5,7 @@ import {
   Avatar, CircularProgress, TextField, InputAdornment
 } from '@mui/material';
 import { Fastfood, Search, TrendingUp, CheckCircle, Warning } from '@mui/icons-material';
-import { restaurantApi } from '../../../services/api/restaurantApi';
+import { fetchAdminMenu } from '../../../features/admin/data/menu.provider';
 import { logComponent, logger } from '../../../core/dev/logger';
 import type { FoodItem, Restaurant } from '../../../core/types';
 
@@ -28,20 +28,8 @@ export const AdminMenu = () => {
     try {
       setLoading(true);
       logger.info('ADMIN.MENU', 'fetchData.start');
-      const restaurants = await restaurantApi.getAll();
-      const allItems: FoodItem[] = [];
-      
-      // Some APIs might return items embedded, some might not. We handle it safely.
-      // Wait, restaurantApi.getAll() returns Restaurant[]. They don't have items.
-      // restaurantApi.getById() returns { restaurant, items }.
-      // So we have to fetch items for a few top restaurants or use a mock.
-      // To avoid fetching thousands of items one by one, we will use a mock provider if no direct endpoint exists.
-      
-      // Let's create a mock list for the global admin menu for now:
-      setItems([
-         { id: '1', name: 'Global Burger', description: 'Test item', price: 10, category: 'Fast Food', image: '', isAvailable: true, restaurantId: 'r1', restaurantName: 'Rest 1', isVeg: false, isSpicy: false, isBestSeller: true, rating: 4.5, addons: [], variants: [] },
-         { id: '2', name: 'Global Pizza', description: 'Test item', price: 15, category: 'Italian', image: '', isAvailable: true, restaurantId: 'r2', restaurantName: 'Rest 2', isVeg: true, isSpicy: false, isBestSeller: false, rating: 4.0, addons: [], variants: [] }
-      ]);
+      const allItems = await fetchAdminMenu();
+      setItems(allItems);
       logger.info('ADMIN.MENU', 'fetchData.success');
     } catch (err: any) {
       setError(err.message || 'Failed to fetch menu items');

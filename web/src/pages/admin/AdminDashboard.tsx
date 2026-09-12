@@ -61,6 +61,7 @@ import {
 import { AdminAIAssistantTrigger } from './components/AdminAIAssistantTrigger';
 import { logger } from '../../core/dev/logger';
 import { StatsCard } from '../../shared/components/admin/StatsCard';
+import { getAuthToken } from '../../services/api/apiUtils';
 
 const COLORS = ['#FF6B35', '#00C853', '#2196F3', '#FFC107', '#9C27B0'];
 
@@ -100,16 +101,7 @@ const Dashboard: React.FC = () => {
         logger.info('ADMIN.ANALYTICS.LOAD.START', `Loading analytics for period: ${timeRange}`);
         
         const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-        const tokenStr = localStorage.getItem("zom2.auth.session");
-        let token = "";
-        if (tokenStr) {
-          try {
-             token = JSON.parse(tokenStr).token;
-          } catch(e) {
-             // Fallback
-             token = tokenStr;
-          }
-        }
+        const token = getAuthToken();
 
         const response = await fetch(`${apiBaseUrl}/admin/analytics/dashboard?period=${timeRange}`, {
           headers: {
