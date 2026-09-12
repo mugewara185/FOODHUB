@@ -6,7 +6,7 @@
 // 1. USER & AUTHENTICATION
 // ─────────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'admin' | 'restaurant_owner' | 'user' | 'delivery_partner';
+export type UserRole = 'admin' | 'dev' | 'restaurant_owner' | 'user' | 'delivery_partner';
 
 export type Permission =
   | 'view_dashboard'
@@ -265,7 +265,7 @@ export interface Review {
 export interface DeliveryPartner {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone: string;
   avatar?: string;
   vehicleType: 'bike' | 'scooter' | 'car';
@@ -274,9 +274,10 @@ export interface DeliveryPartner {
   status: 'online' | 'offline' | 'on_delivery';
   rating: number;
   completedDeliveries: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastUpdate?: Date | string;
 }
 
 export interface LiveTracking {
@@ -285,9 +286,12 @@ export interface LiveTracking {
   partnerName?: string;
   partnerPhone?: string;
   partnerLocation: Coordinates;
-  estimatedArrival: string; // ISO timestamp
+  estimatedArrival: Date | string; // ISO timestamp or Date object
+  currentStep?: number;
+  totalSteps?: number;
   status: 'assigned' | 'picked_up' | 'on_the_way' | 'arrived' | 'delivered';
-  updatedAt: string;
+  updatedAt?: string;
+  lastUpdate?: Date | string;
 }
 
 // ============================================================================

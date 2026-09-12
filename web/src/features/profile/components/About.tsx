@@ -118,7 +118,8 @@ const About: React.FC = () => {
       {/* Stats */}
       <Grid container spacing={4} sx={{ mb: 6 }}>
         {stats.map((stat, index) => (
-          <Grid item xs={6} md={3} key={index}>
+          // <Grid item xs={6} md={3} key={index}> //fix: grid warning error
+          <Grid size={{ xs: 6, md: 3 }} key={index}>
             <Paper
               sx={{
                 p: 3,
@@ -156,15 +157,15 @@ const About: React.FC = () => {
 
       {/* Mission & Vision */}
       <Grid container spacing={4} sx={{ mb: 6 }}>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%', borderRadius: 3 }}>
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h5" fontWeight={700} gutterBottom color="primary.main">
                 Our Mission
               </Typography>
               <Typography variant="body1" paragraph>
-                To revolutionize the food delivery experience by providing seamless, 
-                fast, and reliable service while supporting local restaurants and 
+                To revolutionize the food delivery experience by providing seamless,
+                fast, and reliable service while supporting local restaurants and
                 creating opportunities for delivery partners.
               </Typography>
               <Typography variant="body1">
@@ -173,7 +174,7 @@ const About: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%', borderRadius: 3 }}>
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h5" fontWeight={700} gutterBottom color="primary.main">
@@ -181,7 +182,7 @@ const About: React.FC = () => {
               </Typography>
               <Typography variant="body1" paragraph>
                 To become the world's most trusted and innovative food delivery platform,
-                setting new standards in customer satisfaction, partner success, and 
+                setting new standards in customer satisfaction, partner success, and
                 sustainable practices.
               </Typography>
               <Typography variant="body1">
@@ -224,7 +225,7 @@ const About: React.FC = () => {
               description: 'Building a community of food lovers, restaurants, and delivery partners.',
             },
           ].map((value, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
               <Paper
                 sx={{
                   p: 3,
@@ -307,7 +308,7 @@ const About: React.FC = () => {
 
         <Grid container spacing={4}>
           {teamMembers.map((member, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
               <Paper
                 sx={{
                   p: 3,

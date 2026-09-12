@@ -59,7 +59,7 @@ const App: React.FC = () => {
     <AuthProvider>
       <Toast />
       <AppRoutes />
-      {(APP_CONFIG.DEV_BYPASS_AUTH || user?.roles?.includes('dev')) && (
+      {(APP_CONFIG.DEV_BYPASS_AUTH || user?.role.includes('dev')) && (
         <FloatingDevConsole
           allRestaurants={allRestaurants}
           featuredRestaurants={featuredRestaurants}

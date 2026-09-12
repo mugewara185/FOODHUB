@@ -25,6 +25,7 @@ interface AuthApiPayload {
   token: string;
   user: AuthApiUserPayload;
   refreshToken?: string;
+  roles?: Array<'user' | 'admin' | 'owner' | 'partner'>;
 }
 
 const getErrorMessage = (error: unknown): string => {

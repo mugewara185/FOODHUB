@@ -320,7 +320,7 @@ class Logger {
     this.listeners.forEach((callback) => callback([...this.logs]));
   }
 
-  private saveTimer: NodeJS.Timeout | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private debouncedSaveLogs(): void {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => this.saveLogs(), 500);

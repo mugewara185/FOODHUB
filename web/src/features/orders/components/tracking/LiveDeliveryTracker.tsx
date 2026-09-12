@@ -97,24 +97,45 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
 
   // Calculate route when both locations are available
   useEffect(() => {
-    if (restaurantLocation && customerLocation && partner?.currentLocation) {
-      const directionsService = new google.maps.DirectionsService();
+    if (!restaurantLocation || !customerLocation || !partner?.currentLocation) return;
 
-      directionsService.route(
-        {
-          origin: partner.currentLocation,
-          destination: restaurantLocation,
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === 'OK' && result) {
-            setRoute(result);
-            const duration = result.routes[0].legs[0].duration?.text;
-            setEta(duration || '');
-          }
+    let isMounted = true;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const checkAndCalculateRoute = () => {
+      if (typeof google !== 'undefined' && google.maps && typeof google.maps.DirectionsService === 'function') {
+        try {
+          const directionsService = new google.maps.DirectionsService();
+
+          directionsService.route(
+            {
+              origin: partner.currentLocation,
+              destination: restaurantLocation,
+              travelMode: google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+              if (isMounted && status === 'OK' && result) {
+                setRoute(result);
+                const duration = result.routes[0].legs[0].duration?.text;
+                setEta(duration || '');
+              }
+            }
+          );
+        } catch (err) {
+          console.warn('Google Maps DirectionsService error:', err);
         }
-      );
-    }
+      } else if (isMounted) {
+        // Retry shortly if Google Maps JS script is still loading asynchronously
+        timer = setTimeout(checkAndCalculateRoute, 500);
+      }
+    };
+
+    checkAndCalculateRoute();
+
+    return () => {
+      isMounted = false;
+      if (timer) clearTimeout(timer);
+    };
   }, [partner, restaurantLocation, customerLocation]);
 
   const getStatusIcon = (step: number, currentStep: number) => {
@@ -181,7 +202,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
               Estimated Arrival
             </Typography>
             <Typography variant="h4" color="primary.main" fontWeight={700}>
-              {formatDuration((tracking.estimatedArrival.getTime() - Date.now()) / 1000)}
+              {formatDuration((new Date(tracking.estimatedArrival).getTime() - Date.now()) / 1000)}
             </Typography>
           </Box>
         </Box>
@@ -190,7 +211,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
         <Box sx={{ mt: 3 }}>
           <LinearProgress
             variant="determinate"
-            value={(tracking.currentStep / tracking.totalSteps) * 100}
+            value={(((tracking.currentStep ?? 1) / (tracking.totalSteps ?? 5))) * 100}
             color="primary"
             sx={{ height: 8, borderRadius: 4 }}
           />
@@ -317,16 +338,16 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
                     sx={{
                       p: 2,
                       borderRadius: 2,
-                      bgcolor: index <= tracking.currentStep ? 'primary.light' : 'grey.50',
+                      bgcolor: index <= (tracking.currentStep ?? 1) ? 'primary.light' : 'grey.50',
                       position: 'relative',
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      {getStatusIcon(index, tracking.currentStep)}
+                      {getStatusIcon(index, tracking.currentStep ?? 1)}
                       <Typography
                         variant="subtitle2"
                         fontWeight={600}
-                        color={index <= tracking.currentStep ? 'primary.dark' : 'text.secondary'}
+                        color={index <= (tracking.currentStep ?? 1) ? 'primary.dark' : 'text.secondary'}
                       >
                         {step.label}
                       </Typography>
@@ -351,7 +372,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
                   Live Tracking Active
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Last updated: {tracking.lastUpdate.toLocaleTimeString()}
+                  Last updated: {new Date(tracking.lastUpdate || tracking.updatedAt || Date.now()).toLocaleTimeString()}
                 </Typography>
               </Box>
             </Box>
