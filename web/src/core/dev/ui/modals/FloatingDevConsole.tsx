@@ -39,7 +39,7 @@ import {
 import type { Restaurant } from "@core/types";
 import { useLogger } from "../../logger";
 import { buildFactorySeedPayload, type FactorySeedTarget } from "../../utils/factorySeed";
-import { FloatingTrigger } from "../../../ui/floating/FloatingTrigger";
+import { FloatingTrigger } from "../../../ui/buttons/FloatingTrigger";
 
 interface FloatingDevConsoleProps {
   allRestaurants: Record<string, unknown>[] | Restaurant[];
@@ -135,7 +135,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
           reviews: { count: seedCounts.reviews },
         }
       });
-      
+
       const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const response = await fetch(`${apiBaseUrl}/dev/seed-factory-data`, {
         method: "POST",

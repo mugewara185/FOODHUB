@@ -16,7 +16,7 @@ import { Toast } from "./shared/components/notifications";
 import { socketService } from "./services/socket";
 import { showToast } from "./features/ui/uiSlice";
 import { updateOrderStatusLocally } from "./features/orders/orderSlice";
-import { RoleSwitcher } from "./core/ui/role/RoleSwitcher";
+import { RoleSwitcher } from "./core/ui/buttons/RoleSwitcher";
 
 const App: React.FC = () => {
   const allRestaurants = useAppSelector(selectAllRestaurants);
@@ -68,16 +68,18 @@ const App: React.FC = () => {
       <Toast />
       <AppRoutes />
       {(APP_CONFIG.DEV_BYPASS_AUTH || user?.role.includes('dev')) && (
-        <FloatingDevConsole
-          allRestaurants={allRestaurants}
-          featuredRestaurants={featuredRestaurants}
-          loading={loading}
-          availableVersions={availableVersions}
-          selectedVersions={selectedVersions}
-          cuisineLength={CUISINES.length}
-        />
+        <>
+          <FloatingDevConsole
+            allRestaurants={allRestaurants}
+            featuredRestaurants={featuredRestaurants}
+            loading={loading}
+            availableVersions={availableVersions}
+            selectedVersions={selectedVersions}
+            cuisineLength={CUISINES.length}
+          />
+          <RoleSwitcher />
+        </>
       )}
-      <RoleSwitcher />
       <LogConsole
         open={LogConsoleOpen}
         onClose={() => setLogConsoleOpen(false)}

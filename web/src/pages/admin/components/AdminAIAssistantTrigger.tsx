@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Dialog, DialogTitle, DialogContent, Box, Typography, IconButton } from "@mui/material";
 import { AutoAwesome, Close } from "@mui/icons-material";
-import { FloatingTrigger } from "../../../core/ui/floating/FloatingTrigger";
+import { FloatingTrigger } from "../../../core/ui/buttons/FloatingTrigger";
 import { logger } from "../../../core/dev/logger";
 
 export const AdminAIAssistantTrigger: React.FC = () => {
