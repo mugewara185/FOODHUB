@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Grid,
@@ -17,6 +17,8 @@ import {
   ListItemText,
   ListItemAvatar,
   Rating,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -30,55 +32,47 @@ import {
   Schedule,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-
-interface DeliveryStats {
-  todayDeliveries: number;
-  weeklyDeliveries: number;
-  totalDeliveries: number;
-  todayEarnings: number;
-  weeklyEarnings: number;
-  totalEarnings: number;
-  avgRating: number;
-  acceptanceRate: number;
-  onlineHours: number;
-}
+import { useAppSelector, useAppDispatch } from '@app/store/hooks';
+import { selectPartnerStats, selectActiveAssignment, selectIsPartnerOnline, toggleOnlineStatus } from '@features/deliveryPartner/deliveryPartnerSlice';
 
 const PartnerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [stats] = useState<DeliveryStats>({
-    todayDeliveries: 8,
-    weeklyDeliveries: 45,
-    totalDeliveries: 1245,
-    todayEarnings: 890,
-    weeklyEarnings: 4850,
-    totalEarnings: 124500,
-    avgRating: 4.8,
-    acceptanceRate: 92,
-    onlineHours: 6.5,
-  });
+  const dispatch = useAppDispatch();
+  const stats = useAppSelector(selectPartnerStats);
+  const currentOrder = useAppSelector(selectActiveAssignment);
+  const isOnline = useAppSelector(selectIsPartnerOnline);
 
-  const [currentOrder] = useState({
-    id: 'ORD-2024-001',
-    restaurant: 'Spice Garden',
-    customer: 'John Doe',
-    pickupAddress: '123 Park Avenue, Andheri East',
-    dropAddress: '456 Main Street, Andheri West',
-    distance: '3.2 km',
-    time: '15 min',
-    amount: 89,
-    status: 'assigned',
-  });
+  const handleToggleOnline = () => {
+    dispatch(toggleOnlineStatus());
+  };
 
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight={800} gutterBottom>
-          Welcome back, Rahul!
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Here's your delivery summary for today
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h4" fontWeight={800} gutterBottom>
+            Welcome back, Rahul!
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Here's your delivery summary for today
+          </Typography>
+        </Box>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={isOnline}
+              onChange={handleToggleOnline}
+              color="success"
+            />
+          }
+          label={
+            <Typography variant="h6" color={isOnline ? 'success.main' : 'text.secondary'}>
+              {isOnline ? 'Online' : 'Offline'}
+            </Typography>
+          }
+          labelPlacement="start"
+        />
       </Box>
 
       {/* Current Order Alert */}
@@ -117,7 +111,7 @@ const PartnerDashboard: React.FC = () => {
                       Distance: {currentOrder.distance}
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      Est. Time: {currentOrder.time}
+                      Est. Time: {currentOrder.estimatedTime}
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>
                       Earnings: ₹{currentOrder.amount}
@@ -281,16 +275,16 @@ const PartnerDashboard: React.FC = () => {
               Recent Deliveries
             </Typography>
             <List>
-              {[1, 2, 3, 4].map((i) => (
-                <ListItem key={i} sx={{ px: 0 }}>
+              {useAppSelector(state => state.deliveryPartner.history).slice(0, 4).map((order) => (
+                <ListItem key={order.id} sx={{ px: 0 }}>
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: 'primary.light' }}>
                       <CheckCircle />
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={`Order #ORD-2024-00${i}`}
-                    secondary={`Spice Garden → Andheri West • ₹${80 + i * 20}`}
+                    primary={`Order #${order.id}`}
+                    secondary={`${order.restaurant} → ${order.customer} • ₹${order.amount}`}
                   />
                   <Chip
                     size="small"
@@ -300,6 +294,9 @@ const PartnerDashboard: React.FC = () => {
                   />
                 </ListItem>
               ))}
+              {useAppSelector(state => state.deliveryPartner.history).length === 0 && (
+                <Typography variant="body2" color="text.secondary">No recent deliveries</Typography>
+              )}
             </List>
           </Paper>
         </Grid>

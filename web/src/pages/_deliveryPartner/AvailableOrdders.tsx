@@ -23,74 +23,14 @@ import {
   NotificationsActive,
   LocalShipping,
 } from '@mui/icons-material';
-
-interface Order {
-  id: string;
-  restaurant: string;
-  restaurantImage: string;
-  customer: string;
-  pickupAddress: string;
-  dropAddress: string;
-  distance: string;
-  estimatedTime: string;
-  amount: number;
-  priority: 'high' | 'medium' | 'low';
-  items: { name: string; quantity: number }[];
-}
-
-const mockOrders: Order[] = [
-  {
-    id: 'ORD-2024-001',
-    restaurant: 'Spice Garden',
-    restaurantImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop',
-    customer: 'John Doe',
-    pickupAddress: '123 Park Avenue, Andheri East',
-    dropAddress: '456 Main Street, Andheri West',
-    distance: '3.2 km',
-    estimatedTime: '15 min',
-    amount: 89,
-    priority: 'high',
-    items: [
-      { name: 'Butter Chicken', quantity: 1 },
-      { name: 'Garlic Naan', quantity: 2 },
-    ],
-  },
-  {
-    id: 'ORD-2024-002',
-    restaurant: 'Pizza Paradise',
-    restaurantImage: 'https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?w=100&h=100&fit=crop',
-    customer: 'Jane Smith',
-    pickupAddress: '456 Park Avenue, Andheri East',
-    dropAddress: '789 Lake Road, Bandra',
-    distance: '4.5 km',
-    estimatedTime: '20 min',
-    amount: 65,
-    priority: 'medium',
-    items: [
-      { name: 'Margherita Pizza', quantity: 1 },
-      { name: 'Garlic Bread', quantity: 1 },
-    ],
-  },
-  {
-    id: 'ORD-2024-003',
-    restaurant: 'Burger House',
-    restaurantImage: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=100&h=100&fit=crop',
-    customer: 'Mike Johnson',
-    pickupAddress: '789 Beach Road, Bandra',
-    dropAddress: '321 Hill Road, Juhu',
-    distance: '5.8 km',
-    estimatedTime: '25 min',
-    amount: 52,
-    priority: 'low',
-    items: [
-      { name: 'Chicken Burger', quantity: 2 },
-      { name: 'French Fries', quantity: 1 },
-    ],
-  },
-];
+import { useNavigate } from 'react-router-dom';
+import { useAppSelector, useAppDispatch } from '@app/store/hooks';
+import { selectAvailableAssignments, acceptAssignment } from '@features/deliveryPartner/deliveryPartnerSlice';
 
 const AvailableOrders: React.FC = () => {
-  const [orders] = useState<Order[]>(mockOrders);
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const orders = useAppSelector(selectAvailableAssignments);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -99,6 +39,11 @@ const AvailableOrders: React.FC = () => {
       case 'low': return 'success';
       default: return 'default';
     }
+  };
+
+  const handleAccept = (orderId: string) => {
+    dispatch(acceptAssignment(orderId));
+    navigate('/partner/active');
   };
 
   return (
@@ -234,6 +179,7 @@ const AvailableOrders: React.FC = () => {
                       variant="contained"
                       color="success"
                       size="large"
+                      onClick={() => handleAccept(order.id)}
                     >
                       Accept
                     </Button>
@@ -244,6 +190,11 @@ const AvailableOrders: React.FC = () => {
                       variant="outlined"
                       color="error"
                       size="large"
+                      onClick={() => {
+                        import('@features/deliveryPartner/deliveryPartnerSlice').then(module => {
+                          dispatch(module.rejectAssignment(order.id));
+                        })
+                      }}
                     >
                       Decline
                     </Button>

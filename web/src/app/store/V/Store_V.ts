@@ -19,6 +19,9 @@ import restaurantReducer from "../../../features/restaurant/restaurantSlice";
 import uislice from "../../../features/ui/uiSlice";
 import orderReducer from "../../../features/orders/orderSlice";
 import notificationReducer from "../../../core/notifications/notificationSlice";
+import ownerReducer from "../../../features/owner/store/ownerSlice";
+
+import deliveryPartnerReducer from "../../../features/deliveryPartner/deliveryPartnerSlice";
 
 // Import state initializers
 import { initializeAllStatesFromFactory } from "./stateInitializers";
@@ -35,6 +38,8 @@ const rootReducer = combineReducers({
   ui: uislice,
   orders: orderReducer,
   notifications: notificationReducer,
+  owner: ownerReducer,
+  deliveryPartner: deliveryPartnerReducer,
 });
 
 // Select storage engine: session isolation mode uses sessionStorage for multi-tab testing

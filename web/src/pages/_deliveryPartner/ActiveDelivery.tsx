@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -36,6 +36,10 @@ import {
   Navigation,
 } from '@mui/icons-material';
 import Map from '../../shared/components/maps/Map';
+import { useNavigate } from 'react-router-dom';
+import { useAppSelector, useAppDispatch } from '@app/store/hooks';
+import { selectActiveAssignment, selectPartnerLocation, updateAssignmentStatus, updateLocation } from '@features/deliveryPartner/deliveryPartnerSlice';
+import { socketService } from '../../services/socket';
 
 interface DeliveryStep {
   label: string;
@@ -44,100 +48,134 @@ interface DeliveryStep {
 }
 
 const ActiveDelivery: React.FC = () => {
-  const [activeStep, setActiveStep] = useState(1);
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const activeAssignment = useAppSelector(selectActiveAssignment);
+  const currentLocation = useAppSelector(selectPartnerLocation);
+
   const [pickupDialog, setPickupDialog] = useState(false);
   const [deliveryDialog, setDeliveryDialog] = useState(false);
   const [otp, setOtp] = useState('');
+  
+  useEffect(() => {
+    if (!activeAssignment) {
+      navigate('/partner');
+    }
+  }, [activeAssignment, navigate]);
+
+  // Simulation interval for driver location
+  useEffect(() => {
+    if (!activeAssignment || !currentLocation) return;
+    const target = activeAssignment.status === 'out_for_delivery' ? activeAssignment.dropoffLocation : activeAssignment.pickupLocation;
+    
+    const interval = setInterval(() => {
+      // Simulate moving towards target by small delta
+      const latDelta = (target.lat - currentLocation.lat) * 0.1;
+      const lngDelta = (target.lng - currentLocation.lng) * 0.1;
+      
+      // Stop moving if very close
+      if (Math.abs(latDelta) < 0.0001 && Math.abs(lngDelta) < 0.0001) return;
+      
+      const newLoc = {
+        lat: currentLocation.lat + latDelta,
+        lng: currentLocation.lng + lngDelta
+      };
+      dispatch(updateLocation(newLoc));
+      
+      // Emit socket event for real-time tracking
+      socketService.emit('driver_location_update', { orderId: activeAssignment.id, location: newLoc });
+      
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [activeAssignment, currentLocation, dispatch]);
+
+  if (!activeAssignment) {
+    return <Typography>No active delivery</Typography>;
+  }
+
+  const getStepIndex = () => {
+    switch (activeAssignment.status) {
+      case 'assigned': return 0;
+      case 'accepted': return 1;
+      case 'arrived_pickup': return 2;
+      case 'picked_up': return 3;
+      case 'out_for_delivery': return 4;
+      case 'delivered': return 5;
+      default: return 0;
+    }
+  };
+
+  const activeStep = getStepIndex();
 
   const steps: DeliveryStep[] = [
-    { label: 'Order Assigned', description: 'You have accepted the order', completed: true },
-    { label: 'Reached Restaurant', description: 'Arrive at restaurant for pickup', completed: true },
-    { label: 'Order Picked Up', description: 'Food collected from restaurant', completed: false },
-    { label: 'On the Way', description: 'Heading to customer location', completed: false },
-    { label: 'Delivered', description: 'Order delivered to customer', completed: false },
+    { label: 'Order Assigned', description: 'You have accepted the order', completed: activeStep > 0 },
+    { label: 'Reached Restaurant', description: 'Arrive at restaurant for pickup', completed: activeStep > 1 },
+    { label: 'Order Picked Up', description: 'Food collected from restaurant', completed: activeStep > 2 },
+    { label: 'On the Way', description: 'Heading to customer location', completed: activeStep > 3 },
+    { label: 'Delivered', description: 'Order delivered to customer', completed: activeStep > 4 },
   ];
 
-  const progress = (activeStep / (steps.length - 1)) * 100;
+  const progress = (activeStep / 4) * 100; // 4 is max index
 
-  const orderDetails = {
-    id: 'ORD-2024-001',
-    restaurant: 'Spice Garden',
-    restaurantAddress: '123 Park Avenue, Andheri East',
-    restaurantPhone: '+91 98765 43210',
-    customer: 'John Doe',
-    customerAddress: '456 Main Street, Andheri West',
-    customerPhone: '+91 98765 43211',
-    items: [
-      { name: 'Butter Chicken', quantity: 1, price: 320 },
-      { name: 'Garlic Naan', quantity: 2, price: 80 },
-      { name: 'Veg Biryani', quantity: 1, price: 220 },
-    ],
-    total: 700,
-    deliveryFee: 89,
-    otp: '1234',
-    distance: '3.2 km',
-    estimatedTime: '15 min',
+  const handleStatusUpdate = (newStatus: any) => {
+    dispatch(updateAssignmentStatus(newStatus));
+    socketService.emit('delivery_status_update', { orderId: activeAssignment.id, status: newStatus });
   };
 
   const handlePickupConfirm = () => {
-    setActiveStep(2);
+    handleStatusUpdate('picked_up');
     setPickupDialog(false);
   };
 
   const handleDeliveryConfirm = () => {
-    if (otp === orderDetails.otp) {
-      setActiveStep(4);
-      setDeliveryDialog(false);
-    } else {
-      alert('Invalid OTP');
-    }
+    // skip otp check for mock
+    handleStatusUpdate('delivered');
+    setDeliveryDialog(false);
   };
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom>
           Active Delivery
         </Typography>
         <Chip
-          label={`Order #${orderDetails.id}`}
+          label={`Order #${activeAssignment.id}`}
           color="primary"
         />
       </Box>
 
       <Grid container spacing={3}>
-        {/* Left Column - Map */}
         <Grid item xs={12} lg={8}>
           <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400 }}>
             <Map
-              center={{ lat: 19.0760, lng: 72.8777 }}
+              center={currentLocation || activeAssignment.pickupLocation}
               markers={[
                 {
                   id: 'restaurant',
-                  position: { lat: 19.1136, lng: 72.8697 },
+                  position: activeAssignment.pickupLocation,
                   type: 'restaurant',
-                  title: orderDetails.restaurant,
+                  title: activeAssignment.restaurant,
                 },
                 {
                   id: 'customer',
-                  position: { lat: 19.0760, lng: 72.8777 },
+                  position: activeAssignment.dropoffLocation,
                   type: 'customer',
-                  title: orderDetails.customer,
+                  title: activeAssignment.customer,
                 },
-                {
+                ...(currentLocation ? [{
                   id: 'partner',
-                  position: { lat: 19.0945, lng: 72.8735 },
+                  position: currentLocation,
                   type: 'partner',
                   title: 'Your Location',
-                },
+                }] : []),
               ]}
               showTraffic={true}
               height="100%"
             />
           </Paper>
 
-          {/* Progress */}
           <Paper sx={{ p: 3, mt: 3, borderRadius: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6" fontWeight={700}>
@@ -153,7 +191,7 @@ const ActiveDelivery: React.FC = () => {
               sx={{ height: 8, borderRadius: 4, mb: 4 }}
             />
 
-            <Stepper activeStep={activeStep} orientation="vertical">
+            <Stepper activeStep={activeStep - 1} orientation="vertical">
               {steps.map((step, index) => (
                 <Step key={step.label} completed={step.completed}>
                   <StepLabel>
@@ -170,212 +208,101 @@ const ActiveDelivery: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Right Column - Order Details */}
         <Grid item xs={12} lg={4}>
-          {/* Restaurant Info */}
-          <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Avatar sx={{ bgcolor: 'primary.light' }}>
-                <Restaurant />
-              </Avatar>
-              <Box>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  {orderDetails.restaurant}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Pickup Location
-                </Typography>
-              </Box>
-            </Box>
-
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <LocationOn fontSize="small" color="action" />
-                <Typography variant="body2">{orderDetails.restaurantAddress}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Phone fontSize="small" color="action" />
-                <Typography variant="body2">{orderDetails.restaurantPhone}</Typography>
-              </Box>
-            </Stack>
-
+          {/* Action Buttons */}
+          <Paper sx={{ p: 3, mb: 3, borderRadius: 3, textAlign: 'center' }}>
+            <Typography variant="h6" fontWeight={700} gutterBottom>Actions</Typography>
             {activeStep === 1 && (
-              <Button
-                fullWidth
-                variant="contained"
-                startIcon={<CheckCircle />}
-                onClick={() => setPickupDialog(true)}
-                sx={{ mt: 2 }}
-              >
+              <Button fullWidth variant="contained" color="primary" size="large" onClick={() => handleStatusUpdate('arrived_pickup')}>
+                Arrived at Restaurant
+              </Button>
+            )}
+            {activeStep === 2 && (
+              <Button fullWidth variant="contained" color="secondary" size="large" onClick={() => setPickupDialog(true)}>
                 Confirm Pickup
               </Button>
             )}
-          </Paper>
-
-          {/* Customer Info */}
-          <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Avatar sx={{ bgcolor: 'success.light' }}>
-                <Person />
-              </Avatar>
-              <Box>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  {orderDetails.customer}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Delivery Location
-                </Typography>
-              </Box>
-            </Box>
-
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <LocationOn fontSize="small" color="action" />
-                <Typography variant="body2">{orderDetails.customerAddress}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Phone fontSize="small" color="action" />
-                <Typography variant="body2">{orderDetails.customerPhone}</Typography>
-              </Box>
-            </Stack>
-
             {activeStep === 3 && (
-              <Button
-                fullWidth
-                variant="contained"
-                color="success"
-                startIcon={<CheckCircle />}
-                onClick={() => setDeliveryDialog(true)}
-                sx={{ mt: 2 }}
-              >
-                Mark as Delivered
+              <Button fullWidth variant="contained" color="warning" size="large" onClick={() => handleStatusUpdate('out_for_delivery')}>
+                Start Delivery
+              </Button>
+            )}
+            {activeStep === 4 && (
+              <Button fullWidth variant="contained" color="success" size="large" onClick={() => setDeliveryDialog(true)}>
+                Mark Delivered
               </Button>
             )}
           </Paper>
 
-          {/* Order Summary */}
           <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>
-              Order Summary
-            </Typography>
-
-            <Stack spacing={1} sx={{ mb: 2 }}>
-              {orderDetails.items.map((item, index) => (
-                <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">
-                    {item.quantity}x {item.name}
-                  </Typography>
-                  <Typography variant="body2" fontWeight={600}>
-                    ₹{item.price * item.quantity}
-                  </Typography>
-                </Box>
-              ))}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Avatar sx={{ bgcolor: 'primary.light' }}><Restaurant /></Avatar>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={700}>{activeAssignment.restaurant}</Typography>
+                <Typography variant="body2" color="text.secondary">Pickup Location</Typography>
+              </Box>
+            </Box>
+            <Stack spacing={2}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LocationOn fontSize="small" color="action" />
+                <Typography variant="body2">{activeAssignment.pickupAddress}</Typography>
+              </Box>
             </Stack>
+            
+            <Divider sx={{ my: 3 }} />
 
-            <Divider sx={{ my: 2 }} />
-
-            <Stack spacing={1}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Subtotal
-                </Typography>
-                <Typography variant="body2">₹{orderDetails.total}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Avatar sx={{ bgcolor: 'success.light' }}><Person /></Avatar>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={700}>{activeAssignment.customer}</Typography>
+                <Typography variant="body2" color="text.secondary">Drop-off Location</Typography>
               </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Delivery Fee
-                </Typography>
-                <Typography variant="body2" color="success.main">
-                  + ₹{orderDetails.deliveryFee}
-                </Typography>
-              </Box>
-              <Divider />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle1" fontWeight={700}>
-                  Your Earnings
-                </Typography>
-                <Typography variant="h6" color="primary.main" fontWeight={700}>
-                  ₹{orderDetails.deliveryFee}
-                </Typography>
+            </Box>
+            <Stack spacing={2}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LocationOn fontSize="small" color="action" />
+                <Typography variant="body2">{activeAssignment.dropAddress}</Typography>
               </Box>
             </Stack>
           </Paper>
 
-          {/* Delivery Info */}
           <Paper sx={{ p: 3, borderRadius: 3 }}>
-            <Stack spacing={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Navigation color="primary" />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Distance
-                  </Typography>
-                  <Typography variant="h6">{orderDetails.distance}</Typography>
-                </Box>
+            <Typography variant="h6" fontWeight={700} gutterBottom>Order Details</Typography>
+            {activeAssignment.items.map((item, index) => (
+              <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2">{item.quantity}x {item.name}</Typography>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <AccessTime color="primary" />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Estimated Time
-                  </Typography>
-                  <Typography variant="h6">{orderDetails.estimatedTime}</Typography>
-                </Box>
-              </Box>
-            </Stack>
+            ))}
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="subtitle1" fontWeight={700}>Earnings</Typography>
+              <Typography variant="subtitle1" fontWeight={700} color="success.main">₹{activeAssignment.amount}</Typography>
+            </Box>
           </Paper>
         </Grid>
       </Grid>
 
-      {/* Pickup Confirmation Dialog */}
-      <Dialog open={pickupDialog} onClose={() => setPickupDialog(false)}>
+      {/* Pickup Dialog */}
+      <Dialog open={pickupDialog} onClose={() => setPickupDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Confirm Pickup</DialogTitle>
         <DialogContent>
-          <Typography sx={{ mb: 2 }}>
-            Have you picked up the order from {orderDetails.restaurant}?
-          </Typography>
-          <Alert severity="info">
-            Make sure all items are correct before confirming
-          </Alert>
+          <Typography gutterBottom>Have you collected all items from the restaurant?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPickupDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handlePickupConfirm}>
-            Yes, I've picked up
-          </Button>
+          <Button variant="contained" onClick={handlePickupConfirm}>Confirm</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delivery Confirmation Dialog */}
-      <Dialog open={deliveryDialog} onClose={() => setDeliveryDialog(false)}>
+      {/* Delivery Dialog */}
+      <Dialog open={deliveryDialog} onClose={() => setDeliveryDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Complete Delivery</DialogTitle>
         <DialogContent>
-          <Stack spacing={2}>
-            <Typography>
-              Enter OTP to confirm delivery
-            </Typography>
-            <TextField
-              fullWidth
-              label="OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="Enter 4-digit OTP"
-            />
-            <Typography variant="caption" color="text.secondary">
-              Ask the customer for the OTP to confirm delivery
-            </Typography>
-          </Stack>
+          <Typography gutterBottom>Handed over the order to customer?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeliveryDialog(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            color="success"
-            onClick={handleDeliveryConfirm}
-            disabled={otp.length !== 4}
-          >
-            Confirm Delivery
-          </Button>
+          <Button variant="contained" onClick={handleDeliveryConfirm}>Delivered</Button>
         </DialogActions>
       </Dialog>
     </Box>

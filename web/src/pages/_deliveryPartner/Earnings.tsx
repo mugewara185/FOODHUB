@@ -28,10 +28,13 @@ import {
   TrendingUp,
   CalendarToday,
   AccountBalanceWallet,
+  ArrowForwardIos,
   Download,
   Payment,
   Receipt,
 } from '@mui/icons-material';
+import { useAppSelector } from '@app/store/hooks';
+import { selectPartnerStats, selectDeliveryHistory } from '@features/deliveryPartner/deliveryPartnerSlice';
 
 interface EarningsData {
   today: number;
@@ -53,21 +56,29 @@ interface EarningsBreakdown {
 const Earnings: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
 
+  const stats = useAppSelector(selectPartnerStats);
+  const history = useAppSelector(selectDeliveryHistory);
+
   const earnings: EarningsData = {
-    today: 890,
-    week: 4850,
-    month: 18750,
-    total: 124500,
-    pending: 1250,
-    paid: 123250,
+    today: stats.todayEarnings,
+    week: stats.weeklyEarnings,
+    month: stats.totalEarnings,
+    total: stats.totalEarnings,
+    pending: stats.weeklyEarnings, // simulate some pending
+    paid: stats.totalEarnings - stats.weeklyEarnings,
   };
 
-  const breakdown: EarningsBreakdown[] = [
-    { date: '2024-01-15', orders: 8, baseFare: 640, incentives: 250, total: 890 },
-    { date: '2024-01-14', orders: 7, baseFare: 560, incentives: 200, total: 760 },
-    { date: '2024-01-13', orders: 9, baseFare: 720, incentives: 300, total: 1020 },
-    { date: '2024-01-12', orders: 6, baseFare: 480, incentives: 150, total: 630 },
-  ];
+  // Group history by date (simulated as today for all in mock)
+  // For simplicity, we just create one entry for today if history exists
+  const breakdown: EarningsBreakdown[] = history.length > 0 ? [
+    { 
+      date: new Date().toLocaleDateString(), 
+      orders: history.length, 
+      baseFare: history.reduce((sum, h) => sum + h.amount, 0), 
+      incentives: 0, 
+      total: history.reduce((sum, h) => sum + h.amount, 0) 
+    }
+  ] : [];
 
   return (
     <Box>
