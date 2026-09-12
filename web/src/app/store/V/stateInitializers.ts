@@ -13,7 +13,7 @@ import type { CartState } from '../../../features/cart/cartSlice/V/cartSlice_V';
 import type { RestaurantState } from '../../../features/restaurant/restaurantSlice/V/restaurantSlice_V';
 import type { UIState } from '../../../features/ui/uiSlice';
 import type { AuthUser, Restaurant, FoodItem } from '../../../core/types';
-import { generateAllDummyData } from '../../../data/factories/unifiedFactory';
+import { generateAllDummyData } from '../../../core/data/factories/unifiedFactory';
 
 // Type for auth state to match the structure in authSlice
 interface AuthState {
@@ -236,7 +236,7 @@ export const initializeAllStatesFromFactory = (options?: {
   } catch (error) {
     console.error('[Store Init] Failed to initialize states from factory:', error);
     console.info('[Store Init] Using fallback empty states');
-    
+
     // Return safe fallback states
     return {
       auth: AUTH_INITIAL_STATE,

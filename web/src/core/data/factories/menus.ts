@@ -1,4 +1,4 @@
-import type { MenuItem } from "../types";
+import type { MenuItem } from "../../../data/types";
 // import type getRestaurants from "./restaurants";
 import getRestaurants from "./restaurants";
 import { faker } from "@faker-js/faker";

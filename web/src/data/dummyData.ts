@@ -1,11 +1,11 @@
-export { default as restaurants } from "./factories/restaurants";
-export { menus } from "./factories/menus";
-export { users } from "./factories/users";
-export { carts } from "./factories/carts";
-export { orders } from "./factories/orders";
-export { reviews } from "./factories/reviews";
+export { default as restaurants } from "../core/data/factories/restaurants";
+export { menus } from "../core/data/factories/menus";
+export { users } from "../core/data/factories/users";
+export { carts } from "../core/data/factories/carts";
+export { orders } from "../core/data/factories/orders";
+export { reviews } from "../core/data/factories/reviews";
 
 // const DUMMY_Datas={
-//     restaurants, menus, 
+//     restaurants, menus,
 // }
 // export default DUMMY_Datas=

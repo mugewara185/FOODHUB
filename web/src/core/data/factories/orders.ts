@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import type { Order } from "../types";
+import type { Order } from "../../../data/types";
 import { users } from "./users";
 import getRestaurants from "./restaurants";
 import { menus } from "./menus";

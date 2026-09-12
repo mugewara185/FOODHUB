@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import type { User } from "../types/auth"; // Explicitly targeting auth types where UserRole is defined
+import type { User } from "../../../data/types/auth"; // Explicitly targeting auth types where UserRole is defined
 
 export const generateUsers = (count = 15): User[] =>
   Array.from({ length: count }).map((_, i) => ({

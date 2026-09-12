@@ -1,6 +1,6 @@
 import restaurants from "./restaurants";
 
-import type { Offer } from "../types";
+import type { Offer } from "../../../data/types";
 
 const offerTitles = [
   "50% OFF",
@@ -23,8 +23,8 @@ export const generateOffers =
 
         title:
           offerTitles[
-            index %
-              offerTitles.length
+          index %
+          offerTitles.length
           ],
 
         description:
@@ -35,11 +35,11 @@ export const generateOffers =
 
         expiryDate: new Date(
           Date.now() +
-            7 *
-              24 *
-              60 *
-              60 *
-              1000
+          7 *
+          24 *
+          60 *
+          60 *
+          1000
         ).toISOString(),
       })
     );

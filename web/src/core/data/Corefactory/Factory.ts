@@ -1,3 +1,4 @@
+//unimplemented
 export type GeneratorFn<T> = (index: number, ...args: any[]) => T;
 
 export class Factory<T> {

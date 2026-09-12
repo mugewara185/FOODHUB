@@ -20,7 +20,7 @@ import {
   mapPaymentMethod,
   type CreateOrderPayload,
 } from './api/orderApi';
-import { generateOrders } from '../../data/factories/orders';
+import { generateOrders } from '../../core/data/factories/orders';
 
 // ---------------------------------------------------------------------------
 // State shape

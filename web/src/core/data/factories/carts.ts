@@ -1,4 +1,4 @@
-import type { Cart } from "../types";
+import type { Cart } from "../../../data/types";
 import { users } from "./users";
 import { menus } from "./menus";
 

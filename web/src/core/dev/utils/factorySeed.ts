@@ -1,8 +1,8 @@
 import type {
   FactoryInput,
 } from '@core/types';
-import { generateAllDummyData } from '../../../data/factories/unifiedFactory';
-import { generateObjectId } from '../../data/factories/Factory';
+import { generateAllDummyData } from '../../data/factories/unifiedFactory';
+import { generateObjectId } from '../../data/Corefactory/Factory';
 
 export type FactorySeedTarget = 'restaurants' | 'foodItems' | 'users' | 'orders' | 'reviews';
 export interface FactorySeedConfig {
@@ -103,7 +103,7 @@ export const buildFactorySeedPayload = (
         menu: restaurantMenu,
       };
     });
-    
+
     collections.push({
       modelName: 'Restaurant',
       documents,

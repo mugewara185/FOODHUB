@@ -3,8 +3,8 @@ import { createSlice, createAsyncThunk, type PayloadAction, createSelector } fro
 // import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from '../../../../app/store';
 import type { Restaurant, FoodItem, Category } from '@core/types';
-import getRestaurants from '../../../../data/factories/restaurants';
-import mockFoodItems from '../../../../data/factories/foodItems';
+import getRestaurants from '../../../../core/data/factories/restaurants';
+import mockFoodItems from '../../../../core/data/factories/foodItems';
 import { APP_CONFIG } from '../../../../core/config/app.config';
 import { restaurantApi } from '../../../../services/api/restaurantApi';
 import { logger } from '@/core/dev/logger';
@@ -101,7 +101,7 @@ export const fetchRestaurantById = createAsyncThunk(
       }
 
       const items = mockFoodItems.filter(item => item.restaurantId === id);
-      console.log({"items":mockFoodItems,"filteredItems":items})
+      console.log({ "items": mockFoodItems, "filteredItems": items })
       logger.info('RESTAURANT', 'Loaded mock restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.SUCCESS' });
       return { restaurant, items };
     } catch (error) {
@@ -262,7 +262,7 @@ const restaurantSlice = createSlice({
   },
 });
 
-export const { clearSelectedRestaurant, filterByCuisine, clearFilters, setCurrentPage,setDeliveryTime,setMinRating,setOpenNowFilter,setPriceRange,setSearchQuery,setSortBy,setVegFilter,toggleCuisine,toggleFavorite } = restaurantSlice.actions;
+export const { clearSelectedRestaurant, filterByCuisine, clearFilters, setCurrentPage, setDeliveryTime, setMinRating, setOpenNowFilter, setPriceRange, setSearchQuery, setSortBy, setVegFilter, toggleCuisine, toggleFavorite } = restaurantSlice.actions;
 export default restaurantSlice.reducer;
 
 // Selectors
@@ -285,27 +285,27 @@ export const selectFilteredRestaurants = createSelector(
         const matchesCuisine = restaurant.cuisine.some(c => c.toLowerCase().includes(query));
         if (!matchesName && !matchesCuisine) return false;
       }
-      
+
       // Cuisine filter
       if (filters.cuisines.length > 0) {
         if (!restaurant.cuisine.some(c => filters.cuisines.includes(c))) return false;
       }
-      
+
       // Price filter
       if (restaurant.minOrder < filters.minPrice! || restaurant.minOrder > filters.maxPrice!) return false;
-      
+
       // Rating filter
       if (filters.minRating && restaurant.rating < filters.minRating) return false;
-      
+
       // Delivery time filter
       if (filters.deliveryTime !== 'all' && restaurant.deliveryTime !== filters.deliveryTime) return false;
-      
+
       // Veg filter
       if (filters.isVeg && !restaurant.isVeg) return false;
-      
+
       // Open now filter
       if (filters.isOpen && !restaurant.isOpen) return false;
-      
+
       return true;
     });
   }
@@ -315,7 +315,7 @@ export const selectSortedRestaurants = createSelector(
   [selectFilteredRestaurants, (state: RootState) => state.restaurants.filters.sortBy],
   (restaurants, sortBy) => {
     const sorted = [...restaurants];
-    
+
     switch (sortBy) {
       case 'rating':
         return sorted.sort((a, b) => b.rating - a.rating);

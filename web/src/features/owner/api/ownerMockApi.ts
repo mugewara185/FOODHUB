@@ -1,5 +1,5 @@
 import type { Restaurant, FoodItem, Order, Review } from '../../../core/types/food';
-import { generateAllDummyData } from '../../../data/factories/unifiedFactory';
+import { generateAllDummyData } from '../../../core/data/factories/unifiedFactory';
 import { logger } from '../../../core/dev/logger/Logger';
 
 // Generate a dataset specifically for our mocked owner

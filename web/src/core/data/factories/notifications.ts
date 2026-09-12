@@ -1,5 +1,5 @@
 import { users } from "./users";
-import type { Notification } from "../types";
+import type { Notification } from "../../../data/types";
 
 const notificationTypes = [
   "order",
@@ -29,22 +29,22 @@ export const generateNotifications = (
 
         type:
           notificationTypes[
-            i % notificationTypes.length
+          i % notificationTypes.length
           ],
 
         title: "Notification",
 
         message:
           messages[
-            i % messages.length
+          i % messages.length
           ],
 
         isRead: Math.random() > 0.5,
 
         createdAt: new Date(
           Date.now() -
-            Math.random() *
-              1000000000
+          Math.random() *
+          1000000000
         ).toISOString(),
       })
     )

@@ -1,6 +1,6 @@
 import { users } from "./users";
 
-import type { Address } from "../types";
+import type { Address } from "../../../data/types";
 
 const labels = [
   "Home",
@@ -19,7 +19,7 @@ export const generateAddresses = () =>
 
           label:
             labels[
-              i % labels.length
+            i % labels.length
             ],
 
           address: `${100 + i}

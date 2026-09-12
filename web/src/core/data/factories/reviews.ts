@@ -1,6 +1,6 @@
 import { faker } from "@faker-js/faker";
 
-import type { Review } from "../types";
+import type { Review } from "../../../data/types";
 
 import users from "./users";
 import orders from "./orders";
@@ -39,10 +39,10 @@ export const generateReviews = (
 
     const randomOrderItem =
       order.items[
-        Math.floor(
-          Math.random() *
-            order.items.length
-        )
+      Math.floor(
+        Math.random() *
+        order.items.length
+      )
       ];
 
     const foodItem =
@@ -87,7 +87,7 @@ export const generateReviews = (
 
       title:
         reviewTitles[
-          i % reviewTitles.length
+        i % reviewTitles.length
         ],
 
       comment:
@@ -100,8 +100,8 @@ export const generateReviews = (
       photos:
         Math.random() > 0.8
           ? [
-              faker.image.urlPicsumPhotos(),
-            ]
+            faker.image.urlPicsumPhotos(),
+          ]
           : [],
 
       helpful:

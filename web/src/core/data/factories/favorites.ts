@@ -2,7 +2,7 @@ import { users } from "./users";
 import restaurants from "./restaurants";
 import foodItems from "./foodItems";
 
-import type { Favorite } from "../types";
+import type { Favorite } from "../../../data/types";
 
 export const generateFavorites = () =>
   users.flatMap((user, userIndex) => [
@@ -14,7 +14,7 @@ export const generateFavorites = () =>
       restaurantId:
         restaurants[
           userIndex %
-            restaurants.length
+          restaurants.length
         ].id,
 
       createdAt:
@@ -29,7 +29,7 @@ export const generateFavorites = () =>
       foodItemId:
         foodItems[
           userIndex %
-            foodItems.length
+          foodItems.length
         ].id,
 
       createdAt:

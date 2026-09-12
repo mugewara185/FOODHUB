@@ -1,13 +1,13 @@
 import type {
   FoodItem,
   Restaurant,
-} from "../types";
+} from "../../../data/types";
 
 import restaurants from "./restaurants";
 
 import {
   foodImages,
-} from "../seeds/Images";
+} from "../../../data/seeds/Images";
 
 const foodNames = [
   "Chicken Burger",
@@ -77,13 +77,13 @@ export const generateFoodItems = (
           name: `${foodNames[
             globalIndex %
             foodNames.length
-            ]
+          ]
             } Special`,
 
           description: `Freshly prepared ${foodNames[
             globalIndex %
             foodNames.length
-            ]
+          ]
             } with premium ingredients and authentic flavors.`,
 
           category:
