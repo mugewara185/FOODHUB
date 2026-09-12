@@ -1,0 +1,92 @@
+{
+  "generated": "2026-09-12",
+  "routes": {
+    "/": {
+      "context": "AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    },
+    "/api/auth/*": {
+      "context": "API/src/modules/auth/AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    },
+    "/api/orders/*": {
+      "context": "API/src/modules/orders/AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    },
+    "/api/restaurants/*": {
+      "context": "API/src/modules/restaurants/AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    },
+    "/api/users/*": {
+      "context": "API/src/modules/users/AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    },
+    "/api/admin/analytics/*": {
+      "context": "API/src/modules/analytics/AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    },
+    "/admin/*": {
+      "context": "web/src/pages/admin/AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    },
+    "/partner/*": {
+      "context": "web/src/pages/_deliveryPartner/AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    },
+    "/owner/*": {
+      "context": "web/src/pages/_ownerPages/AGENTS.md",
+      "status": "active",
+      "verified": "2026-09-12"
+    }
+  },
+  "domains": {
+    "api_auth": {
+      "context": "API/src/modules/auth/AGENTS.md",
+      "status": "active"
+    },
+    "api_orders": {
+      "context": "API/src/modules/orders/AGENTS.md",
+      "status": "active"
+    },
+    "api_restaurants": {
+      "context": "API/src/modules/restaurants/AGENTS.md",
+      "status": "active"
+    },
+    "api_users": {
+      "context": "API/src/modules/users/AGENTS.md",
+      "status": "active"
+    },
+    "api_analytics": {
+      "context": "API/src/modules/analytics/AGENTS.md",
+      "status": "active"
+    },
+    "web_auth": {
+      "context": "web/src/features/auth/AGENTS.md",
+      "status": "active"
+    },
+    "web_orders": {
+      "context": "web/src/features/orders/AGENTS.md",
+      "status": "active"
+    },
+    "web_admin": {
+      "context": "web/src/pages/admin/AGENTS.md",
+      "status": "active"
+    },
+    "web_partner": {
+      "context": "web/src/pages/_deliveryPartner/AGENTS.md",
+      "status": "active"
+    },
+    "web_owner": {
+      "context": "web/src/pages/_ownerPages/AGENTS.md",
+      "status": "active"
+    }
+  }
+}
