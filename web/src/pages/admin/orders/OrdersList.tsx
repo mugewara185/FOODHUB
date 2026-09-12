@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -19,7 +19,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Stack,
   Avatar,
   Badge,
   Tooltip,
@@ -28,6 +27,8 @@ import {
   ListItemText,
   Divider,
   Grid,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import {
   FilterList,
@@ -38,7 +39,6 @@ import {
   Delete,
   MoreVert,
   Search,
-  DateRange,
   CheckCircle,
   Cancel,
   Schedule,
@@ -48,66 +48,11 @@ import {
   Assignment,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { adminOrdersProvider } from '../../../features/admin/data/orders.provider';
+import type { Order } from '../../../core/types';
+import { logComponent } from '../../../core/dev/logger';
 
-interface Order {
-  id: string;
-  customer: {
-    name: string;
-    avatar?: string;
-    phone: string;
-  };
-  restaurant: string;
-  items: { name: string; quantity: number }[];
-  total: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
-  paymentStatus: 'paid' | 'pending' | 'failed';
-  paymentMethod: string;
-  createdAt: string;
-  deliveryAddress: string;
-  deliveryPartner?: string;
-}
-
-const mockOrders: Order[] = [
-  {
-    id: 'ORD-2024-001',
-    customer: {
-      name: 'John Doe',
-      phone: '+91 98765 43210',
-    },
-    restaurant: 'Spice Garden',
-    items: [
-      { name: 'Butter Chicken', quantity: 1 },
-      { name: 'Garlic Naan', quantity: 2 },
-    ],
-    total: 890,
-    status: 'delivered',
-    paymentStatus: 'paid',
-    paymentMethod: 'UPI',
-    createdAt: '2024-01-15T10:30:00',
-    deliveryAddress: '123 Main St, Mumbai',
-  },
-  {
-    id: 'ORD-2024-002',
-    customer: {
-      name: 'Jane Smith',
-      phone: '+91 98765 43211',
-    },
-    restaurant: 'Pizza Paradise',
-    items: [
-      { name: 'Margherita Pizza', quantity: 1 },
-      { name: 'Garlic Bread', quantity: 1 },
-    ],
-    total: 650,
-    status: 'preparing',
-    paymentStatus: 'paid',
-    paymentMethod: 'Card',
-    createdAt: '2024-01-15T11:15:00',
-    deliveryAddress: '456 Park Ave, Mumbai',
-  },
-  // Add more orders...
-];
-
-const statusColors = {
+const statusColors: Record<string, string> = {
   pending: 'warning',
   confirmed: 'info',
   preparing: 'primary',
@@ -116,7 +61,7 @@ const statusColors = {
   cancelled: 'error',
 };
 
-const statusIcons = {
+const statusIcons: Record<string, JSX.Element> = {
   pending: <Schedule />,
   confirmed: <CheckCircle />,
   preparing: <Kitchen />,
@@ -127,6 +72,10 @@ const statusIcons = {
 
 const OrdersList: React.FC = () => {
   const navigate = useNavigate();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,6 +83,30 @@ const OrdersList: React.FC = () => {
   const [dateRange, setDateRange] = useState('today');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+
+  useEffect(() => {
+    logComponent.mount('OrdersList');
+    fetchOrders();
+    return () => {
+      logComponent.unmount('OrdersList');
+    };
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      logComponent.render('OrdersList - Data Load Start');
+      const data = await adminOrdersProvider.getAll();
+      setOrders(data);
+      logComponent.render('OrdersList - Data Load Success');
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch orders');
+      logComponent.error('OrdersList', 'Data Load Fail', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -156,6 +129,7 @@ const OrdersList: React.FC = () => {
 
   const handleViewOrder = () => {
     if (selectedOrder) {
+      logComponent.interaction('OrdersList', 'View Details', { id: selectedOrder });
       navigate(`/admin/orders/${selectedOrder}`);
     }
     handleMenuClose();
@@ -171,9 +145,15 @@ const OrdersList: React.FC = () => {
     />
   );
 
+  const filteredOrders = orders.filter((o) => {
+    const matchesSearch = o.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          o.restaurantName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" fontWeight={800} gutterBottom>
@@ -199,14 +179,13 @@ const OrdersList: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Filters */}
       <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
               size="small"
-              placeholder="Search orders by ID, customer, restaurant..."
+              placeholder="Search orders by ID, restaurant..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
@@ -262,7 +241,7 @@ const OrdersList: React.FC = () => {
             </Button>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Badge badgeContent={4} color="primary">
+            <Badge badgeContent={0} color="primary">
               <Button fullWidth variant="contained">
                 Apply Filters
               </Button>
@@ -271,114 +250,125 @@ const OrdersList: React.FC = () => {
         </Grid>
       </Paper>
 
-      {/* Orders Table */}
-      <Paper sx={{ borderRadius: 2 }}>
-        <TableContainer>
-          <Table>
-            <TableHead sx={{ bgcolor: 'grey.50' }}>
-              <TableRow>
-                <TableCell>Order ID</TableCell>
-                <TableCell>Customer</TableCell>
-                <TableCell>Restaurant</TableCell>
-                <TableCell>Items</TableCell>
-                <TableCell align="right">Total</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Payment</TableCell>
-                <TableCell>Time</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {mockOrders
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((order) => (
-                  <TableRow key={order.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600}>
-                        {order.id}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Avatar sx={{ width: 32, height: 32 }}>
-                          {order.customer.name.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" fontWeight={500}>
-                            {order.customer.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {order.customer.phone}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{order.restaurant}</TableCell>
-                    <TableCell>
-                      <Tooltip
-                        title={
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      ) : filteredOrders.length === 0 ? (
+        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 2 }}>
+          <Typography variant="h6" color="text.secondary">
+            No orders found.
+          </Typography>
+        </Paper>
+      ) : (
+        <Paper sx={{ borderRadius: 2 }}>
+          <TableContainer>
+            <Table>
+              <TableHead sx={{ bgcolor: 'grey.50' }}>
+                <TableRow>
+                  <TableCell>Order ID</TableCell>
+                  <TableCell>Customer</TableCell>
+                  <TableCell>Restaurant</TableCell>
+                  <TableCell>Items</TableCell>
+                  <TableCell align="right">Total</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Payment</TableCell>
+                  <TableCell>Time</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredOrders
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((order) => (
+                    <TableRow key={order.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>
+                          {order.id}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Avatar sx={{ width: 32, height: 32 }}>
+                            {order.userId.charAt(0).toUpperCase()}
+                          </Avatar>
                           <Box>
-                            {order.items.map((item, i) => (
-                              <Typography key={i} variant="body2">
-                                {item.quantity}x {item.name}
-                              </Typography>
-                            ))}
+                            <Typography variant="body2" fontWeight={500}>
+                              User {order.userId}
+                            </Typography>
                           </Box>
-                        }
-                      >
+                        </Box>
+                      </TableCell>
+                      <TableCell>{order.restaurantName}</TableCell>
+                      <TableCell>
+                        <Tooltip
+                          title={
+                            <Box>
+                              {order.items.map((item, i) => (
+                                <Typography key={i} variant="body2">
+                                  {item.quantity}x {item.name}
+                                </Typography>
+                              ))}
+                            </Box>
+                          }
+                        >
+                          <Chip
+                            label={`${order.items.length} items`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell align="right" fontWeight={600}>
+                        ₹{order.total}
+                      </TableCell>
+                      <TableCell>{getStatusChip(order.status)}</TableCell>
+                      <TableCell>
                         <Chip
-                          label={`${order.items.length} items`}
                           size="small"
+                          label={order.paymentStatus}
+                          color={order.paymentStatus === 'completed' ? 'success' : order.paymentStatus === 'pending' ? 'warning' : 'error'}
                           variant="outlined"
                         />
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell align="right" fontWeight={600}>
-                      ₹{order.total}
-                    </TableCell>
-                    <TableCell>{getStatusChip(order.status)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={order.paymentStatus}
-                        color={order.paymentStatus === 'paid' ? 'success' : order.paymentStatus === 'pending' ? 'warning' : 'error'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, order.id)}
-                      >
-                        <MoreVert />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleMenuOpen(e, order.id)}
+                        >
+                          <MoreVert />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 50]}
-          component="div"
-          count={mockOrders.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50]}
+            component="div"
+            count={filteredOrders.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
+      )}
 
-      {/* Order Actions Menu */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}

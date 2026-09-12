@@ -57,69 +57,48 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-
-// Mock data
-const revenueData = [
-  { month: 'Jan', revenue: 850000, orders: 2340, avgOrder: 363 },
-  { month: 'Feb', revenue: 920000, orders: 2560, avgOrder: 359 },
-  { month: 'Mar', revenue: 1100000, orders: 2890, avgOrder: 381 },
-  { month: 'Apr', revenue: 1250000, orders: 3120, avgOrder: 401 },
-  { month: 'May', revenue: 1180000, orders: 2980, avgOrder: 396 },
-  { month: 'Jun', revenue: 1350000, orders: 3450, avgOrder: 391 },
-];
-
-const categoryData = [
-  { name: 'Indian', value: 35 },
-  { name: 'Chinese', value: 25 },
-  { name: 'Italian', value: 20 },
-  { name: 'Fast Food', value: 15 },
-  { name: 'Others', value: 5 },
-];
-
-const topRestaurants = [
-  { name: 'Spice Garden', orders: 1245, revenue: 850000, rating: 4.8 },
-  { name: 'Pizza Paradise', orders: 2134, revenue: 1120000, rating: 4.6 },
-  { name: 'Burger House', orders: 987, revenue: 510000, rating: 4.7 },
-  { name: 'Sushi Master', orders: 876, revenue: 680000, rating: 4.9 },
-  { name: 'Taco Fiesta', orders: 654, revenue: 380000, rating: 4.5 },
-];
+import { logger } from '../../../core/dev/logger';
+import { StatsCard } from '../../../shared/components/admin/StatsCard';
+import { fetchAnalyticsData } from '../../../features/admin/data/reports.provider';
+import { CircularProgress } from '@mui/material';
 
 const COLORS = ['#FF6B35', '#00C853', '#2196F3', '#FFC107', '#9C27B0'];
 
 const Analytics: React.FC = () => {
   const [dateRange, setDateRange] = useState('month');
   const [chartType, setChartType] = useState('revenue');
+  const [data, setData] = useState<{
+    revenueData: any[];
+    categoryData: any[];
+    topRestaurants: any[];
+    stats: any[];
+    metrics: any[];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const stats = [
-    { 
-      title: 'Total Revenue', 
-      value: '₹4,520,000', 
-      change: '+15.3%', 
-      trend: 'up',
-      icon: <AttachMoney />,
-    },
-    { 
-      title: 'Total Orders', 
-      value: '12,450', 
-      change: '+12.8%', 
-      trend: 'up',
-      icon: <ShoppingBag />,
-    },
-    { 
-      title: 'Active Users', 
-      value: '25.4K', 
-      change: '+8.2%', 
-      trend: 'up',
-      icon: <People />,
-    },
-    { 
-      title: 'Avg. Order Value', 
-      value: '₹363', 
-      change: '+5.2%', 
-      trend: 'up',
-      icon: <TrendingUp />,
-    },
-  ];
+  React.useEffect(() => {
+    const loadData = async () => {
+      try {
+        logger.info('ADMIN.ANALYTICS_PAGE.MOUNT', 'Analytics component mounted');
+        setLoading(true);
+        const result = await fetchAnalyticsData();
+        setData(result);
+        logger.info('ADMIN.ANALYTICS_PAGE.LOAD_SUCCESS', 'Analytics data loaded successfully');
+      } catch (err) {
+        setError('Failed to load analytics data');
+        logger.error('ADMIN.ANALYTICS_PAGE.LOAD_ERROR', 'Failed to load analytics data', err as Error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [dateRange]);
+
+  const handleExport = () => {
+    logger.info('ADMIN.ANALYTICS_PAGE.EXPORT', 'Exporting report');
+    // Implement export
+  };
 
   return (
     <Box>
@@ -151,39 +130,37 @@ const Analytics: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<Download />}
+            onClick={handleExport}
           >
             Export Report
           </Button>
         </Box>
       </Box>
 
+      {error && (
+        <Box display="flex" justifyContent="center" mb={3}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      )}
+
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {stats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.main' }}>
-                    {stat.icon}
-                  </Avatar>
-                  <Chip
-                    size="small"
-                    icon={stat.trend === 'up' ? <TrendingUp /> : <TrendingDown />}
-                    label={stat.change}
-                    color={stat.trend === 'up' ? 'success' : 'error'}
-                  />
-                </Box>
-                <Typography variant="h4" fontWeight={700} sx={{ mt: 2 }}>
-                  {stat.value}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {stat.title}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+        {(data?.stats || Array(4).fill({ title: '', value: '', change: '', trend: 'up' })).map((stat, index) => {
+          const icons = [<AttachMoney />, <ShoppingBag />, <People />, <TrendingUp />];
+          return (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <StatsCard
+                title={stat.title}
+                value={stat.value}
+                change={stat.change}
+                trend={stat.trend as any}
+                icon={icons[index % icons.length]}
+                color="primary"
+                loading={loading}
+              />
+            </Grid>
+          );
+        })}
       </Grid>
 
       {/* Charts */}
@@ -218,27 +195,33 @@ const Analytics: React.FC = () => {
             </Box>
 
             <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF6B35" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#FF6B35" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey={chartType === 'revenue' ? 'revenue' : chartType === 'orders' ? 'orders' : 'avgOrder'}
-                  stroke="#FF6B35"
-                  fillOpacity={1}
-                  fill="url(#colorRevenue)"
-                  name={chartType === 'revenue' ? 'Revenue (₹)' : chartType === 'orders' ? 'Orders' : 'Avg Order Value'}
-                />
-              </AreaChart>
+              {loading ? (
+                <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <AreaChart data={data?.revenueData || []}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FF6B35" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#FF6B35" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey={chartType === 'revenue' ? 'revenue' : chartType === 'orders' ? 'orders' : 'avgOrder'}
+                    stroke="#FF6B35"
+                    fillOpacity={1}
+                    fill="url(#colorRevenue)"
+                    name={chartType === 'revenue' ? 'Revenue (₹)' : chartType === 'orders' ? 'Orders' : 'Avg Order Value'}
+                  />
+                </AreaChart>
+              )}
             </ResponsiveContainer>
           </Paper>
         </Grid>
@@ -251,27 +234,33 @@ const Analytics: React.FC = () => {
             </Typography>
             
             <ResponsiveContainer width="100%" height={250}>
-              <RePieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </RePieChart>
+              {loading ? (
+                <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <RePieChart>
+                  <Pie
+                    data={data?.categoryData || []}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {(data?.categoryData || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </RePieChart>
+              )}
             </ResponsiveContainer>
 
             <Box sx={{ mt: 2 }}>
-              {categoryData.map((category, index) => (
+              {(data?.categoryData || []).map((category, index) => (
                 <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Box sx={{ width: 12, height: 12, borderRadius: 2, bgcolor: COLORS[index] }} />
@@ -307,22 +296,36 @@ const Analytics: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {topRestaurants.map((restaurant, index) => (
-                    <TableRow key={index} hover>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
-                          {restaurant.name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">{restaurant.orders}</TableCell>
-                      <TableCell align="right" fontWeight={600}>
-                        ₹{restaurant.revenue.toLocaleString()}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Rating value={restaurant.rating} size="small" readOnly />
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
+                        <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : data?.topRestaurants?.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
+                        <Typography color="text.secondary">No top restaurants found.</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    (data?.topRestaurants || []).map((restaurant, index) => (
+                      <TableRow key={index} hover>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>
+                            {restaurant.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">{restaurant.orders}</TableCell>
+                        <TableCell align="right" fontWeight={600}>
+                          ₹{restaurant.revenue.toLocaleString()}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Rating value={restaurant.rating} size="small" readOnly />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -337,33 +340,32 @@ const Analytics: React.FC = () => {
             </Typography>
             
             <Grid container spacing={2}>
-              {[
-                { label: 'Customer Acquisition Cost', value: '₹245', change: '-8%' },
-                { label: 'Customer Lifetime Value', value: '₹2,850', change: '+15%' },
-                { label: 'Repeat Order Rate', value: '68%', change: '+5%' },
-                { label: 'Average Delivery Time', value: '32 min', change: '-3 min' },
-                { label: 'Restaurant Churn Rate', value: '2.4%', change: '-0.5%' },
-                { label: 'Customer Satisfaction', value: '4.7/5', change: '+0.2' },
-              ].map((metric, index) => (
-                <Grid item xs={12} sm={6} key={index}>
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {metric.label}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                      <Typography variant="h6" fontWeight={700}>
-                        {metric.value}
+              {loading ? (
+                <Box display="flex" justifyContent="center" alignItems="center" width="100%" height={200}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                (data?.metrics || []).map((metric, index) => (
+                  <Grid item xs={12} sm={6} key={index}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {metric.label}
                       </Typography>
-                      <Chip
-                        size="small"
-                        icon={metric.change.startsWith('+') ? <TrendingUp /> : <TrendingDown />}
-                        label={metric.change}
-                        color={metric.change.startsWith('+') ? 'success' : 'error'}
-                      />
-                    </Box>
-                  </Paper>
-                </Grid>
-              ))}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                        <Typography variant="h6" fontWeight={700}>
+                          {metric.value}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          icon={metric.change.startsWith('+') ? <TrendingUp /> : <TrendingDown />}
+                          label={metric.change}
+                          color={metric.change.startsWith('+') ? 'success' : 'error'}
+                        />
+                      </Box>
+                    </Paper>
+                  </Grid>
+                ))
+              )}
             </Grid>
           </Paper>
         </Grid>

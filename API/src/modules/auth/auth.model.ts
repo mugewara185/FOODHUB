@@ -19,6 +19,7 @@ export interface IUser extends Document {
   password: string;
   roles: ('user' | 'admin' | 'owner' | 'partner' | 'dev')[];
   phone?: string;
+  status: 'active' | 'inactive' | 'blocked';
   addresses: IAddress[];
   favoriteRestaurants: Schema.Types.ObjectId[];
   createdAt: Date;
@@ -47,6 +48,11 @@ const userSchema = new Schema<IUser>(
       default: ['user'] 
     },
     phone: { type: String },
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'blocked'],
+      default: 'active'
+    },
     addresses: [addressSchema],
     favoriteRestaurants: [{ type: Schema.Types.ObjectId, ref: 'Restaurant' }]
   },

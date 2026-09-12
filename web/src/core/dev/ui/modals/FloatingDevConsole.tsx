@@ -24,6 +24,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  TextField,
 } from "@mui/material";
 import {
   Settings,
@@ -94,6 +95,14 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     "reviews",
   ]);
 
+  const [seedCounts, setSeedCounts] = useState<Record<FactorySeedTarget, number>>({
+    restaurants: 12,
+    foodItems: 50,
+    users: 20,
+    orders: 40,
+    reviews: 30,
+  });
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -104,11 +113,29 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     );
   };
 
+  const handleCountChange = (target: FactorySeedTarget, value: string) => {
+    const count = parseInt(value, 10);
+    setSeedCounts((prev) => ({
+      ...prev,
+      [target]: isNaN(count) ? 0 : count,
+    }));
+  };
+
   const handleSeedFactoryData = async () => {
     setSeedStatus({ loading: true, message: "Generating factory-based demo data...", error: null });
 
     try {
-      const payload = buildFactorySeedPayload(12, { targets: selectedSeedTargets });
+      const payload = buildFactorySeedPayload(seedCounts.restaurants, {
+        targets: selectedSeedTargets,
+        config: {
+          restaurants: { count: seedCounts.restaurants },
+          foodItems: { count: seedCounts.foodItems },
+          users: { count: seedCounts.users, includeTestAccounts: true },
+          orders: { count: seedCounts.orders },
+          reviews: { count: seedCounts.reviews },
+        }
+      });
+      
       const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const response = await fetch(`${apiBaseUrl}/dev/seed-factory-data`, {
         method: "POST",
@@ -123,7 +150,6 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
         throw new Error(result?.message || "The seed request failed.");
       }
 
-      // result.data should be the generic Record<modelName, count> from backend
       const seededCounts = result.data || {};
       const summary = Object.entries(seededCounts)
         .map(([model, count]) => `${count} ${model}s`)
@@ -337,19 +363,31 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     Push the generated factory data into MongoDB so you can prototype against realistic records immediately.
                   </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+                  <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
                     {(["restaurants", "foodItems", "users", "orders", "reviews"] as FactorySeedTarget[]).map((target) => (
-                      <FormControlLabel
-                        key={target}
-                        control={
-                          <Checkbox
-                            checked={selectedSeedTargets.includes(target)}
-                            onChange={() => handleSeedTargetToggle(target)}
-                            size="small"
-                          />
-                        }
-                        label={target.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())}
-                      />
+                      <Stack direction="row" alignItems="center" spacing={1} key={target} sx={{ minWidth: 200, mb: 1 }}>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={selectedSeedTargets.includes(target)}
+                              onChange={() => handleSeedTargetToggle(target)}
+                              size="small"
+                            />
+                          }
+                          label={target.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())}
+                          sx={{ m: 0, minWidth: 120 }}
+                        />
+                        <TextField
+                          type="number"
+                          size="small"
+                          label="Count"
+                          value={seedCounts[target]}
+                          onChange={(e) => handleCountChange(target, e.target.value)}
+                          disabled={!selectedSeedTargets.includes(target)}
+                          sx={{ width: 80 }}
+                          InputProps={{ inputProps: { min: 0, max: 10000 } }}
+                        />
+                      </Stack>
                     ))}
                   </Stack>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "flex-start", sm: "center" }}>

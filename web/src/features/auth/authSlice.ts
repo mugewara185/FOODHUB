@@ -72,14 +72,20 @@ const getErrorMessage = (error: unknown): string => {
   return "Something went wrong. Please try again.";
 };
 
+import { logger } from "../../core/dev/logger";
+
 // --- Async Thunks ---
 
 export const loginThunk = createAsyncThunk<AuthUser, LoginCredentials, { rejectValue: string }>(
   "auth/login",
   async (credentials, { rejectWithValue }) => {
+    logger.info('AUTH', 'Login started', { event: 'AUTH.LOGIN.START', data: { email: credentials.email } });
     try {
-      return await authApi.login(credentials);
+      const result = await authApi.login(credentials);
+      logger.info('AUTH', 'Login successful', { event: 'AUTH.LOGIN.SUCCESS' });
+      return result;
     } catch (err) {
+      logger.error('AUTH', 'Login failed', { event: 'AUTH.LOGIN.FAILURE', error: err });
       return rejectWithValue(getErrorMessage(err));
     }
   }
@@ -88,9 +94,13 @@ export const loginThunk = createAsyncThunk<AuthUser, LoginCredentials, { rejectV
 export const signupThunk = createAsyncThunk<AuthUser, SignupData, { rejectValue: string }>(
   "auth/signup",
   async (data, { rejectWithValue }) => {
+    logger.info('AUTH', 'Signup started', { event: 'AUTH.SIGNUP.START', data: { email: data.email } });
     try {
-      return await authApi.signup(data);
+      const result = await authApi.signup(data);
+      logger.info('AUTH', 'Signup successful', { event: 'AUTH.SIGNUP.SUCCESS' });
+      return result;
     } catch (err) {
+      logger.error('AUTH', 'Signup failed', { event: 'AUTH.SIGNUP.FAILURE', error: err });
       return rejectWithValue(getErrorMessage(err));
     }
   }
@@ -157,13 +167,19 @@ export const restoreAuthThunk = createAsyncThunk<AuthUser | null, void, { reject
 export const toggleFavoriteThunk = createAsyncThunk<string[], string, { rejectValue: string, state: any }>(
   "auth/toggleFavorite",
   async (restaurantId, { getState, rejectWithValue }) => {
+    logger.info('AUTH', 'Toggling favorite', { event: 'FAVORITE.TOGGLE.START', data: { restaurantId } });
     try {
       const state = getState() as any;
       const token = state.auth.user?.token;
-      if (!token) return rejectWithValue("Not authenticated");
+      if (!token) {
+        logger.warn('AUTH', 'Cannot toggle favorite: not authenticated', { event: 'FAVORITE.TOGGLE.UNAUTHENTICATED' });
+        return rejectWithValue("Not authenticated");
+      }
       const updatedFavorites = await authApi.toggleFavorite(restaurantId, token);
+      logger.info('AUTH', 'Toggled favorite successfully', { event: 'FAVORITE.TOGGLE.SUCCESS' });
       return updatedFavorites;
     } catch (err: any) {
+      logger.error('AUTH', 'Failed to toggle favorite', { event: 'FAVORITE.TOGGLE.FAILURE', error: err });
       return rejectWithValue(getErrorMessage(err));
     }
   }
@@ -224,6 +240,7 @@ const authSlice = createSlice({
       persistSession(action.payload);
     },
     logout(state) {
+      logger.info('AUTH', 'User logged out', { event: 'AUTH.LOGOUT.SUCCESS' });
       state.user = null;
       state.isLoggedIn = false;
       state.isAuthenticated = false;

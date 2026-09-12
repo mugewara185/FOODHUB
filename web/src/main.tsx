@@ -6,26 +6,15 @@ import { Provider } from 'react-redux';
 import store from './app/store';
 import { DevProvider } from './core/dev/contexts/DevContext';
 import { LoggerProvider } from './core/dev/contexts/LoggerContext';
-// import { ErrorBoundary } from './shared/components/ErrorBoundary';
+import { ErrorBoundary } from './shared/components/ErrorBoundary/ErrorBoundary';
+import { logger } from './core/dev/logger';
 
-// import { ThemeProvider } from '@mui/material/styles';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-// import {AuthProvider} from './contexts/AuthContext';
 import App from './App';
 import theme from './shared/styles/theme';
 import foodtheme from './shared/styles/foodTheme';
 import './index.css';
-
-// import '@fontsource/roboto/300.css';
-// import '@fontsource/roboto/400.css';
-// import '@fontsource/roboto/500.css';
-// import '@fontsource/roboto/700.css';
-// import '@fontsource/poppins/300.css';
-// import '@fontsource/poppins/400.css';
-// import '@fontsource/poppins/500.css';
-// import '@fontsource/poppins/600.css';
-// import '@fontsource/poppins/700.css';
 
 import '@fontsource/poppins/300.css';
 import '@fontsource/poppins/400.css';
@@ -33,28 +22,24 @@ import '@fontsource/poppins/500.css';
 import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
 
+logger.info('APP', 'Application Initialized', { event: 'APP.INIT' });
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  // <React.StrictMode>
     <LoggerProvider>
-      {/* <ErrorBoundary> */}
+      <ErrorBoundary>
         <BrowserRouter>
-          {/* <ThemeProvider theme={theme}> */}
-          {/* <ThemeProvider theme={foodtheme}> */}
             <CssBaseline />
-            {/* <AuthProvider> */}
               <Provider store={store}>
                 <DevProvider>
                   <App />
                 </DevProvider>
               </Provider>
-            {/* </AuthProvider> */}
-          {/* </ThemeProvider> */}
         </BrowserRouter>
-      {/* </ErrorBoundary> */}
+      </ErrorBoundary>
     </LoggerProvider>
-  // </React.StrictMode>,
 );
 
+// V2 (commented code omitted to simplify)
 
 
 // V2

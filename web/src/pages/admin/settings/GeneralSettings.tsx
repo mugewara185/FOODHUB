@@ -34,54 +34,53 @@ import {
   AttachMoney,
   Percent,
 } from '@mui/icons-material';
+import { logger } from '../../../core/dev/logger';
+import { fetchSettings } from '../../../features/admin/data/settings.provider';
+import { CircularProgress } from '@mui/material';
 
 const GeneralSettings: React.FC = () => {
-  const [settings, setSettings] = useState({
-    // Platform Settings
-    platformName: 'FoodHub',
-    platformEmail: 'support@foodhub.com',
-    platformPhone: '+91 98765 43210',
-    platformAddress: '123 Tech Park, Mumbai',
-    
-    // Commission Settings
-    defaultCommission: 15,
-    minCommission: 10,
-    maxCommission: 25,
-    
-    // Delivery Settings
-    baseDeliveryFee: 29,
-    perKmFee: 5,
-    freeDeliveryThreshold: 499,
-    
-    // Order Settings
-    maxOrderQuantity: 50,
-    orderCancellationTime: 2, // minutes
-    autoAssignDelivery: true,
-    
-    // Payment Settings
-    codEnabled: true,
-    onlinePaymentEnabled: true,
-    walletEnabled: true,
-    
-    // Tax Settings
-    taxRate: 5,
-    serviceFee: 10,
-    
-    // Notification Settings
-    emailNotifications: true,
-    smsNotifications: true,
-    pushNotifications: true,
-    
-    // Security Settings
-    twoFactorAuth: true,
-    maxLoginAttempts: 5,
-    sessionTimeout: 30, // minutes
-  });
+  const [settings, setSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        logger.info('ADMIN.SETTINGS.MOUNT', 'Settings component mounted');
+        setLoading(true);
+        const data = await fetchSettings();
+        setSettings(data);
+        logger.info('ADMIN.SETTINGS.LOAD_SUCCESS', 'Settings loaded successfully');
+      } catch (err) {
+        setError('Failed to load settings');
+        logger.error('ADMIN.SETTINGS.LOAD_ERROR', 'Failed to load settings', err as Error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const handleSave = () => {
-    console.log('Saving settings:', settings);
+    logger.info('ADMIN.SETTINGS.SAVE', 'Saving settings', settings);
     // API call to save settings
   };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !settings) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
+        <Typography color="error">{error || 'Failed to load'}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>

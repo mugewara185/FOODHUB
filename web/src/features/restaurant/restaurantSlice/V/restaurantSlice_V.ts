@@ -62,15 +62,20 @@ const groupItemsByCategory = (items: FoodItem[]) => {
 export const fetchRestaurants = createAsyncThunk(
   'restaurants/fetchAll',
   async (_, { rejectWithValue }) => {
+    logger.info('RESTAURANT', 'Loading restaurants', { event: 'RESTAURANT.LOAD.START' });
     try {
       if (APP_CONFIG.DATA_SOURCE === 'api') {
-        return await restaurantApi.getAll();
+        const result = await restaurantApi.getAll();
+        logger.info('RESTAURANT', 'Loaded restaurants', { event: 'RESTAURANT.LOAD.SUCCESS' });
+        return result;
       }
       // mock mode — existing behaviour preserved
       // throw new Error('Simulated API failure'); // Simulate error for testing
       await new Promise(resolve => setTimeout(resolve, 800));
+      logger.info('RESTAURANT', 'Loaded mock restaurants', { event: 'RESTAURANT.LOAD.SUCCESS' });
       return mockRestaurants;
     } catch (error) {
+      logger.error('RESTAURANT', 'Failed to load restaurants', { event: 'RESTAURANT.LOAD.FAILURE', error });
       return rejectWithValue(`Failed to fetch restaurants:${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -79,21 +84,28 @@ export const fetchRestaurants = createAsyncThunk(
 export const fetchRestaurantById = createAsyncThunk(
   'restaurants/fetchById',
   async (id: string, { rejectWithValue }) => {
-    logger.debug('fetchRestaurantById called with id:', id?.toString());
+    logger.info('RESTAURANT', 'Loading restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.START', data: { restaurantId: id } });
     try {
       if (APP_CONFIG.DATA_SOURCE === 'api') {
         console.log('api mode restaurantApi', APP_CONFIG);
-        return await restaurantApi.getById(id);
+        const result = await restaurantApi.getById(id);
+        logger.info('RESTAURANT', 'Loaded restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.SUCCESS' });
+        return result;
       }
       // mock mode — existing behaviour preserved
       await new Promise(resolve => setTimeout(resolve, 600));
       const restaurant = mockRestaurants.find(r => r.id === id);
-      if (!restaurant) throw new Error('Restaurant not found');
+      if (!restaurant) {
+        logger.warn('RESTAURANT', 'Restaurant not found', { event: 'RESTAURANT.DETAIL.NOT_FOUND', data: { restaurantId: id } });
+        throw new Error('Restaurant not found');
+      }
 
       const items = mockFoodItems.filter(item => item.restaurantId === id);
       console.log({"items":mockFoodItems,"filteredItems":items})
+      logger.info('RESTAURANT', 'Loaded mock restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.SUCCESS' });
       return { restaurant, items };
     } catch (error) {
+      logger.error('RESTAURANT', 'Failed to load restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.FAILURE', error });
       return rejectWithValue(`Failed to fetch restaurant details:${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

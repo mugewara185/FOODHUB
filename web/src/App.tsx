@@ -9,7 +9,7 @@ import { selectRestaurantLoading } from "./features/restaurant/restaurantSlice";
 import { useAppDispatch, useAppSelector } from "@app/store/hooks";
 //context
 import { useDevContext } from "@core/dev/contexts/DevContext";
-import { useLogger } from "./core/dev/logger";
+import { useLogger, logger } from "./core/dev/logger";
 import LogConsole from "./core/dev/logger";
 import { APP_CONFIG } from "./core/config/app.config";
 import { Toast } from "./shared/components/notifications";
@@ -29,8 +29,14 @@ const App: React.FC = () => {
   const { user, isAuthenticated, isInitialized } = useAppSelector(state => state.auth);
 
   useEffect(() => {
+    logger.info('APP', 'Application Ready', { event: 'APP.READY' });
+  }, []);
+
+  useEffect(() => {
     if (isInitialized && isAuthenticated && user) {
+      logger.info('SOCKET', 'Connecting socket', { event: 'SOCKET.CONNECT.START', data: { userId: user.id } });
       socketService.connect(user.id);
+      logger.info('SOCKET', 'Socket connected', { event: 'SOCKET.CONNECT.SUCCESS' });
 
       const handleNotification = (data: { title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error', orderId?: string, status?: string }) => {
         const notifType = data.type || 'info';
@@ -38,6 +44,7 @@ const App: React.FC = () => {
         dispatch(showToast({ message: data.message, type: notifType }));
         logger.info('APP', 'Notification received via socket', { event: 'NOTIFICATION.RECEIVED', data });
       };
+
 
       const handleOrderStatusUpdate = (data: { orderId: string, status: any }) => {
         dispatch(updateOrderStatusLocally(data));
@@ -51,6 +58,7 @@ const App: React.FC = () => {
         socketService.offOrderStatusUpdate(handleOrderStatusUpdate);
       };
     } else if (isInitialized && !isAuthenticated) {
+      logger.info('SOCKET', 'Disconnecting socket', { event: 'SOCKET.DISCONNECT' });
       socketService.disconnect();
     }
   }, [isAuthenticated, isInitialized, user?.id, dispatch]);

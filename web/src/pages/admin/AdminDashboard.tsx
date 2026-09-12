@@ -60,6 +60,7 @@ import {
 } from 'recharts';
 import { AdminAIAssistantTrigger } from './components/AdminAIAssistantTrigger';
 import { logger } from '../../core/dev/logger';
+import { StatsCard } from '../../shared/components/admin/StatsCard';
 
 const COLORS = ['#FF6B35', '#00C853', '#2196F3', '#FFC107', '#9C27B0'];
 
@@ -133,26 +134,10 @@ const Dashboard: React.FC = () => {
     fetchAnalytics();
   }, [timeRange]);
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error || !analyticsData) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
-        <Typography color="error">Error: {error || 'No data available'}</Typography>
-      </Box>
-    );
-  }
-
   const stats = [
     { 
       title: 'Total Revenue', 
-      value: `₹${analyticsData.metrics.revenue.toLocaleString()}`, 
+      value: analyticsData ? `₹${analyticsData.metrics.revenue.toLocaleString()}` : '...', 
       change: '+12.5%', 
       trend: 'up',
       icon: <AttachMoney sx={{ fontSize: 32 }} />,
@@ -160,7 +145,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Total Orders', 
-      value: analyticsData.metrics.orders.toLocaleString(), 
+      value: analyticsData ? analyticsData.metrics.orders.toLocaleString() : '...', 
       change: '+8.2%', 
       trend: 'up',
       icon: <ShoppingBag sx={{ fontSize: 32 }} />,
@@ -168,7 +153,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Active Restaurants', 
-      value: analyticsData.metrics.activeRestaurants, 
+      value: analyticsData ? analyticsData.metrics.activeRestaurants : '...', 
       change: '+4', 
       trend: 'up',
       icon: <Restaurant sx={{ fontSize: 32 }} />,
@@ -176,7 +161,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Total Users', 
-      value: (analyticsData.metrics.totalUsers / 1000).toFixed(1) + 'K', 
+      value: analyticsData ? (analyticsData.metrics.totalUsers / 1000).toFixed(1) + 'K' : '...', 
       change: '+15.3%', 
       trend: 'up',
       icon: <People sx={{ fontSize: 32 }} />,
@@ -184,7 +169,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Avg. Order Value', 
-      value: `₹${analyticsData.metrics.averageOrderValue}`, 
+      value: analyticsData ? `₹${analyticsData.metrics.averageOrderValue}` : '...', 
       change: '+5.2%', 
       trend: 'up',
       icon: <Payment sx={{ fontSize: 32 }} />,
@@ -192,7 +177,7 @@ const Dashboard: React.FC = () => {
     },
     { 
       title: 'Delivery Success', 
-      value: `${analyticsData.metrics.deliverySuccessRate}%`, 
+      value: analyticsData ? `${analyticsData.metrics.deliverySuccessRate}%` : '...', 
       change: '+1.2%', 
       trend: 'up',
       icon: <CheckCircle sx={{ fontSize: 32 }} />,
@@ -217,63 +202,51 @@ const Dashboard: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant={timeRange === 'day' ? 'contained' : 'outlined'}
-            onClick={() => setTimeRange('day')}
+            onClick={() => { logger.info('ADMIN.DASHBOARD.ACTION', 'Changed time range to day'); setTimeRange('day'); }}
           >
             Day
           </Button>
           <Button
             variant={timeRange === 'week' ? 'contained' : 'outlined'}
-            onClick={() => setTimeRange('week')}
+            onClick={() => { logger.info('ADMIN.DASHBOARD.ACTION', 'Changed time range to week'); setTimeRange('week'); }}
           >
             Week
           </Button>
           <Button
             variant={timeRange === 'month' ? 'contained' : 'outlined'}
-            onClick={() => setTimeRange('month')}
+            onClick={() => { logger.info('ADMIN.DASHBOARD.ACTION', 'Changed time range to month'); setTimeRange('month'); }}
           >
             Month
           </Button>
         </Box>
       </Box>
 
-      {/* Stats Grid */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {stats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-            <Card sx={{ borderRadius: 3 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Avatar
-                    sx={{
-                      bgcolor: `${stat.color}.light`,
-                      color: `${stat.color}.main`,
-                      width: 56,
-                      height: 56,
-                    }}
-                  >
-                    {stat.icon}
-                  </Avatar>
-                  <Chip
-                    icon={stat.trend === 'up' ? <ArrowUpward /> : <ArrowDownward />}
-                    label={stat.change}
-                    color={stat.trend === 'up' ? 'success' : 'error'}
-                    size="small"
-                    sx={{ height: 24 }}
-                  />
-                </Box>
-                <Typography variant="h4" fontWeight={700} gutterBottom>
-                  {stat.value}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {stat.title}
-                </Typography>
-              </CardContent>
-            </Card>
+      {error ? (
+        <Box display="flex" justifyContent="center" alignItems="center" height="40vh">
+          <Typography color="error">Error: {error}</Typography>
+        </Box>
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {stats.map((stat, index) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+                <StatsCard
+                  title={stat.title}
+                  value={stat.value}
+                  change={stat.change}
+                  trend={stat.trend as any}
+                  icon={stat.icon}
+                  color={stat.color as any}
+                  loading={loading}
+                />
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
 
-      {/* Charts Row */}
+          {(!loading && analyticsData) && (
+            <>
+              {/* Charts Row */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Revenue Chart */}
         <Grid item xs={12} lg={8}>
@@ -502,6 +475,9 @@ const Dashboard: React.FC = () => {
         </Grid>
       </Grid>
 
+            </>
+          )}
+
       {/* Quick Actions */}
       <Grid container spacing={3} sx={{ mt: 3 }}>
         <Grid item xs={12}>
@@ -542,6 +518,8 @@ const Dashboard: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+      </>
+      )}
     </Box>
   );
 };

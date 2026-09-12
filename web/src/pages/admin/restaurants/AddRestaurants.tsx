@@ -41,6 +41,7 @@ import {
   Percent,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { logComponent } from '../../../core/dev/logger';
 
 const steps = ['Basic Information', 'Location & Contact', 'Menu Categories', 'Business Hours', 'Review & Submit'];
 
@@ -97,6 +98,13 @@ const AddRestaurant: React.FC = () => {
   const [logo, setLogo] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [images, setImages] = useState<File[]>([]);
+
+  React.useEffect(() => {
+    logComponent.mount('AddRestaurants');
+    return () => {
+      logComponent.unmount('AddRestaurants');
+    };
+  }, []);
 
   const handleNext = () => {
     setActiveStep((prevStep) => prevStep + 1);

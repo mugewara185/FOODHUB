@@ -44,17 +44,22 @@ const initialState: CartState = {
   itemCount: 0,
 };
 
+import { logger } from '../../../../core/dev/logger';
+
 const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
     addToCart: (state, action: PayloadAction<Omit<CartItem, 'id'>>) => {
       // console.log('addToCart reducer:',{state,action})
-      const { foodItemId, restaurantId, restaurantName } = action.payload ; 
+      const { foodItemId, restaurantId, restaurantName, name } = action.payload ; 
+      logger.info('CART', `Adding ${name} to cart`, { event: 'CART.ADD.START', data: { foodItemId } });
 
       // Check if adding from same restaurant
       if (state.restaurantId && state.restaurantId !== restaurantId) {
         // Clear cart if different restaurant
+        logger.warn('CART', 'Different restaurant detected in cart', { event: 'CART.RESTAURANT.CONFLICT' });
+        logger.info('CART', 'Resetting cart for new restaurant', { event: 'CART.RESET_FOR_RESTAURANT' });
         state.items = [];
         state.restaurantId = restaurantId;
         state.restaurantName = restaurantName;
@@ -79,6 +84,7 @@ const cartSlice = createSlice({
       // Recalculate totals
       const totals = calculateTotals(state.items, state.deliveryFee);
       Object.assign(state, totals);
+      logger.info('CART', 'Item added to cart', { event: 'CART.ADD.SUCCESS' });
     },
 
     removeFromCart: (state, action: PayloadAction<string>) => {
@@ -91,6 +97,7 @@ const cartSlice = createSlice({
 
       const totals = calculateTotals(state.items, state.deliveryFee);
       Object.assign(state, totals);
+      logger.info('CART', 'Item removed from cart', { event: 'CART.REMOVE' });
     },
 
     updateQuantity: (state, action: PayloadAction<{ itemId: string; quantity: number }>) => {
@@ -112,9 +119,11 @@ const cartSlice = createSlice({
 
       const totals = calculateTotals(state.items, state.deliveryFee);
       Object.assign(state, totals);
+      logger.info('CART', 'Cart quantity updated', { event: 'CART.QUANTITY.UPDATE' });
     },
 
     clearCart: (state) => {
+      logger.info('CART', 'Clearing cart', { event: 'CART.CLEAR' });
       state.items = [];
       state.restaurantId = null;
       state.restaurantName = null;

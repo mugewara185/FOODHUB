@@ -1,4 +1,4 @@
-﻿/**
+/**
  * orderApi.ts
  *
  * API service for the order domain.
@@ -119,13 +119,28 @@ export const mapPaymentMethod = (
   return 'cash';
 };
 
+import { logAPI } from '../../../core/dev/logger';
+import { v4 as uuidv4 } from 'uuid';
+
 // HTTP helper
 const request = async <T>(
   endpoint: string,
   token: string,
   init?: RequestInit,
 ): Promise<T> => {
-  const response = await fetch(`${APP_CONFIG.API_URL}${endpoint}`, {
+  const traceId = uuidv4().substring(0, 8);
+  const method = init?.method || 'GET';
+  const url = `${APP_CONFIG.API_URL}${endpoint}`;
+
+  let parsedBody;
+  try {
+    parsedBody = init?.body ? JSON.parse(init.body as string) : undefined;
+  } catch(e) {}
+  
+  logAPI.request(method, url, parsedBody, traceId);
+  const startTime = performance.now();
+
+  const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
@@ -133,6 +148,7 @@ const request = async <T>(
     ...init,
   });
 
+  const durationMs = performance.now() - startTime;
   const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> | { message?: string };
 
   if (!response.ok) {
@@ -143,8 +159,12 @@ const request = async <T>(
         payload.message
         ? String(payload.message)
         : `Request failed (${response.status})`;
+    
+    logAPI.error(method, url, new Error(msg), traceId);
     throw new Error(msg);
   }
+
+  logAPI.response(method, url, response.status, durationMs, payload, traceId);
 
   if (typeof payload === 'object' && payload !== null && 'data' in payload) {
     return (payload as ApiEnvelope<T>).data as T;

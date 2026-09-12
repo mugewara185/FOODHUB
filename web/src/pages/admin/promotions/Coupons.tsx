@@ -33,6 +33,7 @@ import {
   Alert,
   LinearProgress,
   Avatar,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add,
@@ -51,55 +52,9 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-
-interface Coupon {
-  id: string;
-  code: string;
-  type: 'percentage' | 'fixed' | 'free_delivery';
-  value: number;
-  minOrder: number;
-  maxDiscount?: number;
-  usageLimit: number;
-  usedCount: number;
-  startDate: Date;
-  endDate: Date;
-  applicableTo: 'all' | 'specific' | 'new_users';
-  restaurants?: string[];
-  status: 'active' | 'expired' | 'scheduled';
-  description: string;
-}
-
-const mockCoupons: Coupon[] = [
-  {
-    id: 'CPN-001',
-    code: 'WELCOME20',
-    type: 'percentage',
-    value: 20,
-    minOrder: 199,
-    maxDiscount: 150,
-    usageLimit: 10000,
-    usedCount: 5432,
-    startDate: new Date('2024-01-01'),
-    endDate: new Date('2024-12-31'),
-    applicableTo: 'new_users',
-    status: 'active',
-    description: 'Welcome discount for new users',
-  },
-  {
-    id: 'CPN-002',
-    code: 'FLAT100',
-    type: 'fixed',
-    value: 100,
-    minOrder: 299,
-    usageLimit: 5000,
-    usedCount: 1234,
-    startDate: new Date('2024-02-01'),
-    endDate: new Date('2024-03-31'),
-    applicableTo: 'all',
-    status: 'active',
-    description: 'Flat ₹100 off on orders above ₹299',
-  },
-];
+import { logger } from '../../../core/dev/logger';
+import { StatsCard } from '../../../shared/components/admin/StatsCard';
+import { fetchCoupons, type Coupon } from '../../../features/admin/data/promotions.provider';
 
 const Promotions: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -113,22 +68,44 @@ const Promotions: React.FC = () => {
     endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
   });
 
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const loadCoupons = async () => {
+      try {
+        logger.info('ADMIN.PROMOTIONS.MOUNT', 'Promotions component mounted');
+        setLoading(true);
+        const data = await fetchCoupons();
+        setCoupons(data);
+        logger.info('ADMIN.PROMOTIONS.LOAD_SUCCESS', 'Coupons loaded successfully');
+      } catch (err) {
+        setError('Failed to load coupons');
+        logger.error('ADMIN.PROMOTIONS.LOAD_ERROR', 'Failed to load coupons', err as Error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCoupons();
+  }, []);
+
   const stats = [
-    { label: 'Active Coupons', value: '12', icon: <LocalOffer />, color: 'success' },
-    { label: 'Total Used', value: '15.2K', icon: <People />, color: 'info' },
+    { label: 'Active Coupons', value: coupons.length.toString(), icon: <LocalOffer />, color: 'success' },
+    { label: 'Total Used', value: coupons.reduce((acc, c) => acc + c.usedCount, 0).toLocaleString(), icon: <People />, color: 'info' },
     { label: 'Total Discount', value: '₹2.4L', icon: <AttachMoney />, color: 'warning' },
-    { label: 'Expiring Soon', value: '3', icon: <CalendarToday />, color: 'error' },
+    { label: 'Expiring Soon', value: coupons.filter(c => c.status === 'active' && new Date(c.endDate).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000).length.toString(), icon: <CalendarToday />, color: 'error' },
   ];
 
   const handleAddCoupon = () => {
-    console.log('Adding coupon:', newCoupon);
+    logger.info('ADMIN.PROMOTIONS.ACTION', 'Added new coupon', { coupon: newCoupon });
     setAddDialogOpen(false);
     setNewCoupon({});
   };
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
-    // Show toast
+    logger.info('ADMIN.PROMOTIONS.ACTION', 'Copied coupon code', { code });
   };
 
   return (
@@ -156,23 +133,13 @@ const Promotions: React.FC = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {stats.map((stat, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: `${stat.color}.light`, color: `${stat.color}.main` }}>
-                    {stat.icon}
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h5" fontWeight={700}>
-                      {stat.value}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {stat.label}
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <StatsCard
+              title={stat.label}
+              value={loading ? '...' : stat.value}
+              icon={stat.icon}
+              color={stat.color as any}
+              loading={loading}
+            />
           </Grid>
         ))}
       </Grid>
@@ -223,76 +190,89 @@ const Promotions: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {mockCoupons.map((coupon) => (
-                <TableRow key={coupon.id} hover>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" fontWeight={600}>
-                        {coupon.code}
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleCopyCode(coupon.code)}
-                      >
-                        <ContentCopy fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </TableCell>
-                  <TableCell>{coupon.description}</TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      size="small"
-                      label={coupon.type.replace('_', ' ')}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell align="center" fontWeight={600}>
-                    {coupon.type === 'percentage' ? `${coupon.value}%` : `₹${coupon.value}`}
-                    {coupon.type === 'percentage' && coupon.maxDiscount && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Max ₹{coupon.maxDiscount}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="center">₹{coupon.minOrder}</TableCell>
-                  <TableCell align="center">
-                    <Box>
-                      <Typography variant="body2">
-                        {coupon.usedCount}/{coupon.usageLimit}
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={(coupon.usedCount / coupon.usageLimit) * 100}
-                        sx={{ height: 4, borderRadius: 2, mt: 0.5 }}
-                      />
-                    </Box>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Typography variant="body2">
-                      {coupon.startDate.toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      to {coupon.endDate.toLocaleDateString()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      size="small"
-                      label={coupon.status}
-                      color={coupon.status === 'active' ? 'success' : coupon.status === 'expired' ? 'error' : 'warning'}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton size="small">
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" color="error">
-                      <Delete fontSize="small" />
-                    </IconButton>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                    <CircularProgress />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : coupons.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                    <Typography color="text.secondary">No coupons found.</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                coupons.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((coupon) => (
+                  <TableRow key={coupon.id} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {coupon.code}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleCopyCode(coupon.code)}
+                        >
+                          <ContentCopy fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                    <TableCell>{coupon.description}</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        size="small"
+                        label={coupon.type.replace('_', ' ')}
+                        color="primary"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="center" fontWeight={600}>
+                      {coupon.type === 'percentage' ? `${coupon.value}%` : `₹${coupon.value}`}
+                      {coupon.type === 'percentage' && coupon.maxDiscount && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Max ₹{coupon.maxDiscount}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">₹{coupon.minOrder}</TableCell>
+                    <TableCell align="center">
+                      <Box>
+                        <Typography variant="body2">
+                          {coupon.usedCount}/{coupon.usageLimit}
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={(coupon.usedCount / coupon.usageLimit) * 100}
+                          sx={{ height: 4, borderRadius: 2, mt: 0.5 }}
+                        />
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography variant="body2">
+                        {coupon.startDate.toLocaleDateString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        to {coupon.endDate.toLocaleDateString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        size="small"
+                        label={coupon.status}
+                        color={coupon.status === 'active' ? 'success' : coupon.status === 'expired' ? 'error' : 'warning'}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton size="small">
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="error">
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                )))}
             </TableBody>
           </Table>
         </TableContainer>
@@ -300,7 +280,7 @@ const Promotions: React.FC = () => {
         <TablePagination
           rowsPerPageOptions={[10, 25, 50]}
           component="div"
-          count={mockCoupons.length}
+          count={coupons.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}

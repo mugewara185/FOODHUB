@@ -36,9 +36,19 @@ const getErrorMessage = (error: unknown): string => {
   return 'Something went wrong. Please try again.';
 };
 
+import { logAPI } from '../../core/dev/logger';
+import { v4 as uuidv4 } from 'uuid';
+
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
   const { headers: customHeaders, ...restInit } = init || {};
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const traceId = uuidv4().substring(0, 8);
+  const method = init?.method || 'GET';
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  logAPI.request(method, url, restInit.body ? JSON.parse(restInit.body as string) : undefined, traceId);
+  const startTime = performance.now();
+
+  const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
       ...customHeaders,
@@ -46,14 +56,18 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
     ...restInit,
   });
 
+  const durationMs = performance.now() - startTime;
   const payload = (await response.json().catch(() => ({}))) as ApiResponse<T> | T;
 
   if (!response.ok) {
     const message = typeof payload === 'object' && payload && 'message' in payload && payload.message
       ? String(payload.message)
       : 'Request failed';
+    logAPI.error(method, url, new Error(message), traceId);
     throw new Error(message);
   }
+
+  logAPI.response(method, url, response.status, durationMs, payload, traceId);
 
   if (typeof payload === 'object' && payload && 'data' in payload) {
     return (payload as ApiResponse<T>).data as T;

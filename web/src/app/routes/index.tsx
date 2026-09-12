@@ -54,6 +54,7 @@ import AddRestaurant from '../../pages/admin/restaurants/AddRestaurants';
 import OrderTracking from '../../pages/Orders/OrderTracking';
 import AdminProfile from '../../pages/admin/Profile';
 import { Promotions, Reports, Settings as AdminSettings, Users } from '../../pages/admin';
+import { AdminMenu } from '../../pages/admin/menu';
 
 import { de } from 'date-fns/locale';
 import DevLayout from '@/core/dev/ui/layout/DevLayout';
@@ -67,11 +68,15 @@ import LogPanel from '@/core/dev/ui/pages/LogPanel';
 import PerformanceMetrics from '@/core/dev/ui/pages/PerformanceMetrics';
 import ComponentPlayground from '@/core/dev/ui/pages/ComponentPlayground';
 import DocumentationViewer from '@/core/dev/ui/pages/DocumentationViewer';
+import { RouteLogger } from './RouteLogger';
 
 const AppRoutes: React.FC = () => {
   return (
-    <Routes>
+    <>
+      <RouteLogger />
+      <Routes>
 {/* user and public routes */}
+
       <Route path="/" element={<MainLayout />}>
         {/* Public Routes */}
         <Route index element={<Home />} />
@@ -128,6 +133,7 @@ const AppRoutes: React.FC = () => {
         {/* <Route path='orders/:id/track' element={<OrderTracking />} (//user component) for now /> */}
         <Route path='restaurants' element={<RestaurantsList />} />
         <Route path='restaurants/add' element={<AddRestaurant />} />
+        <Route path='menu' element={<AdminMenu />} />
         <Route path='promotions' element={<Promotions />} />
         <Route path='reports' element={<Reports />} />
         <Route path='settings' element={<AdminSettings />} />
@@ -176,6 +182,7 @@ const AppRoutes: React.FC = () => {
         <Route path='docs' element={<DocumentationViewer />} />
       </Route>
     </Routes>
+    </>
   );
 };
 

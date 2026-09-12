@@ -75,3 +75,61 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
     sendSuccess({ res, data: { user }, message: 'Profile updated successfully' });
   } catch (err) { next(err); }
 }
+
+// Admin controllers
+export async function getAllUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const query: any = {};
+    if (req.query.search) {
+      query.$or = [
+        { name: { $regex: req.query.search, $options: 'i' } },
+        { email: { $regex: req.query.search, $options: 'i' } },
+        { phone: { $regex: req.query.search, $options: 'i' } },
+      ];
+    }
+    if (req.query.role && req.query.role !== 'all') {
+      // Maps UI roles to backend roles
+      const roleMap: any = {
+        'customer': 'user',
+        'restaurant_owner': 'owner',
+        'delivery_partner': 'partner',
+        'admin': 'admin'
+      };
+      const backendRole = roleMap[req.query.role as string] || req.query.role;
+      query.roles = backendRole;
+    }
+
+    const total = await User.countDocuments(query);
+    const users = await User.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
+
+    sendSuccess({ res, data: { users, total, page, limit }, message: 'Users retrieved' });
+  } catch (err) { next(err); }
+}
+
+export async function getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) throw new AppError('User not found', 404);
+    sendSuccess({ res, data: { user }, message: 'User retrieved' });
+  } catch (err) { next(err); }
+}
+
+export async function updateUserAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!user) throw new AppError('User not found', 404);
+    sendSuccess({ res, data: { user }, message: 'User updated' });
+  } catch (err) { next(err); }
+}
+
+export async function deleteUserAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) throw new AppError('User not found', 404);
+    sendSuccess({ res, data: null, message: 'User deleted' });
+  } catch (err) { next(err); }
+}

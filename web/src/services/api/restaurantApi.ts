@@ -144,13 +144,29 @@ export const normalizeMenuItems = (
 // HTTP helper — same minimal pattern as authApi.ts / reviewApi.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { logAPI } from '../../core/dev/logger';
+import { v4 as uuidv4 } from 'uuid';
+
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
   const { headers: customHeaders, ...restInit } = init || {};
-  const response = await fetch(`${APP_CONFIG.API_URL}${endpoint}`, {
+  const traceId = uuidv4().substring(0, 8);
+  const method = init?.method || 'GET';
+  const url = `${APP_CONFIG.API_URL}${endpoint}`;
+
+  let parsedBody;
+  try {
+    parsedBody = restInit?.body ? JSON.parse(restInit.body as string) : undefined;
+  } catch(e) {}
+
+  logAPI.request(method, url, parsedBody, traceId);
+  const startTime = performance.now();
+
+  const response = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...customHeaders },
     ...restInit,
   });
 
+  const durationMs = performance.now() - startTime;
   const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> | T;
 
   if (!response.ok) {
@@ -161,8 +177,11 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
       (payload as { message?: string }).message
         ? String((payload as { message?: string }).message)
         : `Request failed (${response.status})`;
+    logAPI.error(method, url, new Error(msg), traceId);
     throw new Error(msg);
   }
+
+  logAPI.response(method, url, response.status, durationMs, payload, traceId);
 
   // Unwrap the { success, data } envelope if present
   if (typeof payload === 'object' && payload !== null && 'data' in payload) {

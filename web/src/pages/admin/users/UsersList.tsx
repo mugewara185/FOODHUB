@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -46,75 +46,32 @@ import {
   Phone,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { usersApi } from '../../../services/api/usersApi';
 
+// Use backend names or mapped frontend names, but adapt to match the backend structure
 interface User {
-  id: string;
+  _id: string; // backend uses _id
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   avatar?: string;
-  role: 'customer' | 'delivery_partner' | 'restaurant_owner' | 'admin';
+  roles: string[];
   status: 'active' | 'inactive' | 'blocked';
-  totalOrders: number;
-  totalSpent: number;
-  joinedDate: string;
-  lastActive: string;
-  isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const mockUsers: User[] = [
-  {
-    id: 'USR-001',
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+91 98765 43210',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    role: 'customer',
-    status: 'active',
-    totalOrders: 45,
-    totalSpent: 18500,
-    joinedDate: '2023-01-15',
-    lastActive: '2024-01-15T10:30:00',
-    isVerified: true,
-  },
-  {
-    id: 'USR-002',
-    name: 'Rahul Sharma',
-    email: 'rahul@example.com',
-    phone: '+91 98765 43211',
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    role: 'delivery_partner',
-    status: 'active',
-    totalOrders: 234,
-    totalSpent: 0,
-    joinedDate: '2023-02-20',
-    lastActive: '2024-01-15T09:15:00',
-    isVerified: true,
-  },
-  {
-    id: 'USR-003',
-    name: 'Priya Singh',
-    email: 'priya@example.com',
-    phone: '+91 98765 43212',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    role: 'restaurant_owner',
-    status: 'active',
-    totalOrders: 0,
-    totalSpent: 0,
-    joinedDate: '2023-03-10',
-    lastActive: '2024-01-14T16:45:00',
-    isVerified: true,
-  },
-];
-
-const roleColors = {
-  customer: 'info',
+const roleColors: Record<string, string> = {
+  user: 'info',
+  customer: 'info', // alias for user
+  partner: 'warning',
   delivery_partner: 'warning',
+  owner: 'success',
   restaurant_owner: 'success',
   admin: 'error',
 };
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   active: 'success',
   inactive: 'default',
   blocked: 'error',
@@ -125,16 +82,51 @@ const UserList: React.FC = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  
+  const [users, setUsers] = useState<User[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [loading, setLoading] = useState(false);
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
+  // Stats can be derived or fetched from an analytics endpoint if available
+  // Using static for now as mock, ideally replace with backend stats
   const stats = [
-    { label: 'Total Users', value: '25.4K', icon: <People />, color: 'primary' },
-    { label: 'Customers', value: '22.1K', icon: <ShoppingBag />, color: 'info' },
-    { label: 'Delivery Partners', value: '1.8K', icon: <TrendingUp />, color: 'warning' },
-    { label: 'Restaurant Owners', value: '1.5K', icon: <Restaurant />, color: 'success' },
+    { label: 'Total Users', value: totalUsers, icon: <People />, color: 'primary' },
   ];
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(0); // Reset page on search
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await usersApi.getUsers({
+        page: page + 1,
+        limit: rowsPerPage,
+        search: debouncedSearch,
+        role: roleFilter,
+      });
+      setUsers(data.users || []);
+      setTotalUsers(data.total || 0);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, rowsPerPage, debouncedSearch, roleFilter]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, userId: string) => {
     setAnchorEl(event.currentTarget);
@@ -252,7 +244,8 @@ const UserList: React.FC = () => {
       </Paper>
 
       {/* Users Table */}
-      <Paper sx={{ borderRadius: 2 }}>
+      <Paper sx={{ borderRadius: 2, position: 'relative' }}>
+        {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0 }} />}
         <TableContainer>
           <Table>
             <TableHead sx={{ bgcolor: 'grey.50' }}>
@@ -261,18 +254,14 @@ const UserList: React.FC = () => {
                 <TableCell>Contact</TableCell>
                 <TableCell align="center">Role</TableCell>
                 <TableCell align="center">Status</TableCell>
-                <TableCell align="right">Orders</TableCell>
-                <TableCell align="right">Total Spent</TableCell>
                 <TableCell>Joined</TableCell>
                 <TableCell>Last Active</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {mockUsers
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((user) => (
-                  <TableRow key={user.id} hover>
+              {users.map((user) => (
+                  <TableRow key={user._id} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Avatar src={user.avatar}>
@@ -283,60 +272,48 @@ const UserList: React.FC = () => {
                             {user.name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {user.id}
+                            {user._id}
                           </Typography>
-                          {user.isVerified && (
-                            <Chip
-                              label="Verified"
-                              size="small"
-                              color="success"
-                              sx={{ fontSize: '0.6rem', height: 18, ml: 1 }}
-                            />
-                          )}
                         </Box>
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">{user.email}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {user.phone}
+                        {user.phone || 'N/A'}
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
                       <Chip
                         size="small"
-                        label={user.role.replace('_', ' ')}
-                        color={roleColors[user.role] as any}
+                        label={user.roles.join(', ')}
+                        color={roleColors[user.roles[0]] as any || 'default'}
                       />
                     </TableCell>
                     <TableCell align="center">
                       <Chip
                         size="small"
                         label={user.status}
-                        color={statusColors[user.status] as any}
+                        color={statusColors[user.status] as any || 'default'}
                       />
                     </TableCell>
-                    <TableCell align="right">{user.totalOrders}</TableCell>
-                    <TableCell align="right" fontWeight={600}>
-                      ₹{user.totalSpent.toLocaleString()}
-                    </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {new Date(user.joinedDate).toLocaleDateString()}
+                        {new Date(user.createdAt).toLocaleDateString()}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {new Date(user.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(user.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {new Date(user.lastActive).toLocaleDateString()}
+                        {new Date(user.updatedAt).toLocaleDateString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
                       <IconButton
                         size="small"
-                        onClick={(e) => handleMenuOpen(e, user.id)}
+                        onClick={(e) => handleMenuOpen(e, user._id)}
                       >
                         <MoreVert />
                       </IconButton>
@@ -350,7 +327,7 @@ const UserList: React.FC = () => {
         <TablePagination
           rowsPerPageOptions={[10, 25, 50]}
           component="div"
-          count={mockUsers.length}
+          count={totalUsers}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}
@@ -371,24 +348,39 @@ const UserList: React.FC = () => {
           <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
           <ListItemText>View Details</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          const newName = prompt('Enter new name (leave empty to skip):');
+          const newRole = prompt('Enter new role (user, admin, owner, partner):');
+          if (!selectedUser) return;
+          const updateData: any = {};
+          if (newName) updateData.name = newName;
+          if (newRole) updateData.roles = [newRole];
+          if (Object.keys(updateData).length > 0) {
+            usersApi.updateUser(selectedUser, updateData).then(() => fetchUsers());
+          }
+        }}>
           <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
           <ListItemText>Edit User</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          <ListItemIcon><Email fontSize="small" /></ListItemIcon>
-          <ListItemText>Send Email</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          <ListItemIcon><Phone fontSize="small" /></ListItemIcon>
-          <ListItemText>Call</ListItemText>
-        </MenuItem>
         <Divider />
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'warning.main' }}>
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          if (selectedUser) {
+            usersApi.updateUser(selectedUser, { status: 'blocked' }).then(() => fetchUsers());
+          }
+        }} sx={{ color: 'warning.main' }}>
           <ListItemIcon><Block fontSize="small" color="warning" /></ListItemIcon>
           <ListItemText>Block User</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          if (selectedUser) {
+            if (window.confirm('Are you sure you want to delete this user?')) {
+              usersApi.deleteUser(selectedUser).then(() => fetchUsers());
+            }
+          }
+        }} sx={{ color: 'error.main' }}>
           <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>
           <ListItemText>Delete User</ListItemText>
         </MenuItem>
