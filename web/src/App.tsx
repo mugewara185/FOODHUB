@@ -16,6 +16,7 @@ import { Toast } from "./shared/components/notifications";
 import { socketService } from "./services/socket";
 import { showToast } from "./features/ui/uiSlice";
 import { updateOrderStatusLocally } from "./features/orders/orderSlice";
+import { RoleSwitcher } from "./core/ui/role/RoleSwitcher";
 
 const App: React.FC = () => {
   const allRestaurants = useAppSelector(selectAllRestaurants);
@@ -68,6 +69,7 @@ const App: React.FC = () => {
           cuisineLength={CUISINES.length}
         />
       )}
+      <RoleSwitcher />
       <LogConsole
         open={LogConsoleOpen}
         onClose={() => setLogConsoleOpen(false)}

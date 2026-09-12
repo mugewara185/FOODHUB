@@ -28,6 +28,8 @@ interface RoleOption {
   isSelected: (pathname: string) => boolean;
 }
 
+import { DraggableContainer } from '../draggable/DraggableContainer';
+
 export const RoleSwitcher: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -130,66 +132,82 @@ export const RoleSwitcher: React.FC = () => {
 
   return (
     <>
-      <Tooltip title="Tactile Master Access Switch Lever" arrow placement="bottom">
-        <Box
-          onClick={handleOpen}
-          component={motion.div}
-          whileHover={{ scale: 1.04, translateY: -1 }}
-          whileTap={{ scale: 0.96 }}
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 1.2,
-            px: 1.8,
-            py: 0.75,
-            ml: 1.5,
-            cursor: 'pointer',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-            border: '1px solid',
-            borderColor: Boolean(anchorEl) ? currentActiveRole.activeColor : 'rgba(255, 255, 255, 0.15)',
-            boxShadow: Boolean(anchorEl)
-              ? `0 0 20px ${currentActiveRole.glowColor}`
-              : '0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.1)',
-            position: 'relative',
-            userSelect: 'none',
-            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
-          }}
-        >
-          {/* LED Signal Indicator Light */}
-          <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Box
-              component={motion.div}
-              animate={{
-                scale: [1, 1.35, 1],
-                opacity: [0.7, 1, 0.7],
-              }}
-              transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                bgcolor: currentActiveRole.activeColor,
-                boxShadow: `0 0 10px ${currentActiveRole.activeColor}`,
-              }}
-            />
-          </Box>
-
-          {/* Icon Badge */}
+      <DraggableContainer
+        storageKey="zom2.roleswitcher.pos.v3"
+        width={76}
+        height={40}
+        defaultPosition={{
+          x: 30, // Top left, clears sidebars in Admin/Dev layouts
+          y: 820
+        }}
+        onClick={() => {
+          // Trigger the popover on click instead of relying on the Box onClick
+          if (!anchorEl) {
+            const customEvent = { currentTarget: document.getElementById('role-switcher-anchor') } as unknown as React.MouseEvent<HTMLElement>;
+            handleOpen(customEvent);
+          }
+        }}
+      >
+        <Tooltip title="Tactile Master Access Switch Lever" arrow placement="bottom">
           <Box
+            id="role-switcher-anchor"
+            component={motion.div}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             sx={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: currentActiveRole.activeColor,
+              gap: 1.2,
+              px: 1.8,
+              py: 0.75,
+              ml: 1.5,
+              cursor: 'pointer',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              border: '1px solid',
+              borderColor: Boolean(anchorEl) ? currentActiveRole.activeColor : 'rgba(255, 255, 255, 0.15)',
+              boxShadow: Boolean(anchorEl)
+                ? `0 0 20px ${currentActiveRole.glowColor}`
+                : '0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.1)',
+              position: 'relative',
+              userSelect: 'none',
+              transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
             }}
           >
-            {currentActiveRole.icon}
-          </Box>
+            {/* LED Signal Indicator Light */}
+            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Box
+                component={motion.div}
+                animate={{
+                  scale: [1, 1.35, 1],
+                  opacity: [0.7, 1, 0.7],
+                }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: currentActiveRole.activeColor,
+                  boxShadow: `0 0 10px ${currentActiveRole.activeColor}`,
+                }}
+              />
+            </Box>
 
-          {/* Text Info */}
-          {/* <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', textAlign: 'left' }}> */}
-          {/* <Typography
+            {/* Icon Badge */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: currentActiveRole.activeColor,
+              }}
+            >
+              {currentActiveRole.icon}
+            </Box>
+
+            {/* Text Info */}
+            {/* <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', textAlign: 'left' }}> */}
+            {/* <Typography
               variant="caption"
               sx={{
                 fontSize: '0.62rem',
@@ -202,7 +220,7 @@ export const RoleSwitcher: React.FC = () => {
             >
               Access Lever
             </Typography> */}
-          {/* <Typography
+            {/* <Typography
               variant="body2"
               sx={{
                 fontSize: '0.78rem',
@@ -216,47 +234,48 @@ export const RoleSwitcher: React.FC = () => {
             </Typography>
           </Box> */}
 
-          {/* 3D Physical Switch Lever Trigger representation */}
-          <Box
-            sx={{
-              width: 38,
-              height: 22,
-              borderRadius: '12px',
-              bgcolor: '#090d16',
-              border: '1px solid rgba(255,255,255,0.12)',
-              position: 'relative',
-              p: '2px',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
+            {/* 3D Physical Switch Lever Trigger representation */}
             <Box
-              component={motion.div}
-              animate={{
-                x: isLeverFlipped ? 16 : 0,
-                rotate: isLeverFlipped ? 15 : 0,
-              }}
-              transition={{ type: 'spring', stiffness: 500, damping: 24 }}
               sx={{
-                width: 16,
-                height: 16,
-                borderRadius: '8px',
-                background: isLeverFlipped
-                  ? currentActiveRole.gradient
-                  : 'linear-gradient(180deg, #94a3b8 0%, #475569 100%)',
-                boxShadow: isLeverFlipped
-                  ? `0 0 10px ${currentActiveRole.activeColor}`
-                  : '0 2px 4px rgba(0,0,0,0.5)',
+                width: 38,
+                height: 22,
+                borderRadius: '12px',
+                bgcolor: '#090d16',
+                border: '1px solid rgba(255,255,255,0.12)',
+                position: 'relative',
+                p: '2px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
               }}
             >
-              <SwitchAccessShortcut sx={{ fontSize: 11, color: '#fff' }} />
+              <Box
+                component={motion.div}
+                animate={{
+                  x: isLeverFlipped ? 16 : 0,
+                  rotate: isLeverFlipped ? 15 : 0,
+                }}
+                transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                sx={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '8px',
+                  background: isLeverFlipped
+                    ? currentActiveRole.gradient
+                    : 'linear-gradient(180deg, #94a3b8 0%, #475569 100%)',
+                  boxShadow: isLeverFlipped
+                    ? `0 0 10px ${currentActiveRole.activeColor}`
+                    : '0 2px 4px rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <SwitchAccessShortcut sx={{ fontSize: 11, color: '#fff' }} />
+              </Box>
             </Box>
           </Box>
-        </Box>
-      </Tooltip>
+        </Tooltip>
+      </DraggableContainer>
 
       {/* Futuristic Glassmorphic Lever Switch Control Console Popover */}
       <Popover

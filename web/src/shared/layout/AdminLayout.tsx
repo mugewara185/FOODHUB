@@ -49,7 +49,7 @@ import {
   LightMode,
 } from '@mui/icons-material';
 
-import { RoleSwitcher } from '../../shared/components/ui/RoleSwitcher';
+
 
 const drawerWidth = 280;
 
@@ -316,7 +316,7 @@ const AdminLayout: React.FC = () => {
               sx={{ flex: 1 }}
             />
           </Paper>
-          <RoleSwitcher />
+          
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Right Icons */}
