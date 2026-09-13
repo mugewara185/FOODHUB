@@ -327,7 +327,9 @@ function generateReview(index: number): Review {
     restaurantId: restaurant.id,
     restaurantName: restaurant.name,
     orderId: Math.random() > 0.5 ? `o${Math.floor(Math.random() * 20) + 1}` : undefined,
-    rating: parseFloat((Math.random() * 2 + 3.5).toFixed(1)),
+    // FIX: rating range was 3.5–5.5, exceeding schema max: 5.
+    // Changed to 2.0–5.0 to allow full realistic distribution (1–5).
+    rating: parseFloat((Math.random() * 3 + 2).toFixed(1)),
     title: faker.lorem.sentence(),
     comment: faker.lorem.paragraph(),
     photos: Math.random() > 0.7 ? [foodImages[index % foodImages.length]] : undefined,

@@ -11,7 +11,11 @@ import orderRoutes from './modules/orders/order.routes';
 import reviewRoutes from './modules/reviews/review.routes';
 import userRoutes from './modules/users/user.routes';
 import devRoutes from './modules/dev/dev.routes';
+import notificationRoutes from './modules/notifications/notification.routes';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
+
+// Import models so they are registered with Mongoose for dynamic seeding
+import './modules/notifications/notification.model';
 
 const app = express();
 
@@ -37,6 +41,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/dev', devRoutes);
 app.use('/api/admin/analytics', analyticsRoutes);
 

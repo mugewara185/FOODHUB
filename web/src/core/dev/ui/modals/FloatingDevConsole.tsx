@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Paper,
@@ -82,25 +82,34 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
   const { open: _logConsoleOpen, setOpen: _setLogConsoleOpen } = useLogger();
   const [isOpen, setIsOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
-  const [seedStatus, setSeedStatus] = useState<{ loading: boolean; message: string | null; error: string | null }>({
+  const [seedStatus, setSeedStatus] = useState<{
+    loading: boolean;
+    message: string | null;
+    error: string | null;
+    warnings?: string[];
+    durationMs?: number;
+  }>({
     loading: false,
     message: null,
     error: null,
   });
   const [selectedSeedTargets, setSelectedSeedTargets] = useState<FactorySeedTarget[]>([
     "restaurants",
-    "foodItems",
     "users",
     "orders",
     "reviews",
+    "notifications",
   ]);
 
+  // Defaults are tuned for the AI/MCP-ready dataset.
+  // restaurants is fixed at 8 (template-driven), count here drives users/orders/reviews/notifications.
   const [seedCounts, setSeedCounts] = useState<Record<FactorySeedTarget, number>>({
-    restaurants: 12,
-    foodItems: 50,
-    users: 20,
-    orders: 40,
-    reviews: 30,
+    restaurants: 8,
+    foodItems: 50, // total embedded menu items
+    users: 10,
+    orders: 80,
+    reviews: 60,
+    notifications: 40,
   });
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -122,26 +131,24 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
   };
 
   const handleSeedFactoryData = async () => {
-    setSeedStatus({ loading: true, message: "Generating factory-based demo data...", error: null });
+    setSeedStatus({ loading: true, message: "Generating AI-ready dataset...", error: null });
 
     try {
       const payload = buildFactorySeedPayload(seedCounts.restaurants, {
         targets: selectedSeedTargets,
         config: {
-          restaurants: { count: seedCounts.restaurants },
+          users: { count: seedCounts.users },
           foodItems: { count: seedCounts.foodItems },
-          users: { count: seedCounts.users, includeTestAccounts: true },
           orders: { count: seedCounts.orders },
           reviews: { count: seedCounts.reviews },
-        }
+          notifications: { count: seedCounts.notifications },
+        },
       });
 
       const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const response = await fetch(`${apiBaseUrl}/dev/seed-factory-data`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -150,15 +157,17 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
         throw new Error(result?.message || "The seed request failed.");
       }
 
-      const seededCounts = result.data || {};
-      const summary = Object.entries(seededCounts)
-        .map(([model, count]) => `${count} ${model}s`)
-        .filter((item) => !item.startsWith("0 "));
+      const seeded: Record<string, number> = result.data?.seeded ?? result.data ?? {};
+      const summary = Object.entries(seeded)
+        .filter(([, count]) => (count as number) > 0)
+        .map(([model, count]) => `${count} ${model}s`);
 
       setSeedStatus({
         loading: false,
-        message: `${result?.message || "Factory data seeded successfully."} (${summary.join(" / ")})`,
+        message: result?.message || "Seed completed.",
         error: null,
+        warnings: result.data?.warnings,
+        durationMs: result.data?.durationMs,
       });
     } catch (error) {
       setSeedStatus({
@@ -358,13 +367,15 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
               <Card sx={{ mt: 2 }}>
                 <CardContent>
                   <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                    Seed demo data from factories
+                    Seed AI-Ready Dataset
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Push the generated factory data into MongoDB so you can prototype against realistic records immediately.
+                    Generates a coherent, relational FoodHub dataset with intentional performance signals
+                    (strong performers, underperformers, popular-but-problematic) for MCP/AI reasoning.
+                    Restaurants are template-driven (8 fixed). Set counts for Users, Orders, and Reviews.
                   </Typography>
                   <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
-                    {(["restaurants", "foodItems", "users", "orders", "reviews"] as FactorySeedTarget[]).map((target) => (
+                    {(["restaurants", "foodItems", "users", "orders", "reviews", "notifications"] as FactorySeedTarget[]).map((target) => (
                       <Stack direction="row" alignItems="center" spacing={1} key={target} sx={{ minWidth: 200, mb: 1 }}>
                         <FormControlLabel
                           control={
@@ -374,19 +385,24 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                               size="small"
                             />
                           }
-                          label={target.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase())}
+                          label={target.replace(/([A-Z])/g, " $1").replace(/^./, (v) => v.toUpperCase())}
                           sx={{ m: 0, minWidth: 120 }}
                         />
-                        <TextField
-                          type="number"
-                          size="small"
-                          label="Count"
-                          value={seedCounts[target]}
-                          onChange={(e) => handleCountChange(target, e.target.value)}
-                          disabled={!selectedSeedTargets.includes(target)}
-                          sx={{ width: 80 }}
-                          InputProps={{ inputProps: { min: 0, max: 10000 } }}
-                        />
+                        {
+                          // target !== "restaurants" && 
+                          // target !== "users" &&
+                          (
+                            <TextField
+                              type="number"
+                              size="small"
+                              label="Count"
+                              value={seedCounts[target]}
+                              onChange={(e) => handleCountChange(target, e.target.value)}
+                              disabled={!selectedSeedTargets.includes(target)}
+                              sx={{ width: 80 }}
+                              InputProps={{ inputProps: { min: 0, max: 10000 } }}
+                            />
+                          )}
                       </Stack>
                     ))}
                   </Stack>
@@ -397,15 +413,28 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                       onClick={handleSeedFactoryData}
                       disabled={seedStatus.loading || selectedSeedTargets.length === 0}
                     >
-                      {seedStatus.loading ? "Seeding..." : "Seed factory data"}
+                      {seedStatus.loading ? "🌱Seeding..." : "Seed Dataset"}
                     </Button>
                     <Typography variant="caption" color="text.secondary">
-                      This is intended for local development and demo work.
+                      Clears existing data and seeds a fresh relational dataset. Dev only.
                     </Typography>
                   </Stack>
                   {seedStatus.message && (
-                    <Alert severity="success" sx={{ mt: 2 }}>
+                    <Alert
+                      severity={seedStatus.warnings?.length ? "warning" : "success"}
+                      sx={{ mt: 2 }}
+                    >
                       {seedStatus.message}
+                      {seedStatus.durationMs !== undefined && (
+                        <Typography variant="caption" display="block" sx={{ mt: 0.5, opacity: 0.8 }}>
+                          Completed in {seedStatus.durationMs}ms
+                        </Typography>
+                      )}
+                      {seedStatus.warnings?.map((w, i) => (
+                        <Typography key={i} variant="caption" display="block" sx={{ mt: 0.5, color: "warning.dark" }}>
+                          ⚠ {w}
+                        </Typography>
+                      ))}
                     </Alert>
                   )}
                   {seedStatus.error && (
