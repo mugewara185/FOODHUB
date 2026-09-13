@@ -10,4 +10,7 @@ export { registerComparePeriodsTool } from './compare-periods.tool';
 export { registerGetBreakdownTool } from './get-breakdown.tool';
 export { registerGetTopEntitiesTool } from './get-top-entities.tool';
 export { registerAnalyzeTrendTool } from './analyze-trend.tool';
+export { registerGetRestaurantPerformanceTool } from './get-restaurant-performance.tool';
+export { registerGetCancellationMetricsTool } from './get-cancellation-metrics.tool';
+export { registerAnalyzeRestaurantPerformanceTool } from './analyze-restaurant-performance.tool';
 

@@ -12,6 +12,7 @@ import reviewRoutes from './modules/reviews/review.routes';
 import userRoutes from './modules/users/user.routes';
 import devRoutes from './modules/dev/dev.routes';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
+import aiRoutes from './modules/ai/ai.routes';
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/dev', devRoutes);
 app.use('/api/admin/analytics', analyticsRoutes);
+app.use('/api/admin/ai', aiRoutes);
 
 // 404 handler
 app.use((_req, res) => {

@@ -26,8 +26,9 @@ export async function protect(
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, config.jwt.secret) as { id: string };
-
+    console.log('decoded', decoded);
     const user = await User.findById(decoded.id).select('-password');
+    console.log('user', user);
     if (!user) {
       throw new AppError('User no longer exists', 401);
     }

@@ -36,7 +36,7 @@ const getErrorMessage = (error: unknown): string => {
   return 'Something went wrong. Please try again.';
 };
 
-import { logAPI } from '../../core/dev/logger';
+import { logAPI, logger } from '../../core/dev/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
@@ -44,7 +44,7 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
   const traceId = uuidv4().substring(0, 8);
   const method = init?.method || 'GET';
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   logAPI.request(method, url, restInit.body ? JSON.parse(restInit.body as string) : undefined, traceId);
   const startTime = performance.now();
 
@@ -118,7 +118,7 @@ export const authApi = {
           password: credentials.password,
         }),
       });
-
+      logger.info('AUTH', 'Login successful', { event: 'AUTH.LOGIN.SUCCESS', data: payload });
       return buildAuthUser(payload);
     } catch (error) {
       throw new Error(getErrorMessage(error));
