@@ -17,4 +17,15 @@ export const config = {
   },
   nodeEnv: process.env.NODE_ENV || 'development',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  ai: {
+    enabled: process.env.AI_ENABLED !== 'false',
+    provider: process.env.AI_PROVIDER || 'mock',
+    model: process.env.AI_MODEL || 'mock-v1',
+    apiKey: process.env.AI_API_KEY || '',
+    endpoint: process.env.AI_ENDPOINT || '',
+    timeoutMs: parseInt(process.env.AI_TIMEOUT || '30000', 10),
+    copilotEnabled: process.env.AI_COPILOT_ENABLED !== 'false',
+    investigationsEnabled: process.env.AI_INVESTIGATIONS_ENABLED !== 'false',
+    mcpServerPath: process.env.MCP_SERVER_PATH || '',
+  },
 };

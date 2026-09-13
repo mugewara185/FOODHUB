@@ -16,6 +16,9 @@ import {
   registerGetBreakdownTool,
   registerGetTopEntitiesTool,
   registerAnalyzeTrendTool,
+  registerGetRestaurantPerformanceTool,
+  registerGetCancellationMetricsTool,
+  registerAnalyzeRestaurantPerformanceTool,
 } from './tools/index';
 import { registerResources } from './resources/index';
 import { registerPrompts } from './prompts/index';
@@ -41,6 +44,9 @@ export function createServer(): McpServer {
   registerGetBreakdownTool(server);
   registerGetTopEntitiesTool(server);
   registerAnalyzeTrendTool(server);
+  registerGetRestaurantPerformanceTool(server);
+  registerGetCancellationMetricsTool(server);
+  registerAnalyzeRestaurantPerformanceTool(server);
 
   // ── Register Resources ─────────────────────────────────────────────────────
   // Read-only context documents (metric definitions, dimensions, data coverage).

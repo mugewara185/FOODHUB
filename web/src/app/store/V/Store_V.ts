@@ -1,13 +1,13 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
-import { 
-  persistStore, 
-  persistReducer, 
-  FLUSH, 
-  REHYDRATE, 
-  PAUSE, 
-  PERSIST, 
-  PURGE, 
-  REGISTER 
+import {
+  persistStore,
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER
 } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import storageSession from "redux-persist/lib/storage/session";
@@ -22,6 +22,7 @@ import notificationReducer from "../../../core/notifications/notificationSlice";
 import ownerReducer from "../../../features/owner/store/ownerSlice";
 
 import deliveryPartnerReducer from "../../../features/deliveryPartner/deliveryPartnerSlice";
+import adminAiReducer from "../../../features/admin/ai/adminAiSlice";
 
 // Import state initializers
 import { initializeAllStatesFromFactory } from "./stateInitializers";
@@ -40,6 +41,7 @@ const rootReducer = combineReducers({
   notifications: notificationReducer,
   owner: ownerReducer,
   deliveryPartner: deliveryPartnerReducer,
+  adminAi: adminAiReducer,
 });
 
 // Select storage engine: session isolation mode uses sessionStorage for multi-tab testing
@@ -82,22 +84,22 @@ const store = configureStore({
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     })
-    .concat(
-      // Add Redux logger middleware
-      createReduxLoggerMiddleware()
-    )
-  ,devTools: IS_DEV, //true
+      .concat(
+        // Add Redux logger middleware
+        createReduxLoggerMiddleware()
+      )
+  , devTools: IS_DEV, //true
 });
 
 import { logger } from '../../../core/dev/logger';
 logger.info('APP', 'Redux store initialized with factory data', { event: 'APP.STORE.INIT' });
-console.log("Redux store initialized with factory data:", store.getState());
+// console.log("Redux store initialized with factory data:", store.getState());
 
 // Initialize Redux logger control with config
 if (IS_DEV) {
   // Make logger control available globally for debugging
   (window as any).reduxLoggerControl = reduxLoggerControl;
-  
+
   console.log(
     '%c[REDUX_LOGGER] Initialized with config:',
     'color: #1976d2; font-weight: bold;',
@@ -112,7 +114,7 @@ if (IS_DEV) {
     'Restaurant Logging': REDUX_LOGGER_CONFIG.featureLogging.restaurants,
     'UI Logging': REDUX_LOGGER_CONFIG.featureLogging.ui,
   });
-  
+
   console.log(
     '%cUsage: reduxLoggerControl.setEnabled(false) to disable, reduxLoggerControl.printStatus() for quick status',
     'color: #666; font-style: italic;'

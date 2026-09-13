@@ -47,6 +47,7 @@ import {
   AdminPanelSettings,
   DarkMode,
   LightMode,
+  SmartToy,
 } from '@mui/icons-material';
 
 
@@ -97,6 +98,7 @@ const menuItems = [
   { text: 'Payments', icon: <Payment />, path: '/admin/payments' },
   { text: 'Promotions', icon: <LocalOffer />, path: '/admin/promotions' },
   { text: 'Reports', icon: <Assessment />, path: '/admin/reports' },
+  { text: 'AI Insights', icon: <SmartToy />, path: '/admin/ai' },
   { text: 'Settings', icon: <Settings />, path: '/admin/settings' },
 ];
 
