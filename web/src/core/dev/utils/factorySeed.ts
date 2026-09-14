@@ -588,6 +588,31 @@ export const buildFactorySeedPayload = (
     });
   }
 
+  // ── Step 2b: Generate Delivery Partners ─────────────────────────────────
+  const partnerDocs: any[] = [];
+  if (targets.includes('users')) {
+    logger.info('FactorySeed', 'seed:partners:start', { event: 'seed:partners:start', traceId });
+    const vehicles = ['Bike', 'Scooter', 'EV Bike', 'Electric Scooter'];
+    
+    // Add 8-10 partners
+    for (let i = 0; i < 10; i++) {
+      const pid = generateObjectId();
+      const name = randomName();
+      partnerDocs.push({
+        _id: pid,
+        name,
+        phone: randomPhone(),
+        vehicle: pick(vehicles),
+        rating: randomFloat(4.0, 5.0, 1),
+        status: 'available',
+        currentLocation: {
+          type: 'Point',
+          coordinates: [77.5946 + (Math.random() - 0.5) * 0.1, 12.9716 + (Math.random() - 0.5) * 0.1]
+        }
+      });
+    }
+  }
+
   // ── Step 3: Generate Orders ──────────────────────────────────────────────
   const orderDocs: any[] = [];
 
@@ -831,6 +856,10 @@ export const buildFactorySeedPayload = (
 
   if (userDocs.length > 0 && (targets.includes('users') || targets.includes('orders') || targets.includes('reviews') || targets.includes('notifications'))) {
     collections.push({ modelName: 'User', documents: userDocs, clearFirst: true });
+  }
+
+  if (partnerDocs.length > 0 && targets.includes('users')) {
+    collections.push({ modelName: 'DeliveryPartner', documents: partnerDocs, clearFirst: true });
   }
 
   if (restaurantDocs.length > 0 && (targets.includes('restaurants') || targets.includes('foodItems'))) {

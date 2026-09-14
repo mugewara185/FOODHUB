@@ -57,6 +57,7 @@ import { Promotions, Reports, Settings as AdminSettings, Users } from '../../pag
 import { AdminMenu } from '../../pages/admin/menu';
 import AdminAIPage from '../../pages/admin/ai/AdminAIPage';
 import InvestigationPage from '../../pages/admin/ai/InvestigationPage';
+import AdminDeliveryDashboard from '../../pages/admin/delivery';
 
 import { de } from 'date-fns/locale';
 import DevLayout from '@/core/dev/ui/layout/DevLayout';
@@ -143,6 +144,7 @@ const AppRoutes: React.FC = () => {
         <Route path='profile' element={<AdminProfile />} />
         <Route path='ai' element={<AdminAIPage />} />
         <Route path='ai/investigations/:id' element={<InvestigationPage />} />
+        <Route path='delivery' element={<AdminDeliveryDashboard />} />
       </Route>
 
 {/* partner routes */}

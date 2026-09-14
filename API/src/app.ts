@@ -14,9 +14,12 @@ import devRoutes from './modules/dev/dev.routes';
 import notificationRoutes from './modules/notifications/notification.routes';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
 import aiRoutes from './modules/ai/ai.routes';
+import deliveryRoutes from './modules/delivery/delivery.routes';
 
 // Import models so they are registered with Mongoose for dynamic seeding
 import './modules/notifications/notification.model';
+import './modules/delivery/delivery-partner.model';
+import './modules/delivery/delivery.model';
 
 const app = express();
 
@@ -46,6 +49,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/dev', devRoutes);
 app.use('/api/admin/analytics', analyticsRoutes);
 app.use('/api/admin/ai', aiRoutes);
+app.use('/api/admin/delivery', deliveryRoutes);
 
 // 404 handler
 app.use((_req, res) => {

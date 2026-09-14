@@ -46,6 +46,9 @@ class SocketService {
       this.socket?.on('order_status_update', callback);
       this.socket?.on('order:status_changed', callback);
       this.socket?.on('partner:location_updated', callback);
+      this.socket?.on('delivery:assigned', callback);
+      this.socket?.on('delivery:location', callback);
+      this.socket?.on('delivery:status', callback);
     }
   }
 
@@ -55,11 +58,33 @@ class SocketService {
       this.socket?.off('order_status_update', callback);
       this.socket?.off('order:status_changed', callback);
       this.socket?.off('partner:location_updated', callback);
+      this.socket?.off('delivery:assigned', callback);
+      this.socket?.off('delivery:location', callback);
+      this.socket?.off('delivery:status', callback);
     } else {
       this.socket?.off('order_status_update');
       this.socket?.off('order:status_changed');
       this.socket?.off('partner:location_updated');
+      this.socket?.off('delivery:assigned');
+      this.socket?.off('delivery:location');
+      this.socket?.off('delivery:status');
     }
+  }
+
+  joinAdminFleet() {
+    this.socket?.emit('join_admin_fleet');
+  }
+
+  leaveAdminFleet() {
+    this.socket?.emit('leave_admin_fleet');
+    this.socket?.off('delivery:location');
+    this.socket?.off('delivery:status');
+    this.socket?.off('delivery:risk');
+    this.socket?.off('delivery:risk_cleared');
+  }
+  
+  onAdminFleetEvent(event: string, callback: (data: any) => void) {
+    this.socket?.on(event, callback);
   }
 
   updatePartnerLocation(partnerId: string, location: { lat: number; lng: number }) {

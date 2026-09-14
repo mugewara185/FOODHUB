@@ -7,10 +7,12 @@ import { sendSuccess } from '../../shared/utils/response';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
 import { getIO } from '../../socket';
 
+import { assignDelivery, cancelDeliveryForOrder } from '../delivery/delivery.service';
+
 // Helper to simulate order progression for demonstration of real-time tracking
-const simulateOrderProgression = async (orderId: string, userId: string) => {
-  const statuses = ['confirmed', 'preparing', 'out_for_delivery', 'delivered'];
-  let delay = 10000; // 10s between states
+const simulateOrderProgression = async (orderId: string, userId: string, restaurantLoc: [number, number], customerLoc: [number, number]) => {
+  const statuses = ['confirmed', 'preparing', 'out_for_delivery'];
+  let delay = 5000; // 5s between states for demo
 
   for (const status of statuses) {
     setTimeout(async () => {
@@ -30,12 +32,16 @@ const simulateOrderProgression = async (orderId: string, userId: string) => {
             orderId,
             status 
           });
+
+          if (status === 'out_for_delivery') {
+             await assignDelivery(orderId, restaurantLoc, customerLoc);
+          }
         }
       } catch (err) {
         console.error('Simulation error:', err);
       }
     }, delay);
-    delay += 10000;
+    delay += 5000;
   }
 };
 
@@ -87,8 +93,12 @@ export async function createOrder(req: AuthRequest, res: Response, next: NextFun
       note: body.note,
     });
 
+    // Mock customer location slightly away from restaurant for demo
+    const restaurantLoc: [number, number] = restaurant.location ? [restaurant.location.lng, restaurant.location.lat] : [72.8777, 19.0760];
+    const customerLoc: [number, number] = [restaurantLoc[0] + 0.015, restaurantLoc[1] + 0.015];
+
     // Start background simulation
-    simulateOrderProgression(order.id, req.user!.id);
+    simulateOrderProgression(order.id, req.user!.id, restaurantLoc, customerLoc);
 
     sendSuccess({ res, statusCode: 201, message: 'Order placed successfully', data: order });
   } catch (err) {
@@ -132,12 +142,14 @@ export async function cancelOrder(req: AuthRequest, res: Response, next: NextFun
       throw new AppError('Not authorized', 403);
     }
 
-    if (!['pending', 'confirmed'].includes(order.status)) {
+    if (!['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status)) {
       throw new AppError('Order cannot be cancelled at this stage', 400);
     }
 
     order.status = 'cancelled';
     await order.save();
+
+    await cancelDeliveryForOrder(order.id);
 
     const io = getIO();
     io.to(order.id).emit('order_status_update', { orderId: order.id, status: 'cancelled' });
