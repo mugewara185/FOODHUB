@@ -13,6 +13,7 @@ interface AuthApiUserPayload {
   name: string;
   email: string;
   role?: Array<'user' | 'admin' | 'owner' | 'partner'>;
+  roles?: Array<'user' | 'admin' | 'owner' | 'partner'>;
   phone?: string;
   avatar?: string;
   createdAt?: string;

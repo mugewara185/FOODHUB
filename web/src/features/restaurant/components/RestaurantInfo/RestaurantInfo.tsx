@@ -40,7 +40,7 @@ const RestaurantInfo: React.FC<RestaurantInfoProps> = ({ restaurant }) => {
       </FilterGroup>
 
       <Box sx={{ mt: 2 }}>
-        <FilterGroup label="Restaurant Information" defaultExpanded>
+        <FilterGroup label="Restaurant Information" defaultExpanded={false}>
           <List sx={{ pt: 0 }}>
             {restaurant.openingHours && restaurant.openingHours.map((hour, idx) => (
               <ListItem key={idx} sx={{ px: 0 }}>
