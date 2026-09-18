@@ -1,7 +1,7 @@
 # Delivery Vertical - Status
 
 ## Current Session
-S4b - Admin Fleet - NOT STARTED
+S4c - Notifications - NOT STARTED
 
 ## Session Plan
 - [x] S1 - Inspect + domain model + identity fix + coord normalization
@@ -9,7 +9,7 @@ S4b - Admin Fleet - NOT STARTED
 - [x] S3 - Partner UI + ActiveDelivery + GPS simulator
 - [ ] S4 - Customer tracking + Admin fleet + Notifications
   - [x] S4a - Customer tracking
-  - [ ] S4b - Admin fleet
+  - [x] S4b - Admin fleet
   - [ ] S4c - Notifications
 - [ ] S5 - Polish (image fallback, favorites, search, logger UI)
 
@@ -19,6 +19,8 @@ S4b - Admin Fleet - NOT STARTED
 - S2 Socket.IO runtime round-trip verifying event payload shapes and state-transition emission.
 - S3 ActiveDelivery flow purely domain-driven (action buttons emit Socket commands -> backend state machine -> socket event -> Redux listener -> state projection).
 - S3 Map Camera logic cleanly separated from idle recentering.
+- S4a Customer tracking cleanly reuses backend Socket payloads via a globally role-generic `useDeliverySocket`.
+- S4b Admin Fleet dashboard completely functional. GeoJSON point conversion centralized in backend route (`toLatLng`) so frontend blindly and safely ingests strict `{lat, lng}` arrays for its tracking hooks. Tri-state `connectionStatus` propagates gracefully.
 
 ## S3 Follow-ups
 - **Socket ownership:** Moved socket lifecycle from `PartnerLayout.tsx` to a global `useDeliverySocket` hook mounted in `App.tsx` so the connection survives partner route changes.
@@ -27,13 +29,13 @@ S4b - Admin Fleet - NOT STARTED
 - **Hook Test Integrity:** Honestly recorded that S3 originally claimed `useGPSSimulator` existed and was tested, but it did not initially exist as a hook, and the test only exercised the underlying class rather than the hook itself. Replaced with a proper `@testing-library/react` headless hook test. *Lesson: tests must exercise the public API the app imports.*
 
 ## Dependencies Added
-- None (removed accidental `mongoose` from `web` workspace).
+- `vitest` (dev) in API workspace to properly run backend boundary assertion tests.
 
 ## Known Gaps / Blockers
 - Frontend compilation (`npx tsc --noEmit` in `web`) produces a large number of pre-existing errors (over 3000 lines). We are strictly ignoring these and focusing only on Delivery/Order-specific code.
 
 ## Next Exact Task
-Run S4b: Admin fleet view.
+Run S4c: Notifications.
 
 ## Completion %
-70%
+80%

@@ -9,6 +9,7 @@ import type {
 
 class SocketService {
   private socket: Socket | null = null;
+  private connectionChangeListeners: Set<(status: 'connected' | 'reconnecting' | 'disconnected') => void> = new Set();
 
   connect(userId?: string, role?: string) {
     if (this.socket) return this.socket;
@@ -19,6 +20,7 @@ class SocketService {
 
     this.socket.on('connect', () => {
       console.log('Socket connected:', this.socket?.id, role ? `(Role: ${role})` : '');
+      this.notifyConnectionState('connected');
       if (userId) {
         this.joinUserRoom(userId);
       }
@@ -26,15 +28,42 @@ class SocketService {
 
     this.socket.on('disconnect', () => {
       console.log('Socket disconnected');
+      this.notifyConnectionState('disconnected');
+    });
+
+    this.socket.on('connect_error', () => {
+      this.notifyConnectionState('reconnecting');
+    });
+
+    this.socket.io.on('reconnect_attempt', () => {
+      this.notifyConnectionState('reconnecting');
     });
 
     return this.socket;
+  }
+
+  private notifyConnectionState(status: 'connected' | 'reconnecting' | 'disconnected') {
+    this.connectionChangeListeners.forEach(listener => listener(status));
+  }
+
+  onConnectionChange(callback: (status: 'connected' | 'reconnecting' | 'disconnected') => void) {
+    this.connectionChangeListeners.add(callback);
+    // Immediately invoke with current status if socket exists
+    if (this.socket) {
+      if (this.socket.connected) callback('connected');
+      else callback('disconnected'); // or reconnecting, but disconnected is safer
+    }
+  }
+
+  offConnectionChange(callback: (status: 'connected' | 'reconnecting' | 'disconnected') => void) {
+    this.connectionChangeListeners.delete(callback);
   }
 
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.notifyConnectionState('disconnected');
     }
   }
 

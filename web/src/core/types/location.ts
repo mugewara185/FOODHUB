@@ -17,10 +17,10 @@ export interface DeliveryPartner {
   vehicleType: 'bike' | 'scooter' | 'car';
   vehicleNumber: string;
   currentLocation: Coordinates;
-  status: 'online' | 'offline' | 'on_delivery';
+  status: 'online' | 'offline' | 'on_delivery' | 'available' | 'assigned';
   rating: number;
-  completedDeliveries: number;
   lastUpdate: Date;
+  currentAssignedDelivery?: string;
 }
 
 export interface DeliveryRoute {

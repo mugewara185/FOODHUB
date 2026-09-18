@@ -4,6 +4,7 @@ import { DeliveryPartner } from './delivery-partner.model';
 import { getActiveRisks } from './risk.engine';
 import { askDeliveryCopilot } from './delivery.ai';
 import { protect, authorize } from '../../shared/middleware/auth.middleware';
+import { toLatLng } from '../../utils/geo';
 
 import { setPartnerStatus, updateDeliveryStatus } from './delivery.service';
 
@@ -37,11 +38,26 @@ router.get('/fleet', async (req: Request, res: Response, next: NextFunction) => 
     const partners = await DeliveryPartner.find();
     const risks = getActiveRisks();
 
+    // Map partners to the expected frontend shape, converting GeoJSON to { lat, lng }
+    const mappedPartners = partners.map(p => {
+      const doc = p.toObject();
+      return {
+        id: doc._id.toString(),
+        name: doc.name,
+        phone: doc.phone,
+        vehicle: doc.vehicle,
+        rating: doc.rating,
+        status: doc.status,
+        currentLocation: doc.currentLocation ? toLatLng(doc.currentLocation) : null,
+        currentAssignedDelivery: doc.currentAssignedDelivery
+      };
+    });
+
     res.json({
       success: true,
       data: {
         activeDeliveries: deliveries,
-        partners: partners,
+        partners: mappedPartners,
         risks: risks
       }
     });

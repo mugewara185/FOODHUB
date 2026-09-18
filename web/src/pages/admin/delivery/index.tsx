@@ -1,32 +1,55 @@
-import React, { useState } from 'react';
-import { Box, Typography, Grid, Paper, Chip, Switch, FormControlLabel, Card, CardContent, Divider, Avatar, Stack, Button } from '@mui/material';
-import { LocalShipping, Warning, Speed, TrendingUp, CheckCircle } from '@mui/icons-material';
+import { useState } from 'react';
+import { Box, Typography, Grid, Paper, Chip, Switch, FormControlLabel, Card, CardContent, Divider, Avatar, Stack, Button, CircularProgress, Alert } from '@mui/material';
+import { LocalShipping, Warning, Speed, TrendingUp, CheckCircle, Wifi, SignalWifiOff } from '@mui/icons-material';
 import Map from '../../../shared/components/maps/Map';
 import type { DeliveryPartner } from '../../../core/types';
-
-const mockFleet: DeliveryPartner[] = [
-  { id: 'DP001', name: 'Rahul S.', phone: '9876543210', vehicleType: 'bike', currentLocation: { lat: 19.0760, lng: 72.8777 }, status: 'on_delivery', rating: 4.8, completedDeliveries: 1250, lastUpdate: new Date() },
-  { id: 'DP002', name: 'Amit K.', phone: '9876543211', vehicleType: 'bike', currentLocation: { lat: 19.0800, lng: 72.8800 }, status: 'online', rating: 4.5, completedDeliveries: 850, lastUpdate: new Date() },
-  { id: 'DP003', name: 'Suresh M.', phone: '9876543212', vehicleType: 'bike', currentLocation: { lat: 19.0700, lng: 72.8700 }, status: 'on_delivery', rating: 4.9, completedDeliveries: 2100, lastUpdate: new Date() }
-];
+import { useAdminFleet } from '../../../features/admin/hooks/useAdminFleet';
 
 export default function AdminDeliveryDashboard() {
-  const [fleet] = useState<DeliveryPartner[]>(mockFleet);
+  const { fleet, connectionStatus, loading, error } = useAdminFleet();
   const [copilotActive, setCopilotActive] = useState(true);
   const [selectedPartner, setSelectedPartner] = useState<DeliveryPartner | null>(null);
 
+  if (loading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}><CircularProgress /></Box>;
+  }
+  
+  if (error) {
+    return <Box sx={{ p: 4 }}><Alert severity="error">{error}</Alert></Box>;
+  }
+
   const activeDeliveries = fleet.filter(p => p.status === 'on_delivery').length;
+  // Database returns 'available' instead of 'online' sometimes, mapping it safely
   const onlinePartners = fleet.filter(p => p.status !== 'offline').length;
   
-  const markers = fleet.map(partner => ({
-    id: partner.id, position: partner.currentLocation, type: 'partner',
+  const markers = fleet.filter(p => p.currentLocation).map(partner => ({
+    id: partner.id, position: partner.currentLocation, type: 'partner' as const,
     title: partner.name, info: `${partner.status.replace('_', ' ')} - ${partner.vehicleType}`
   }));
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'on_delivery': return 'primary';
+      case 'assigned': return 'warning';
+      case 'available':
+      case 'online': return 'success';
+      default: return 'default';
+    }
+  };
+
+  const ConnectionIndicator = () => {
+    if (connectionStatus === 'connected') return <Chip icon={<Wifi />} label="Live" color="success" size="small" />;
+    if (connectionStatus === 'reconnecting') return <Chip icon={<Wifi />} label="Reconnecting..." color="warning" size="small" />;
+    return <Chip icon={<SignalWifiOff />} label="Disconnected" color="error" size="small" />;
+  };
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">Fleet Operations</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h4" fontWeight="bold">Fleet Operations</Typography>
+          <ConnectionIndicator />
+        </Box>
         <FormControlLabel control={<Switch checked={copilotActive} onChange={(e) => setCopilotActive(e.target.checked)} color="primary" />} label={<Typography fontWeight="bold" color={copilotActive ? 'primary' : 'text.secondary'}>Copilot AI</Typography>} />
       </Box>
       <Grid container spacing={3}>
@@ -41,7 +64,7 @@ export default function AdminDeliveryDashboard() {
         <Grid item xs={12} lg={4}>
           <Stack spacing={3}>
             {selectedPartner && (
-              <Card><CardContent><Typography variant="h6" gutterBottom>Partner Details</Typography><Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography>{selectedPartner.name}</Typography><Chip size="small" label={selectedPartner.status} color={selectedPartner.status === 'on_delivery' ? 'primary' : 'success'} /></Box><Typography variant="body2" color="text.secondary">Rating: {selectedPartner.rating} ⭐</Typography><Typography variant="body2" color="text.secondary">Deliveries: {selectedPartner.completedDeliveries}</Typography><Button size="small" variant="outlined" sx={{ mt: 2 }} onClick={() => setSelectedPartner(null)}>Close</Button></CardContent></Card>
+              <Card><CardContent><Typography variant="h6" gutterBottom>Partner Details</Typography><Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}><Typography>{selectedPartner.name}</Typography><Chip size="small" label={selectedPartner.status} color={getStatusColor(selectedPartner.status)} /></Box><Typography variant="body2" color="text.secondary">Rating: {selectedPartner.rating} ⭐️</Typography><Button size="small" variant="outlined" sx={{ mt: 2 }} onClick={() => setSelectedPartner(null)}>Close</Button></CardContent></Card>
             )}
             {copilotActive && (
               <Card sx={{ border: '1px solid', borderColor: 'primary.main', bgcolor: 'primary.50' }}>
