@@ -14,6 +14,7 @@ import {
   IconButton as MuiIconButton,
   Tooltip
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
   Notifications as NotificationsIcon,
   CheckCircle,
@@ -29,6 +30,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export const NotificationBell: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const notifications = useAppSelector(selectNotifications);
   const unreadCount = useAppSelector(selectUnreadCount);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
@@ -117,6 +119,10 @@ export const NotificationBell: React.FC = () => {
                   }}
                   onClick={() => {
                     if (!notification.isRead) dispatch(markAsRead(notification.id));
+                    if (notification.targetPath) {
+                      handleClose();
+                      navigate(notification.targetPath);
+                    }
                   }}
                   secondaryAction={
                     !notification.isRead && (

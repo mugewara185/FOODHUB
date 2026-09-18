@@ -523,6 +523,7 @@ import { APP_NAME } from '../../core/constants/food';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppSelector, useAppDispatch } from '../../app/store';
 import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
+import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeliveryNotifications';
 import { NotificationBell } from '../../core/notifications/components/NotificationBell';
 
 //cartSelector
@@ -530,6 +531,7 @@ import { selectCartItems } from '../../features/cart/cartSlice';
 
 const MainLayout: React.FC = () => {
   // console.log('%c<MainLayout/>','color:orange')
+  useDeliveryNotifications('customer');
   const { user, isAuthenticated, isLoading, logout } = useAuth(); // Get auth state
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);

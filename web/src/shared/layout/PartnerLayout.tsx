@@ -39,6 +39,9 @@ import {
   Star,
   LocationOn,
 } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
+import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeliveryNotifications';
+import { NotificationBell } from '../../core/notifications/components/NotificationBell';
 
 const drawerWidth = 280;
 
@@ -54,6 +57,7 @@ const menuItems = [
 ];
 
 const PartnerLayout: React.FC = () => {
+  useDeliveryNotifications('partner');
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -211,11 +215,7 @@ const PartnerLayout: React.FC = () => {
           <DevVersionSwitcher />
 
           {/* Notifications */}
-          <IconButton>
-            <Badge badgeContent={3} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
+          <NotificationBell />
         </Toolbar>
       </AppBar>
 

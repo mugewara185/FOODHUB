@@ -50,7 +50,9 @@ import {
   SmartToy,
 } from '@mui/icons-material';
 
-
+import { useAuth } from '../../contexts/AuthContext';
+import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeliveryNotifications';
+import { NotificationBell } from '../../core/notifications/components/NotificationBell';
 
 const drawerWidth = 280;
 
@@ -103,6 +105,7 @@ const menuItems = [
 ];
 
 const AdminLayout: React.FC = () => {
+  useDeliveryNotifications('admin');
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,10 +133,6 @@ const AdminLayout: React.FC = () => {
 
   const handleProfileMenuClose = () => {
     setAnchorEl(null);
-  };
-
-  const handleNotificationOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setNotificationAnchor(event.currentTarget);
   };
 
   const handleNotificationClose = () => {
@@ -323,11 +322,7 @@ const AdminLayout: React.FC = () => {
 
           {/* Right Icons */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton onClick={handleNotificationOpen}>
-              <Badge badgeContent={8} color="error">
-                <Notifications />
-              </Badge>
-            </IconButton>
+            <NotificationBell />
 
             <DevVersionSwitcher />
 

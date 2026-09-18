@@ -10,6 +10,7 @@ export interface AppNotification {
   createdAt: string;
   orderId?: string;
   status?: string;
+  targetPath?: string;
 }
 
 interface NotificationState {
