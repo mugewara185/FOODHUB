@@ -83,7 +83,7 @@ const ActiveDelivery: React.FC = () => {
       dispatch(updateLocation(newLoc));
       
       // Emit socket event for real-time tracking
-      socketService.updatePartnerLocation(activeAssignment.id, newLoc);
+      socketService.updatePartnerLocation(activeAssignment.orderId, newLoc);
       
     }, 5000);
     
@@ -120,7 +120,7 @@ const ActiveDelivery: React.FC = () => {
 
   const handleStatusUpdate = (newStatus: any) => {
     dispatch(updateAssignmentStatus(newStatus));
-    socketService.updateOrderStatus(activeAssignment.id, newStatus);
+    socketService.updateOrderStatus(activeAssignment.orderId, newStatus);
   };
 
   const handlePickupConfirm = () => {
@@ -141,7 +141,7 @@ const ActiveDelivery: React.FC = () => {
           Active Delivery
         </Typography>
         <Chip
-          label={`Order #${activeAssignment.id}`}
+          label={`Order #${activeAssignment.orderId}`}
           color="primary"
         />
       </Box>

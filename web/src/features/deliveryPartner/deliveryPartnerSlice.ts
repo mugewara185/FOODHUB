@@ -3,22 +3,7 @@ import type { RootState } from '../../app/store';
 
 export type PartnerStatus = 'OFFLINE' | 'ONLINE' | 'ON_DELIVERY';
 
-export interface DeliveryAssignment {
-  id: string; // matches order ID
-  restaurant: string;
-  restaurantImage: string;
-  customer: string;
-  pickupLocation: { lat: number; lng: number };
-  dropoffLocation: { lat: number; lng: number };
-  pickupAddress: string;
-  dropAddress: string;
-  distance: string;
-  estimatedTime: string;
-  amount: number;
-  priority: 'high' | 'medium' | 'low';
-  status: 'assigned' | 'accepted' | 'arrived_pickup' | 'picked_up' | 'out_for_delivery' | 'delivered';
-  items: { name: string; quantity: number }[];
-}
+import { DeliveryAssignment, DeliveryStatus } from '../../core/types/delivery';
 
 export interface DeliveryPartnerState {
   status: PartnerStatus;
@@ -40,7 +25,8 @@ export interface DeliveryPartnerState {
 
 const mockAssignments: DeliveryAssignment[] = [
   {
-    id: 'ORD-2024-001',
+    deliveryId: 'DEL-2024-001',
+    orderId: 'ORD-2024-001',
     restaurant: 'Spice Garden',
     restaurantImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop',
     customer: 'John Doe',

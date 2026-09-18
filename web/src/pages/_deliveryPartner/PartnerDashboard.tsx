@@ -96,8 +96,8 @@ const PartnerDashboard: React.FC = () => {
               <Grid item xs={12} md={8}>
                 <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                      Order #{currentOrder.id}
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      Order #{currentOrder.orderId}
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>
                       From: {currentOrder.restaurant}

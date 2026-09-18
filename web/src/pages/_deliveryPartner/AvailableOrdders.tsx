@@ -69,7 +69,7 @@ const AvailableOrders: React.FC = () => {
       {/* Orders Grid */}
       <Grid container spacing={3}>
         {orders.map((order) => (
-          <Grid item xs={12} md={6} key={order.id}>
+          <Grid item xs={12} md={6} key={order.orderId}>
             <Card
               sx={{
                 borderRadius: 3,
@@ -107,7 +107,7 @@ const AvailableOrders: React.FC = () => {
                       {order.restaurant}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Order #{order.id}
+                      Order #{order.orderId}
                     </Typography>
                   </Box>
                   <Chip
@@ -179,7 +179,7 @@ const AvailableOrders: React.FC = () => {
                       variant="contained"
                       color="success"
                       size="large"
-                      onClick={() => handleAccept(order.id)}
+                      onClick={() => handleAccept(order.orderId)}
                     >
                       Accept
                     </Button>
@@ -192,7 +192,7 @@ const AvailableOrders: React.FC = () => {
                       size="large"
                       onClick={() => {
                         import('@features/deliveryPartner/deliveryPartnerSlice').then(module => {
-                          dispatch(module.rejectAssignment(order.id));
+                          dispatch(module.rejectAssignment(order.orderId));
                         })
                       }}
                     >

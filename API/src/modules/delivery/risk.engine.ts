@@ -46,12 +46,12 @@ export async function evaluateRisk(delivery: IDelivery) {
     lastGpsUpdateAgoSeconds: 0,
   };
 
-  // Condition for demo purposes: If delivery is 'on_the_way' and age is high or forced condition
-  if (delivery.status === 'on_the_way' && (facts.speedDropPct > 40 || facts.etaSecondsCurrent > 2000)) {
+  // Condition for demo purposes: If delivery is 'out_for_delivery' and age is high or forced condition
+  if (delivery.status === 'out_for_delivery' && (facts.speedDropPct > 40 || facts.etaSecondsCurrent > 2000)) {
     severity = 'high';
     type = 'speed_drop';
     humanTemplate = `Order #${delivery.orderId} is ${Math.round(facts.etaSecondsCurrent/60)} minutes behind schedule. Partner speed dropped from ${facts.avgSpeedPrev4Min} km/h to ${facts.avgSpeedLast4Min} km/h over the last 4 minutes.`;
-  } else if (delivery.status === 'preparing' && age > 600) {
+  } else if (delivery.status === 'pending' && age > 600) {
     severity = 'medium';
     type = 'pickup_delay';
     humanTemplate = `Order #${delivery.orderId} has been preparing for ${Math.round(age/60)} minutes.`;

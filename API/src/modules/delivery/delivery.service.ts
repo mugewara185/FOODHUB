@@ -4,6 +4,7 @@ import { startDeliverySimulation } from './delivery.simulator';
 import { Order } from '../orders/order.model';
 import { Types } from 'mongoose';
 import { getIO } from '../../socket';
+import { assertValidTransition, DeliveryStatus } from './delivery.state';
 
 export async function assignDelivery(orderId: string, restaurantLocation: [number, number], customerLocation: [number, number]) {
   // 1. Find nearest available partner (for demo, just find any available)
@@ -26,11 +27,14 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
     pickupLocation: { type: 'Point', coordinates: restaurantLocation },
     destinationLocation: { type: 'Point', coordinates: customerLocation },
     currentLocation: { type: 'Point', coordinates: partnerStart },
-    status: 'partner_assigned',
-    timestamps: {
-      assignedAt: new Date()
-    }
+    status: 'pending', // Starts at pending before transitioning to assigned
+    timestamps: {}
   });
+
+  // assert valid transition logic via service layer
+  assertValidTransition(delivery.status, 'assigned');
+  delivery.status = 'assigned';
+  delivery.timestamps.assignedAt = new Date();
 
   await delivery.save();
   partner.currentAssignedDelivery = delivery._id as any;
@@ -55,10 +59,26 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
   return delivery;
 }
 
+export async function updateDeliveryStatus(deliveryId: string, newStatus: DeliveryStatus) {
+  const delivery = await Delivery.findById(deliveryId);
+  if (!delivery) throw new Error('Delivery not found');
+
+  assertValidTransition(delivery.status, newStatus);
+  delivery.status = newStatus;
+
+  if (newStatus === 'picked_up') delivery.timestamps.pickedUpAt = new Date();
+  if (newStatus === 'delivered') delivery.timestamps.deliveredAt = new Date();
+  if (newStatus === 'cancelled') delivery.timestamps.cancelledAt = new Date();
+
+  await delivery.save();
+  return delivery;
+}
+
 export async function cancelDeliveryForOrder(orderId: string) {
   const delivery = await Delivery.findOne({ orderId, status: { $ne: 'delivered' } });
   if (!delivery) return;
 
+  assertValidTransition(delivery.status, 'cancelled');
   delivery.status = 'cancelled';
   delivery.timestamps.cancelledAt = new Date();
   await delivery.save();

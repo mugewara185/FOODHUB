@@ -521,4 +521,4 @@ export interface OrderFactoryInput {
 export interface ReviewFactoryInput {
   count?: number;
   ratingRange?: { min: number; max: number };
-}
+}export * from './delivery';

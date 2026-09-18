@@ -1,6 +1,18 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { DeliveryStatus, assertValidTransition } from './delivery.state';
 
-export type DeliveryStatus = 'preparing' | 'ready' | 'partner_assigned' | 'picked_up' | 'on_the_way' | 'nearby' | 'delivered' | 'cancelled';
+/*
+ * MAPPING ORDER STATUS TO DELIVERY STATUS (S1 Contract)
+ * Delivery status is the granular source of truth.
+ * Order status is a derived, macro-level projection of Delivery status.
+ *
+ * Order.processing       <- Delivery: pending | assigned | accepted | arrived_pickup
+ * Order.out_for_delivery <- Delivery: picked_up | out_for_delivery | nearby
+ * Order.delivered        <- Delivery: delivered
+ * Order.cancelled        <- Delivery: cancelled
+ */
+
+export { DeliveryStatus } from './delivery.state';
 
 export interface IDelivery extends Document {
   orderId: Types.ObjectId;
@@ -40,7 +52,7 @@ const pointSchema = new Schema({
     type: [Number],
     required: true
   }
-});
+}, { _id: false });
 
 const deliverySchema = new Schema<IDelivery>(
   {
@@ -51,8 +63,18 @@ const deliverySchema = new Schema<IDelivery>(
     currentLocation: { type: pointSchema, required: false },
     status: {
       type: String,
-      enum: ['preparing', 'ready', 'partner_assigned', 'picked_up', 'on_the_way', 'nearby', 'delivered', 'cancelled'],
-      default: 'preparing',
+      enum: [
+        'pending',
+        'assigned',
+        'accepted',
+        'arrived_pickup',
+        'picked_up',
+        'out_for_delivery',
+        'nearby',
+        'delivered',
+        'cancelled'
+      ],
+      default: 'pending',
     },
     etaSeconds: { type: Number },
     distanceRemainingMeters: { type: Number },
@@ -68,5 +90,30 @@ const deliverySchema = new Schema<IDelivery>(
 
 deliverySchema.index({ currentLocation: '2dsphere' });
 deliverySchema.index({ status: 1 });
+
+// To check original value, we can use an init hook or retrieve from DB if needed,
+// but mongoose does not natively preserve old values cleanly for all pre('save') scenarios.
+// However, there is a known trick to get the previous value:
+// this._original_status (we will set this in an init hook or simply query)
+// Given this is defense in depth, we will try to fetch if not cached.
+
+// Let's implement an init hook to store the original status
+deliverySchema.post('init', function (doc) {
+  (doc as any)._original_status = doc.status;
+});
+
+// Defense in depth: validate state machine on save
+deliverySchema.pre('save', function (next) {
+  if (this.isModified('status')) {
+    const from = (this as any)._original_status || 'pending';
+    const to = this.status;
+    try {
+      assertValidTransition(from, to);
+    } catch (err: any) {
+      return next(err);
+    }
+  }
+  next();
+});
 
 export const Delivery = model<IDelivery>('Delivery', deliverySchema);

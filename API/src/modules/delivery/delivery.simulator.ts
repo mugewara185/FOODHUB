@@ -97,7 +97,7 @@ export async function startDeliverySimulation(deliveryId: string) {
           delivery.status = 'nearby';
           statusChanged = true;
         } else if (delivery.status === 'picked_up') {
-          delivery.status = 'on_the_way';
+          delivery.status = 'out_for_delivery';
           statusChanged = true;
         }
       }
