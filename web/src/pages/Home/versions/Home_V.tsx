@@ -21,7 +21,6 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import {
-  Search,
   NavigateNext,
   Restaurant,
   DeliveryDining,
@@ -61,7 +60,10 @@ import HeroCompact from '@/features/home/components/hero/HeroCompact';
 import FeaturedRestaurantsSection from '@/features/home/components/FeaturedRestaurantsSection';
 
 
+import { useHideGlobalSearch } from '@/features/ui/hooks/useHideGlobalSearch';
+
 const HomeV2: React.FC = () => {
+  useHideGlobalSearch();
   // console.log('store states',store.getState())
   const navigate = useNavigate();
   const dispatch = useAppDispatch();

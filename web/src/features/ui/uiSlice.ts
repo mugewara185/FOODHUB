@@ -15,6 +15,7 @@ export interface UIState {
   loading: {
     [key: string]: boolean;
   };
+  globalSearchHidden: boolean;
 }
 
 const initialState: UIState = {
@@ -29,6 +30,7 @@ const initialState: UIState = {
     type: 'info',
   },
   loading: {},
+  globalSearchHidden: false,
 };
 
 const uiSlice = createSlice({
@@ -78,6 +80,9 @@ const uiSlice = createSlice({
     setLoading: (state, action: PayloadAction<{ key: string; isLoading: boolean }>) => {
       state.loading[action.payload.key] = action.payload.isLoading;
     },
+    setGlobalSearchHidden: (state, action: PayloadAction<boolean>) => {
+      state.globalSearchHidden = action.payload;
+    },
   },
 });
 
@@ -95,6 +100,7 @@ export const {
   showToast,
   hideToast,
   setLoading,
+  setGlobalSearchHidden,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;
@@ -107,3 +113,4 @@ export const selectSearchDrawerOpen = (state: RootState) => state.ui.searchDrawe
 export const selectCurrentModal = (state: RootState) => state.ui.currentModal;
 export const selectToast = (state: RootState) => (state.ui.toast);
 export const selectLoading = (state: RootState, key: string) => state.ui.loading[key];
+export const selectGlobalSearchHidden = (state: RootState) => state.ui.globalSearchHidden;

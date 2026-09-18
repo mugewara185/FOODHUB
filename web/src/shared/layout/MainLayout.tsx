@@ -529,10 +529,13 @@ import { NotificationBell } from '../../core/notifications/components/Notificati
 //cartSelector
 import { selectCartItems } from '../../features/cart/cartSlice';
 
+import { selectGlobalSearchHidden } from '../../features/ui/uiSlice';
+
 const MainLayout: React.FC = () => {
   // console.log('%c<MainLayout/>','color:orange')
   useDeliveryNotifications('customer');
   const { user, isAuthenticated, isLoading, logout } = useAuth(); // Get auth state
+  const isGlobalSearchHidden = useAppSelector(selectGlobalSearchHidden);
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   // const [cartItemsCount] = useState(useAppSelector(selectCartItems).reduce((total, item) => total + item.quantity, 0));
@@ -618,31 +621,33 @@ const MainLayout: React.FC = () => {
         </Toolbar>
 
         {/* Search Bar */}
-        <Box sx={{ px: 2, pb: 2 }}>
-          <Paper
-            component="form"
-            sx={{
-              p: '2px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              borderRadius: 20,
-              bgcolor: 'white',
-            }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              navigate('/search');
-            }}
-          >
-            <IconButton type="submit" sx={{ p: '10px' }}>
-              <SearchIcon />
-            </IconButton>
-            <InputBase
-              sx={{ ml: 1, flex: 1 }}
-              placeholder="Search for restaurants or dishes..."
-              inputProps={{ 'aria-label': 'search food' }}
-            />
-          </Paper>
-        </Box>
+        {!isGlobalSearchHidden && (
+          <Box sx={{ px: 2, pb: 2 }}>
+            <Paper
+              component="form"
+              sx={{
+                p: '2px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: 20,
+                bgcolor: 'white',
+              }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                navigate('/search');
+              }}
+            >
+              <IconButton type="submit" sx={{ p: '10px' }}>
+                <SearchIcon />
+              </IconButton>
+              <InputBase
+                sx={{ ml: 1, flex: 1 }}
+                placeholder="Search for restaurants or dishes..."
+                inputProps={{ 'aria-label': 'search food' }}
+              />
+            </Paper>
+          </Box>
+        )}
       </AppBar>
 
       {/* Side Drawer */}

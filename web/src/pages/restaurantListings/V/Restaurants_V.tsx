@@ -46,7 +46,10 @@ import { useRestaurantLogic } from '@/features/restaurant/hooks/useRestaurantLog
 import type { ActiveFilterChip } from '../../../features/ui/components';
 import { Restaurant as RestaurantIcon } from '@mui/icons-material';
 
+import { useHideGlobalSearch } from '../../../features/ui/hooks/useHideGlobalSearch';
+
 const Restaurants: React.FC = () => {
+  useHideGlobalSearch();
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
