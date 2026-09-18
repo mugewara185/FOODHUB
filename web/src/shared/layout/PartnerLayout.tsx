@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -16,13 +16,13 @@ import {
   Avatar,
   Badge,
   Chip,
-  Paper,
   useTheme,
   useMediaQuery,
-  Switch,
-  FormControlLabel,
 } from '@mui/material';
 import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
+import { useAppSelector, useAppDispatch } from '../../app/store';
+import { updateAssignmentStatus } from '../../features/deliveryPartner/deliveryPartnerSlice';
+import { socketService } from '../../services/socket';
 import {
   Menu as MenuIcon,
   Dashboard,
@@ -59,15 +59,29 @@ const PartnerLayout: React.FC = () => {
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
-  const [isOnline, setIsOnline] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const isOnline = useAppSelector(state => state.deliveryPartner.isOnline);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (isOnline) {
+      socketService.connect('partner-123', 'partner');
+      // Subscribe to all incoming events
+      socketService.onDeliveryStatus((payload) => {
+        dispatch(updateAssignmentStatus(payload.status as any));
+      });
+      // (Optional) add assigned, location etc.
+    } else {
+      socketService.disconnect();
+    }
+    return () => {
+      socketService.offDeliveryStatus();
+    };
+  }, [isOnline, dispatch]);
 
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
-  };
-
-  const handleOnlineToggle = () => {
-    setIsOnline(!isOnline);
   };
 
   const drawer = (
@@ -122,43 +136,6 @@ const PartnerLayout: React.FC = () => {
             color="info"
           />
         </Box>
-      </Box>
-
-      <Divider />
-
-      {/* Online/Offline Toggle */}
-      <Box sx={{ p: 2 }}>
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 1.5,
-            borderRadius: 2,
-            bgcolor: isOnline ? 'success.light' : 'grey.100',
-          }}
-        >
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isOnline}
-                onChange={handleOnlineToggle}
-                color="success"
-                size="medium"
-              />
-            }
-            label={
-              <Box>
-                <Typography variant="body2" fontWeight={600}>
-                  {isOnline ? 'You are Online' : 'You are Offline'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {isOnline ? 'Receiving orders' : 'Not receiving orders'}
-                </Typography>
-              </Box>
-            }
-            labelPlacement="start"
-            sx={{ mx: 0, width: '100%', justifyContent: 'space-between' }}
-          />
-        </Paper>
       </Box>
 
       <Divider />

@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import mongoose, { Schema, model, Document, Types } from 'mongoose';
 import { DeliveryStatus, assertValidTransition } from './delivery.state';
 
 /*
@@ -116,4 +116,4 @@ deliverySchema.pre('save', function (next) {
   next();
 });
 
-export const Delivery = model<IDelivery>('Delivery', deliverySchema);
+export const Delivery = mongoose.models.Delivery || model<IDelivery>('Delivery', deliverySchema);

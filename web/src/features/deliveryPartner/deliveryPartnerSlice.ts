@@ -64,16 +64,39 @@ const initialState: DeliveryPartnerState = {
   }
 };
 
+export const setOnlineStatusThunk = createAsyncThunk(
+  'deliveryPartner/setOnlineStatus',
+  async (status: boolean, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/delivery/partner/partner-123/status`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` // simple mock
+        },
+        body: JSON.stringify({ status: status ? 'available' : 'offline' })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update status');
+      }
+      return status;
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
 export const deliveryPartnerSlice = createSlice({
   name: 'deliveryPartner',
   initialState,
   reducers: {
     toggleOnlineStatus: (state) => {
+      // Legacy UI fallback, now mostly replaced by thunk
       state.isOnline = !state.isOnline;
       state.status = state.isOnline ? 'ONLINE' : 'OFFLINE';
       if (state.isOnline && state.availableAssignments.length === 0 && !state.activeAssignment) {
-        state.availableAssignments = mockAssignments; // load mock assignments
-        // console.log('state.isOnline && state.availableAssignments.length === 0 && !state.activeAssignment', 'color:brown', mockAssignments)
+        state.availableAssignments = mockAssignments; 
       } else if (!state.isOnline) {
         state.availableAssignments = [];
       }
@@ -109,6 +132,20 @@ export const deliveryPartnerSlice = createSlice({
       state.currentLocation = action.payload;
     }
   },
+  extraReducers: (builder) => {
+    builder.addCase(setOnlineStatusThunk.fulfilled, (state, action) => {
+      state.isOnline = action.payload;
+      state.status = action.payload ? 'ONLINE' : 'OFFLINE';
+      if (state.isOnline && state.availableAssignments.length === 0 && !state.activeAssignment) {
+        state.availableAssignments = mockAssignments; 
+      } else if (!state.isOnline) {
+        state.availableAssignments = [];
+      }
+    });
+    builder.addCase(setOnlineStatusThunk.rejected, (state, action) => {
+      alert(action.payload as string); // Spec: "frontend shows the error cleanly"
+    });
+  }
 });
 
 export const {

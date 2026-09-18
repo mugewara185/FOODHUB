@@ -32,18 +32,18 @@ import {
   Schedule,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '@app/store/hooks';
-import { selectPartnerStats, selectActiveAssignment, selectIsPartnerOnline, toggleOnlineStatus } from '@features/deliveryPartner/deliveryPartnerSlice';
+import { useAppSelector, useAppDispatch } from '../../app/store';
+import { selectPartnerStats, selectActiveAssignment, selectIsPartnerOnline, setOnlineStatusThunk } from '../../features/deliveryPartner/deliveryPartnerSlice';
 
 const PartnerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const stats = useAppSelector(selectPartnerStats);
   const currentOrder = useAppSelector(selectActiveAssignment);
   const isOnline = useAppSelector(selectIsPartnerOnline);
+  const dispatch = useAppDispatch();
 
   const handleToggleOnline = () => {
-    dispatch(toggleOnlineStatus());
+    dispatch(setOnlineStatusThunk(!isOnline));
   };
 
   return (

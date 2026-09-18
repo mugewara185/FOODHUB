@@ -54,6 +54,19 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
   return delivery;
 }
 
+export async function setPartnerStatus(partnerId: string, status: 'offline' | 'available') {
+  const partner = await DeliveryPartner.findById(partnerId);
+  if (!partner) throw new Error('Partner not found');
+
+  if (status === 'offline' && ['assigned', 'on_delivery'].includes(partner.status)) {
+    throw new Error('Cannot go offline while on delivery');
+  }
+
+  partner.status = status;
+  await partner.save();
+  return partner;
+}
+
 export async function updateDeliveryStatus(deliveryId: string, newStatus: DeliveryStatus) {
   const delivery = await Delivery.findById(deliveryId);
   if (!delivery) throw new Error('Delivery not found');

@@ -34,12 +34,14 @@ import {
   AttachMoney,
   AccessTime,
   Navigation,
+  CenterFocusStrong,
 } from '@mui/icons-material';
 import Map from '../../shared/components/maps/Map';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@app/store/hooks';
 import { selectActiveAssignment, selectPartnerLocation, updateAssignmentStatus, updateLocation } from '@features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
+import { useGPSSimulator } from '../../core/dev/gpsSimulator';
 
 interface DeliveryStep {
   label: string;
@@ -56,6 +58,7 @@ const ActiveDelivery: React.FC = () => {
   const [pickupDialog, setPickupDialog] = useState(false);
   const [deliveryDialog, setDeliveryDialog] = useState(false);
   const [otp, setOtp] = useState('');
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
   
   useEffect(() => {
     if (!activeAssignment) {
@@ -63,32 +66,21 @@ const ActiveDelivery: React.FC = () => {
     }
   }, [activeAssignment, navigate]);
 
-  // Simulation interval for driver location
-  useEffect(() => {
-    if (!activeAssignment || !currentLocation) return;
-    const target = activeAssignment.status === 'out_for_delivery' ? activeAssignment.dropoffLocation : activeAssignment.pickupLocation;
-    
-    const interval = setInterval(() => {
-      // Simulate moving towards target by small delta
-      const latDelta = (target.lat - currentLocation.lat) * 0.1;
-      const lngDelta = (target.lng - currentLocation.lng) * 0.1;
-      
-      // Stop moving if very close
-      if (Math.abs(latDelta) < 0.0001 && Math.abs(lngDelta) < 0.0001) return;
-      
-      const newLoc = {
-        lat: currentLocation.lat + latDelta,
-        lng: currentLocation.lng + lngDelta
-      };
+  const targetLoc = activeAssignment?.status === 'out_for_delivery' 
+    ? activeAssignment.dropoffLocation 
+    : activeAssignment?.pickupLocation;
+
+  useGPSSimulator(
+    !!activeAssignment,
+    currentLocation,
+    targetLoc,
+    (newLoc) => {
       dispatch(updateLocation(newLoc));
-      
-      // Emit socket event for real-time tracking
-      socketService.updatePartnerLocation(activeAssignment.orderId, newLoc);
-      
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [activeAssignment, currentLocation, dispatch]);
+      if (activeAssignment?.orderId) {
+        socketService.updatePartnerLocation(activeAssignment.orderId, newLoc);
+      }
+    }
+  );
 
   if (!activeAssignment) {
     return <Typography>No active delivery</Typography>;
@@ -100,8 +92,9 @@ const ActiveDelivery: React.FC = () => {
       case 'accepted': return 1;
       case 'arrived_pickup': return 2;
       case 'picked_up': return 3;
-      case 'out_for_delivery': return 4;
-      case 'delivered': return 5;
+      case 'out_for_delivery': return 3;
+      case 'nearby': return 3;
+      case 'delivered': return 4;
       default: return 0;
     }
   };
@@ -119,7 +112,6 @@ const ActiveDelivery: React.FC = () => {
   const progress = (activeStep / 4) * 100; // 4 is max index
 
   const handleStatusUpdate = (newStatus: any) => {
-    dispatch(updateAssignmentStatus(newStatus));
     socketService.updateOrderStatus(activeAssignment.orderId, newStatus);
   };
 
@@ -148,7 +140,7 @@ const ActiveDelivery: React.FC = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
-          <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400 }}>
+          <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400, position: 'relative' }}>
             <Map
               center={currentLocation || activeAssignment.pickupLocation}
               markers={[
@@ -171,9 +163,23 @@ const ActiveDelivery: React.FC = () => {
                   title: 'Your Location',
                 }] : []),
               ]}
+              recenterTrigger={recenterTrigger}
               showTraffic={true}
               height="100%"
             />
+            <IconButton 
+              onClick={() => setRecenterTrigger(prev => prev + 1)}
+              sx={{ 
+                position: 'absolute', 
+                bottom: 24, 
+                right: 24, 
+                bgcolor: 'white', 
+                boxShadow: 2,
+                '&:hover': { bgcolor: 'grey.100' }
+              }}
+            >
+              <CenterFocusStrong />
+            </IconButton>
           </Paper>
 
           <Paper sx={{ p: 3, mt: 3, borderRadius: 3 }}>

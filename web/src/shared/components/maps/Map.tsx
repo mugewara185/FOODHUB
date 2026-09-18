@@ -28,12 +28,17 @@ export const decodePolyline = (encoded: string): Coordinates[] => {
   return points;
 };
 
-function MapController({ center, zoom, bounds }: { center: Coordinates; zoom: number; bounds?: L.LatLngBoundsExpression }) {
+function MapController({ center, zoom, bounds, recenterTrigger }: { center: Coordinates; zoom: number; bounds?: L.LatLngBoundsExpression; recenterTrigger?: number }) {
   const map = useMap();
+  const isInitialLoad = React.useRef(true);
+  
   useEffect(() => {
-    if (bounds) map.fitBounds(bounds, { padding: [50, 50] });
-    else if (center) map.setView([center.lat, center.lng], zoom);
-  }, [center, zoom, bounds, map]);
+    if (isInitialLoad.current || recenterTrigger !== undefined) {
+      if (bounds) map.fitBounds(bounds, { padding: [50, 50] });
+      else if (center) map.setView([center.lat, center.lng], zoom);
+      isInitialLoad.current = false;
+    }
+  }, [recenterTrigger, bounds, map, center, zoom]);
   return null;
 }
 
@@ -50,6 +55,7 @@ export interface MapProps {
   polyline?: string;
   polylines?: string[];
   routeCoordinates?: Coordinates[];
+  recenterTrigger?: number; // Prop to manually trigger recenter
 }
 
 const getIconForType = (type: string) => {
@@ -64,6 +70,7 @@ const getIconForType = (type: string) => {
 const Map: React.FC<MapProps> = ({
   markers = [], center = { lat: 19.0760, lng: 72.8777 }, zoom = 12, height = '400px',
   showUserLocation = false, onMarkerClick, polyline, polylines, routeCoordinates,
+  recenterTrigger
 }) => {
   const [userLocation, setUserLocation] = React.useState<Coordinates | null>(null);
   useEffect(() => {
@@ -84,7 +91,7 @@ const Map: React.FC<MapProps> = ({
   return (
     <Box sx={{ position: 'relative', height, width: '100%' }}>
       <MapContainer center={[center.lat, center.lng]} zoom={zoom} style={{ height: '100%', width: '100%', zIndex: 0 }}>
-        <MapController center={center} zoom={zoom} bounds={bounds} />
+        <MapController center={center} zoom={zoom} bounds={bounds} recenterTrigger={recenterTrigger} />
         <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
         {showUserLocation && userLocation && <Marker position={[userLocation.lat, userLocation.lng]} icon={getIconForType('current')} />}
         {markers.map((marker) => (
