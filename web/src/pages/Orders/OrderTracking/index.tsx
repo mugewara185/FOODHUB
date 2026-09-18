@@ -8,8 +8,11 @@ import {
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import LiveDeliveryTracker from '../../../features/orders/components/tracking/LiveDeliveryTracker';
+import { logger } from '@/core/dev/logger';
 
 const OrderTracking: React.FC = () => {
+  // logger.info('page', 'OrderTracking page mounted')
+  console.log('Order Tracking page moutned....')
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 

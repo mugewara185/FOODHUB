@@ -20,10 +20,10 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { toggleCartDrawer } from '../../../features/ui/uiSlice';
 
 // Feature Components
-import { 
-  RestaurantHero, 
-  RestaurantInfo, 
-  RestaurantMenu 
+import {
+  RestaurantHero,
+  RestaurantInfo,
+  RestaurantMenu
 } from '../../../features/restaurant/components';
 import FoodCustomizationModal from '../../../features/food/components/FoodCustomizationModal';
 import { useRestaurantLogic } from '../../../features/restaurant/hooks/useRestaurantLogic';
@@ -178,10 +178,11 @@ const RestaurantDetail: React.FC = () => {
 
   return (
     <Box sx={{ pb: { xs: 7, md: 0 } }}>
-      <RestaurantHero 
-        restaurant={restaurant} 
-        isFavorite={isFavorite} 
-        onToggleFavorite={handleToggleFavorite} 
+      {/* <>{console.log('restaurantDetail_V.....', restaurant)}</> */}
+      <RestaurantHero
+        restaurant={restaurant}
+        isFavorite={isFavorite}
+        onToggleFavorite={handleToggleFavorite}
       />
       {/* Menu and Cart summary  */}
       <Container maxWidth="lg" sx={{ mt: -4, position: 'relative', zIndex: 2 }}>
@@ -190,10 +191,10 @@ const RestaurantDetail: React.FC = () => {
           {/* left-menu  */}
           <Grid xs={12} md={8}>
             <RestaurantInfo restaurant={restaurant} />
-            <RestaurantMenu 
-              categories={categories} 
-              items={items} 
-              onAddToCart={handleAddToCart} 
+            <RestaurantMenu
+              categories={categories}
+              items={items}
+              onAddToCart={handleAddToCart}
               onAddToCartWithCustomization={handleAddCustomizedItem}
               onToggleFavorite={handleToggleFavorite}
               onUpdateQuantity={handleUpdateQuantity}
@@ -272,21 +273,21 @@ const RestaurantDetail: React.FC = () => {
               cartItemsLength={cartItems.length}
               title="Your Cart"
               rows={[
-                 { label: 'Item Total', value: `₹${cartTotals.subtotal.toFixed(2)}` },
-                 { label: 'Delivery Fee', value: `₹${cartTotals.deliveryFee}` },
-                 { label: 'Taxes', value: `₹${cartTotals.tax.toFixed(2)}` },
+                { label: 'Item Total', value: `₹${cartTotals.subtotal.toFixed(2)}` },
+                { label: 'Delivery Fee', value: `₹${cartTotals.deliveryFee}` },
+                { label: 'Taxes', value: `₹${cartTotals.tax.toFixed(2)}` },
               ]}
               total={`₹${cartTotals.total.toFixed(2)}`}
               actionLabel="Proceed to Checkout"
               onAction={() => navigate('/cart')}
               actionDisabled={cartItems.length === 0}
-              warning={cartTotals.subtotal > 0 && cartTotals.subtotal < restaurant.minOrder 
-                ? `Add ₹${(restaurant.minOrder - cartTotals.subtotal).toFixed(2)} more to reach minimum order` 
+              warning={cartTotals.subtotal > 0 && cartTotals.subtotal < restaurant.minOrder
+                ? `Add ₹${(restaurant.minOrder - cartTotals.subtotal).toFixed(2)} more to reach minimum order`
                 : undefined}
               footer={
-                 cartItems.length === 0 && (
-                   <Alert severity="info" sx={{ mt: 2 }}>Your cart is empty.</Alert>
-                 )
+                cartItems.length === 0 && (
+                  <Alert severity="info" sx={{ mt: 2 }}>Your cart is empty.</Alert>
+                )
               }
             />
           </Grid>
@@ -315,7 +316,7 @@ const RestaurantDetail: React.FC = () => {
         }}
       />
 
-{/*Modal */}
+      {/*Modal */}
       {selectedFoodItem && (
         <FoodCustomizationModal
           open={modalOpen}

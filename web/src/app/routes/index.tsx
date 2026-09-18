@@ -78,116 +78,117 @@ const AppRoutes: React.FC = () => {
     <>
       <RouteLogger />
       <Routes>
-{/* user and public routes */}
+        {/* user and public routes */}
 
-      <Route path="/" element={<MainLayout />}>
-        {/* Public Routes */}
-        <Route index element={<Home />} />
-        <Route path="login" element={<Login />} />
-        <Route path="signup" element={<Signup />} />
-        <Route path="forgot-password" element={<ForgotPassword />} />
-        <Route path="reset-password" element={<ResetPassword />} />
-        <Route path="restaurants" element={<Restaurants />} />
-        <Route path="restaurants/:id" element={<RestaurantDetail />} />
-        <Route path='favorites' element={<Favourites />} />
-        <Route path='notification' element={<Notifications />} />
-        <Route path='search' element={<SearchPage />} />
-        <Route path='settings' element={<Settings />} />
-        <Route path='orders/confirmation' element={<Orderconfirmation />} />
-        {/* Protected Routes */}
-        <Route path="profile" element={
-          <ProtectedRoute allowedRoles={['user', 'admin']}>
-            <Profile />
+        <Route path="/" element={<MainLayout />}>
+          {/* Public Routes */}
+          <Route index element={<Home />} />
+          <Route path="login" element={<Login />} />
+          <Route path="signup" element={<Signup />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="restaurants" element={<Restaurants />} />
+          <Route path="restaurants/:id" element={<RestaurantDetail />} />
+          <Route path='favorites' element={<Favourites />} />
+          <Route path='notification' element={<Notifications />} />
+          <Route path='search' element={<SearchPage />} />
+          <Route path='settings' element={<Settings />} />
+          <Route path='orders/confirmation' element={<Orderconfirmation />} />
+          {/* Protected Routes */}
+          <Route path="profile" element={
+            <ProtectedRoute allowedRoles={['user', 'admin']}>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="cart" element={
+            <ProtectedRoute allowedRoles={['user', 'admin']}>
+              <Cart />
+            </ProtectedRoute>
+          } />
+          <Route path="checkout" element={
+            <ProtectedRoute allowedRoles={['user', 'admin']}>
+              <Checkout />
+            </ProtectedRoute>
+          } />
+          <Route path="orders" element={
+            <ProtectedRoute allowedRoles={['user', 'admin']}>
+              <Orders />
+            </ProtectedRoute>
+          } />
+          {/* <Route path='orders/:id/track' element={<OrderTracking />} /> */}
+          <Route path='orders/tracking/:id' element={<OrderTracking />} />
+          {/* ... other routes */}
+
+          {/* Public Routes */}
+          {/* <Route path="search" element={<Search />} /> */}
+
+          {/* 404 */}
+          {/* <Route path="*" element={<NotFound />} /> */}
+        </Route>
+
+        {/* admin routes */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminLayout />
           </ProtectedRoute>
-        } />
-        <Route path="cart" element={
-          <ProtectedRoute allowedRoles={['user', 'admin']}>
-            <Cart />
+        } >
+          <Route index element={<AdminDashboard />} />
+          <Route path='orders' element={<OrdersList />} />
+          {/* <Route path='orders/:id/track' element={<OrderTracking />} (//user component) for now /> */}
+          <Route path='restaurants' element={<RestaurantsList />} />
+          <Route path='restaurants/add' element={<AddRestaurant />} />
+          <Route path='menu' element={<AdminMenu />} />
+          <Route path='promotions' element={<Promotions />} />
+          <Route path='reports' element={<Reports />} />
+          <Route path='settings' element={<AdminSettings />} />
+          <Route path='users' element={<Users />} />
+          <Route path='profile' element={<AdminProfile />} />
+          <Route path='ai' element={<AdminAIPage />} />
+          <Route path='ai/investigations/:id' element={<InvestigationPage />} />
+          <Route path='delivery' element={<AdminDeliveryDashboard />} />
+        </Route>
+
+        {/* partner routes */}
+        <Route path="/partner/*" element={
+          <ProtectedRoute allowedRoles={['delivery_partner']}>
+            <PartnerLayout />
           </ProtectedRoute>
-        } />
-        <Route path="checkout" element={
-          <ProtectedRoute allowedRoles={['user', 'admin']}>
-            <Checkout />
+        } >
+          <Route index element={<PartnerDashboard />} />
+          <Route path='orders' element={<AvailableOrders />} />
+          <Route path='active' element={<ActiveDelivery />} />
+          <Route path='profile' element={<PartnerProfile />} />
+          <Route path='history' element={<DeliveryHistory />} />
+          <Route path='earnings' element={<Earnings />} />
+          <Route path='support' element={<Support />} />
+          <Route path='settings' element={<PartnerSettings />} />
+        </Route>
+
+        {/* owner routes  */}
+        <Route path="/owner/*" element={
+          <ProtectedRoute allowedRoles={['restaurant_owner']}>
+            <OwnerLayout />
           </ProtectedRoute>
-        } />
-        <Route path="orders" element={
-          <ProtectedRoute allowedRoles={['user', 'admin']}>
-            <Orders />
-          </ProtectedRoute>
-        } />
-        <Route path='orders/:id/track' element={<OrderTracking />} />
-        {/* ... other routes */}
+        } >
+          <Route index element={<OwnerDashboard />} />
+          <Route path='settings' element={<OwnerSettings />} />
+          {/* <Route path='s' */}
+        </Route>
 
-        {/* Public Routes */}
-        {/* <Route path="search" element={<Search />} /> */}
-
-        {/* 404 */}
-        {/* <Route path="*" element={<NotFound />} /> */}
-      </Route>
-
-{/* admin routes */}
-      <Route path="/admin/*" element={
-        <ProtectedRoute allowedRoles={['admin']}>
-          <AdminLayout />
-        </ProtectedRoute>
-      } >
-        <Route index element={<AdminDashboard />} />
-        <Route path='orders' element={<OrdersList />} />
-        {/* <Route path='orders/:id/track' element={<OrderTracking />} (//user component) for now /> */}
-        <Route path='restaurants' element={<RestaurantsList />} />
-        <Route path='restaurants/add' element={<AddRestaurant />} />
-        <Route path='menu' element={<AdminMenu />} />
-        <Route path='promotions' element={<Promotions />} />
-        <Route path='reports' element={<Reports />} />
-        <Route path='settings' element={<AdminSettings />} />
-        <Route path='users' element={<Users />} />
-        <Route path='profile' element={<AdminProfile />} />
-        <Route path='ai' element={<AdminAIPage />} />
-        <Route path='ai/investigations/:id' element={<InvestigationPage />} />
-        <Route path='delivery' element={<AdminDeliveryDashboard />} />
-      </Route>
-
-{/* partner routes */}
-      <Route path="/partner/*" element={
-        <ProtectedRoute allowedRoles={['delivery_partner']}>
-          <PartnerLayout />
-        </ProtectedRoute>
-      } >
-        <Route index element={<PartnerDashboard />} />
-        <Route path='orders' element={<AvailableOrders />} />
-        <Route path='active' element={<ActiveDelivery />} />
-        <Route path='profile' element={<PartnerProfile />} />
-        <Route path='history' element={<DeliveryHistory />} />
-        <Route path='earnings' element={<Earnings />} />
-        <Route path='support' element={<Support />} />
-        <Route path='settings' element={<PartnerSettings />} />
-      </Route>
-
-{/* owner routes  */}
-      <Route path="/owner/*" element={
-        <ProtectedRoute allowedRoles={['restaurant_owner']}>
-          <OwnerLayout />
-        </ProtectedRoute>
-      } >
-        <Route index element={<OwnerDashboard />} />
-        <Route path='settings' element={<OwnerSettings />} />
-        {/* <Route path='s' */}
-      </Route>
-
-{/* dev */}
-      <Route path="/dev" element={<DevLayout />} >
-        <Route index element={<DevDashboard />} />
-        <Route path='component-tree' element={<ComponentTreeExplorer />} />
-        <Route path='components' element={<ComponentPlayground />} />
-        <Route path='state' element={<StateInspector />} />
-        <Route path='props' element={<PropsPanel />} />
-        <Route path='versions' element={<VersionSwitcher />} />
-        <Route path='network' element={<NetworkInspector />} />
-        <Route path='logs' element={<LogPanel />} />
-        <Route path='performance' element={<PerformanceMetrics />} />
-        <Route path='docs' element={<DocumentationViewer />} />
-      </Route>
-    </Routes>
+        {/* dev */}
+        <Route path="/dev" element={<DevLayout />} >
+          <Route index element={<DevDashboard />} />
+          <Route path='component-tree' element={<ComponentTreeExplorer />} />
+          <Route path='components' element={<ComponentPlayground />} />
+          <Route path='state' element={<StateInspector />} />
+          <Route path='props' element={<PropsPanel />} />
+          <Route path='versions' element={<VersionSwitcher />} />
+          <Route path='network' element={<NetworkInspector />} />
+          <Route path='logs' element={<LogPanel />} />
+          <Route path='performance' element={<PerformanceMetrics />} />
+          <Route path='docs' element={<DocumentationViewer />} />
+        </Route>
+      </Routes>
     </>
   );
 };

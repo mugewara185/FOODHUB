@@ -66,8 +66,15 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     const body = loginSchema.parse(req.body);
 
     const user = await User.findOne({ email: body.email }).select('+password');
-    if (!user || !(await user.comparePassword(body.password))) {
-      throw new AppError('Invalid email or password', 401);
+    // console.log('User found:', user);
+    // if (!user || !(await user.comparePassword(body.password))) {
+    //   throw new AppError('Invalid email or password', 401);
+    // }
+    if (!user) {
+      throw new AppError('Invalid email', 401);
+    }
+    if (!(await user.comparePassword(body.password))) {
+      throw new AppError('Invalid password', 401);
     }
 
     const token = signToken(user._id.toString());
