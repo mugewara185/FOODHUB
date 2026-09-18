@@ -1,5 +1,11 @@
 import { io, Socket } from 'socket.io-client';
 import { logger } from '../core/utils/logger';
+import type { 
+  DeliveryAssignedPayload, 
+  DeliveryStatusPayload, 
+  DeliveryLocationPayload, 
+  PartnerLocationUpdatedPayload 
+} from '../core/types/socket.events';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -87,14 +93,42 @@ class SocketService {
     this.socket?.on(event, callback);
   }
 
-  updatePartnerLocation(partnerId: string, location: { lat: number; lng: number }) {
-    this.socket?.emit('partner:location_updated', { partnerId, location });
+  updatePartnerLocation(orderId: string, location: { lat: number; lng: number }) {
+    // For legacy compat with ActiveDelivery.tsx without touching it
+    this.socket?.emit('partner:location_updated', { orderId, location });
   }
 
+  // Legacy fallback to be refactored eventually
   updateOrderStatus(orderId: string, status: string, location?: any) {
     this.socket?.emit('order_status_update', { orderId, status, location });
   }
 
+  // Type-safe listeners
+  onDeliveryAssigned(callback: (payload: DeliveryAssignedPayload) => void) {
+    this.socket?.on('delivery:assigned', callback);
+  }
+  
+  onDeliveryStatus(callback: (payload: DeliveryStatusPayload) => void) {
+    this.socket?.on('delivery:status', callback);
+  }
+
+  onDeliveryLocation(callback: (payload: DeliveryLocationPayload) => void) {
+    this.socket?.on('delivery:location', callback);
+  }
+
+  onPartnerLocationUpdated(callback: (payload: PartnerLocationUpdatedPayload) => void) {
+    this.socket?.on('partner:location_updated', callback);
+  }
+
+  offDeliveryAssigned(callback?: (payload: DeliveryAssignedPayload) => void) {
+    this.socket?.off('delivery:assigned', callback);
+  }
+  
+  offDeliveryStatus(callback?: (payload: DeliveryStatusPayload) => void) {
+    this.socket?.off('delivery:status', callback);
+  }
+
+  // Others
   onOrderStatusUpdate(callback: (data: { orderId: string; status: string }) => void) {
     this.socket?.on('order_status_update', callback);
   }
@@ -116,10 +150,6 @@ class SocketService {
 
   onOrderStatusChanged(callback: (data: any) => void) {
     this.socket?.on('order:status_changed', callback);
-  }
-
-  onPartnerLocationUpdated(callback: (data: any) => void) {
-    this.socket?.on('partner:location_updated', callback);
   }
 
   removeAllListeners() {

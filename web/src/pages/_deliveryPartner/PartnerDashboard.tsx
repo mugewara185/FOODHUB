@@ -276,14 +276,14 @@ const PartnerDashboard: React.FC = () => {
             </Typography>
             <List>
               {useAppSelector(state => state.deliveryPartner.history).slice(0, 4).map((order) => (
-                <ListItem key={order.id} sx={{ px: 0 }}>
+                <ListItem key={order.orderId} sx={{ px: 0 }}>
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: 'primary.light' }}>
                       <CheckCircle />
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={`Order #${order.id}`}
+                    primary={`Order #${order.orderId}`}
                     secondary={`${order.restaurant} → ${order.customer} • ₹${order.amount}`}
                   />
                   <Chip

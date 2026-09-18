@@ -5,6 +5,7 @@ import { Order } from '../orders/order.model';
 import { Types } from 'mongoose';
 import { getIO } from '../../socket';
 import { assertValidTransition, DeliveryStatus } from './delivery.state';
+import { emitDeliveryAssigned, emitDeliveryStatus } from './delivery.events';
 
 export async function assignDelivery(orderId: string, restaurantLocation: [number, number], customerLocation: [number, number]) {
   // 1. Find nearest available partner (for demo, just find any available)
@@ -14,24 +15,21 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
     return null;
   }
 
-  // Set partner starting location slightly away from restaurant for demo
   const partnerStart: [number, number] = [restaurantLocation[0] - 0.005, restaurantLocation[1] - 0.005];
   
   partner.status = 'assigned';
   partner.currentLocation = { type: 'Point', coordinates: partnerStart };
   
-  // 2. Create Delivery
   const delivery = new Delivery({
     orderId,
     partnerId: partner._id,
     pickupLocation: { type: 'Point', coordinates: restaurantLocation },
     destinationLocation: { type: 'Point', coordinates: customerLocation },
     currentLocation: { type: 'Point', coordinates: partnerStart },
-    status: 'pending', // Starts at pending before transitioning to assigned
+    status: 'pending',
     timestamps: {}
   });
 
-  // assert valid transition logic via service layer
   assertValidTransition(delivery.status, 'assigned');
   delivery.status = 'assigned';
   delivery.timestamps.assignedAt = new Date();
@@ -40,21 +38,18 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
   partner.currentAssignedDelivery = delivery._id as any;
   await partner.save();
 
-  // 3. Emit assignment
-  const io = getIO();
-  io.to(orderId).emit('delivery:assigned', {
-    deliveryId: delivery.id,
-    partner: {
-      id: partner.id,
-      name: partner.name,
-      phone: partner.phone,
-      vehicle: partner.vehicle,
-      rating: partner.rating
-    }
+  // 3. Emit assignment via type-safe emitter
+  emitDeliveryAssigned({
+    deliveryId: delivery.id.toString(),
+    orderId: delivery.orderId.toString(),
+    partnerId: delivery.partnerId?.toString() || partner.id.toString(),
+    status: 'assigned',
+    partnerName: partner.name,
+    partnerPhone: partner.phone
   });
 
   // 4. Start Simulator
-  startDeliverySimulation(delivery.id);
+  startDeliverySimulation(delivery.id.toString());
 
   return delivery;
 }
@@ -71,6 +66,18 @@ export async function updateDeliveryStatus(deliveryId: string, newStatus: Delive
   if (newStatus === 'cancelled') delivery.timestamps.cancelledAt = new Date();
 
   await delivery.save();
+
+  // Emit status change via type-safe emitter
+  if (delivery.partnerId) {
+    emitDeliveryStatus({
+      deliveryId: delivery.id.toString(),
+      orderId: delivery.orderId.toString(),
+      partnerId: delivery.partnerId.toString(),
+      status: newStatus,
+      timestamp: new Date()
+    });
+  }
+
   return delivery;
 }
 
@@ -92,7 +99,14 @@ export async function cancelDeliveryForOrder(orderId: string) {
     }
   }
 
-  const io = getIO();
-  io.to(orderId).emit('delivery:cancelled', { deliveryId: delivery.id });
-  io.to('admin_fleet').emit('delivery:cancelled', { deliveryId: delivery.id });
+  // Cancelled is a state transition too, but we can emit a status event for it.
+  if (delivery.partnerId) {
+    emitDeliveryStatus({
+      deliveryId: delivery.id.toString(),
+      orderId: delivery.orderId.toString(),
+      partnerId: delivery.partnerId.toString(),
+      status: 'cancelled',
+      timestamp: new Date()
+    });
+  }
 }

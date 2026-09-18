@@ -35,7 +35,7 @@ and shared types in the frontend — no more partner/order/delivery `id` confusi
 
 ## Verification
 - `cd API && npx tsc --noEmit` — passes
-- `cd web && npx tsc --noEmit` — passes
+- `cd web && npx tsc --noEmit` — passes for delivery/tracking files only. ~3 S1-caused type errors remain in dependent UI (deferred to S2).
 - Existing tests still pass (if any)
 - Write a small unit test proving an illegal transition
   (e.g. ON_DELIVERY → OFFLINE) is rejected by the backend

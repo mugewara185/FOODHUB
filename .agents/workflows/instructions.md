@@ -213,3 +213,9 @@ Every major implementation should therefore ask:
 > "Is this merely solving FoodHub's immediate problem, or are we also developing a capability that can make the next application significantly easier, cleaner, safer, and more scalable to build?"
 
 When both are possible, prefer the solution that accomplishes the application requirement while building the reusable capability.
+
+## File Write Rules
+- NEVER use `cat <<'EOF' >` or shell redirection to write source files.
+- ALWAYS use the editor tool so a diff is visible.
+- For files >50 lines, show the intended diff before writing.
+- Never overwrite a file wholesale. Edit it.

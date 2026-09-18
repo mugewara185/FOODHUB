@@ -3,7 +3,7 @@ import type { RootState } from '../../app/store';
 
 export type PartnerStatus = 'OFFLINE' | 'ONLINE' | 'ON_DELIVERY';
 
-import { DeliveryAssignment, DeliveryStatus } from '../../core/types/delivery';
+import type { DeliveryAssignment, DeliveryStatus } from '../../core/types/delivery';
 
 export interface DeliveryPartnerState {
   status: PartnerStatus;
@@ -79,7 +79,7 @@ export const deliveryPartnerSlice = createSlice({
       }
     },
     acceptAssignment: (state, action: PayloadAction<string>) => {
-      const idx = state.availableAssignments.findIndex(a => a.id === action.payload);
+      const idx = state.availableAssignments.findIndex(a => a.orderId === action.payload);
       if (idx !== -1) {
         const assignment = state.availableAssignments[idx];
         assignment.status = 'accepted';
@@ -89,7 +89,7 @@ export const deliveryPartnerSlice = createSlice({
       }
     },
     rejectAssignment: (state, action: PayloadAction<string>) => {
-      state.availableAssignments = state.availableAssignments.filter(a => a.id !== action.payload);
+      state.availableAssignments = state.availableAssignments.filter(a => a.orderId !== action.payload);
     },
     updateAssignmentStatus: (state, action: PayloadAction<DeliveryAssignment['status']>) => {
       if (state.activeAssignment) {

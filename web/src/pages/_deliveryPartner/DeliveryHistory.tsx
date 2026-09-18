@@ -179,7 +179,7 @@ const DeliveryHistory: React.FC = () => {
               {history
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((delivery) => (
-                  <TableRow key={delivery.id} hover>
+                  <TableRow key={delivery.orderId} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <CalendarToday fontSize="small" color="action" />
@@ -190,7 +190,7 @@ const DeliveryHistory: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight={600}>
-                        {delivery.id}
+                        {delivery.orderId}
                       </Typography>
                     </TableCell>
                     <TableCell>{delivery.restaurant}</TableCell>
