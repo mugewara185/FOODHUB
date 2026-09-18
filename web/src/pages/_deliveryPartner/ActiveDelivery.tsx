@@ -39,7 +39,7 @@ import {
 import Map from '../../shared/components/maps/Map';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@app/store/hooks';
-import { selectActiveAssignment, selectPartnerLocation, updateAssignmentStatus, updateLocation } from '@features/deliveryPartner/deliveryPartnerSlice';
+import { selectActiveAssignment, selectPartnerLocation, updateLocation, updateAssignmentStatusThunk } from '@features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
 import { useGPSSimulator } from '../../core/dev/gpsSimulator';
 
@@ -112,7 +112,7 @@ const ActiveDelivery: React.FC = () => {
   const progress = (activeStep / 4) * 100; // 4 is max index
 
   const handleStatusUpdate = (newStatus: any) => {
-    socketService.updateOrderStatus(activeAssignment.orderId, newStatus);
+    dispatch(updateAssignmentStatusThunk({ deliveryId: activeAssignment.deliveryId, status: newStatus }));
   };
 
   const handlePickupConfirm = () => {

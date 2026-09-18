@@ -62,23 +62,6 @@ const PartnerLayout: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const isOnline = useAppSelector(state => state.deliveryPartner.isOnline);
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    if (isOnline) {
-      socketService.connect('partner-123', 'partner');
-      // Subscribe to all incoming events
-      socketService.onDeliveryStatus((payload) => {
-        dispatch(updateAssignmentStatus(payload.status as any));
-      });
-      // (Optional) add assigned, location etc.
-    } else {
-      socketService.disconnect();
-    }
-    return () => {
-      socketService.offDeliveryStatus();
-    };
-  }, [isOnline, dispatch]);
 
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);

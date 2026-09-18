@@ -87,6 +87,30 @@ export const setOnlineStatusThunk = createAsyncThunk(
   }
 );
 
+export const updateAssignmentStatusThunk = createAsyncThunk(
+  'deliveryPartner/updateAssignmentStatusThunk',
+  async ({ deliveryId, status }: { deliveryId: string, status: string }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/delivery/${deliveryId}/status`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update assignment status');
+      }
+      // Note: We don't return state payload because state will be updated purely by the incoming socket event!
+      return true;
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
 export const deliveryPartnerSlice = createSlice({
   name: 'deliveryPartner',
   initialState,
@@ -142,8 +166,11 @@ export const deliveryPartnerSlice = createSlice({
         state.availableAssignments = [];
       }
     });
-    builder.addCase(setOnlineStatusThunk.rejected, (state, action) => {
+    builder.addCase(setOnlineStatusThunk.rejected, (_state, action) => {
       alert(action.payload as string); // Spec: "frontend shows the error cleanly"
+    });
+    builder.addCase(updateAssignmentStatusThunk.rejected, (_state, action) => {
+      alert(action.payload as string); // Show error from server if illegal transition
     });
   }
 });

@@ -1,6 +1,6 @@
-import { setPartnerStatus } from '../../../../../API/src/modules/delivery/delivery.service';
-import { DeliveryPartner } from '../../../../../API/src/modules/delivery/delivery-partner.model';
-import mongoose from '../../../../../API/node_modules/mongoose';
+import { setPartnerStatus } from '../delivery.service';
+import { DeliveryPartner } from '../delivery-partner.model';
+import mongoose from 'mongoose';
 
 async function runTest() {
   console.log('--- STARTING OFFLINE REJECTION TEST ---');

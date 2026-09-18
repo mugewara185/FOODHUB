@@ -17,8 +17,11 @@ import { socketService } from "./services/socket";
 import { showToast } from "./features/ui/uiSlice";
 import { updateOrderStatusLocally } from "./features/orders/orderSlice";
 import { RoleSwitcher } from "./core/ui/buttons/RoleSwitcher";
+import { useDeliverySocket } from "./features/deliveryPartner/hooks/useDeliverySocket";
 
 const App: React.FC = () => {
+  useDeliverySocket();
+
   const allRestaurants = useAppSelector(selectAllRestaurants);
   const featuredRestaurants = useAppSelector(selectFeaturedRestaurants);
   const loading = useAppSelector(selectRestaurantLoading);
