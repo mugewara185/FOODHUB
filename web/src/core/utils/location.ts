@@ -50,6 +50,18 @@ export const estimateDeliveryTime = (
   return timeHours * 3600; // return in seconds
 };
 
+/**
+ * DEMO: straight-line estimate, not road-network ETA.
+ */
+export const estimateStraightLineETA = (
+  point1: Coordinates,
+  point2: Coordinates,
+  averageSpeed: number = 30 // km/h
+): number => {
+  const dist = calculateDistance(point1, point2);
+  return estimateDeliveryTime(dist, averageSpeed);
+};
+
 export const decodePolyline = (encoded: string): Coordinates[] => {
   const points: Coordinates[] = [];
   let index = 0, lat = 0, lng = 0;

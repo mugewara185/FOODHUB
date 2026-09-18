@@ -18,9 +18,20 @@ import { showToast } from "./features/ui/uiSlice";
 import { updateOrderStatusLocally } from "./features/orders/orderSlice";
 import { RoleSwitcher } from "./core/ui/buttons/RoleSwitcher";
 import { useDeliverySocket } from "./features/deliveryPartner/hooks/useDeliverySocket";
+import { updateAssignmentStatus } from "./features/deliveryPartner/deliveryPartnerSlice";
 
 const App: React.FC = () => {
-  useDeliverySocket();
+  const dispatch = useAppDispatch();
+  const isPartnerOnline = useAppSelector(state => state.deliveryPartner.isOnline);
+  
+  useDeliverySocket(isPartnerOnline ? 'partner' : 'customer', {
+    onStatus: (payload) => {
+      // If the user is a partner, update the partner slice
+      if (isPartnerOnline) {
+        dispatch(updateAssignmentStatus(payload.status as any));
+      }
+    }
+  });
 
   const allRestaurants = useAppSelector(selectAllRestaurants);
   const featuredRestaurants = useAppSelector(selectFeaturedRestaurants);
@@ -28,7 +39,6 @@ const App: React.FC = () => {
   const { availableVersions, selectedVersions } = useDevContext();
   const { open: LogConsoleOpen, setOpen: setLogConsoleOpen } = useLogger();
 
-  const dispatch = useAppDispatch();
   const { user, isAuthenticated, isInitialized } = useAppSelector(state => state.auth);
 
   useEffect(() => {

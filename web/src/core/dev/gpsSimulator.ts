@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 export interface Location {
   lat: number;
   lng: number;
@@ -7,11 +9,16 @@ export class GPSSimulator {
   private timer: ReturnType<typeof setInterval> | null = null;
   private route: Location[] = [];
   private currentStep = 0;
+  private readonly intervalMs: number;
+  private readonly onLocationUpdate: (loc: Location) => void;
 
   constructor(
-    private readonly intervalMs: number = 2000,
-    private readonly onLocationUpdate: (loc: Location) => void
-  ) {}
+    intervalMs: number = 2000,
+    onLocationUpdate: (loc: Location) => void
+  ) {
+    this.intervalMs = intervalMs;
+    this.onLocationUpdate = onLocationUpdate;
+  }
 
   public start(route: Location[]) {
     if (this.timer) {
@@ -54,3 +61,33 @@ export class GPSSimulator {
     return route;
   }
 }
+
+export function useGPSSimulator(
+  enabled: boolean,
+  startLoc: Location | null | undefined,
+  endLoc: Location | null | undefined,
+  onLocationUpdate: (loc: Location) => void,
+  intervalMs: number = 2000,
+  steps: number = 10
+) {
+  const onUpdateRef = useRef(onLocationUpdate);
+  useEffect(() => {
+    onUpdateRef.current = onLocationUpdate;
+  });
+
+  useEffect(() => {
+    if (!enabled || !startLoc || !endLoc) return;
+
+    const simulator = new GPSSimulator(intervalMs, (loc) => {
+      onUpdateRef.current(loc);
+    });
+
+    const route = simulator.generateMockRoute(startLoc, endLoc, steps);
+    simulator.start(route);
+
+    return () => {
+      simulator.stop();
+    };
+  }, [enabled, startLoc?.lat, startLoc?.lng, endLoc?.lat, endLoc?.lng, intervalMs, steps]);
+}
+

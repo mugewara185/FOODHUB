@@ -1,63 +1,60 @@
 import { useState, useEffect } from 'react';
-import { socketService } from '@/services/socket';
 import type { Coordinates, DeliveryPartner } from '@/core/types';
-import { useAppSelector } from '@/app/store';
+import { useDeliverySocket } from '@/features/deliveryPartner/hooks/useDeliverySocket';
+import { estimateStraightLineETA, calculateDistance } from '@/core/utils/location';
+import type { DeliveryAssignedPayload, DeliveryStatusPayload, DeliveryLocationPayload } from '@/core/types/socket.events';
+import { socketService } from '@/services/socket';
 
 export const useDeliveryTracking = (orderId: string, initialStatus: string, restaurantLocation: Coordinates, customerLocation: Coordinates) => {
   const [partner, setPartner] = useState<DeliveryPartner | null>(null);
   const [location, setLocation] = useState<Coordinates | null>(null);
   const [status, setStatus] = useState<string>(initialStatus);
-  const [etaSeconds, setEtaSeconds] = useState<number>(1800);
-  const [distance, setDistance] = useState<number>(5000);
-  const { user } = useAppSelector(state => state.auth);
+  const [etaSeconds, setEtaSeconds] = useState<number>(0);
+  const [distance, setDistance] = useState<number>(0);
+
+  useDeliverySocket('customer', {
+    onAssigned: (payload: DeliveryAssignedPayload) => {
+      if (payload.orderId === orderId) {
+        setPartner({
+          id: payload.partnerId,
+          name: payload.partnerName,
+          phone: payload.partnerPhone,
+          vehicleType: 'bike',
+          currentLocation: restaurantLocation,
+          status: payload.status,
+          rating: 4.8, // Mocked for now until added to payload
+          completedDeliveries: 420
+        });
+        setStatus(payload.status);
+      }
+    },
+    onStatus: (payload: DeliveryStatusPayload) => {
+      if (payload.orderId === orderId) {
+        setStatus(payload.status);
+      }
+    },
+    onLocation: (payload: DeliveryLocationPayload) => {
+      if (payload.orderId === orderId) {
+        setLocation(payload.location);
+        
+        // Use straight-line ETA to customer destination
+        const eta = estimateStraightLineETA(payload.location, customerLocation);
+        const dist = calculateDistance(payload.location, customerLocation);
+        
+        setEtaSeconds(eta);
+        setDistance(dist);
+      }
+    }
+  });
 
   useEffect(() => {
-    const isMock = import.meta.env.VITE_DATA_SOURCE === 'mock' || !import.meta.env.VITE_DATA_SOURCE;
-    if (isMock) {
-      let currentLat = restaurantLocation.lat;
-      let currentLng = restaurantLocation.lng;
-      let currentEta = 1800;
-      let step = 0;
-      setPartner({
-        id: 'mock-partner-1', name: 'Rahul Mock', phone: '+91 9876543210', vehicleType: 'bike',
-        currentLocation: { lat: currentLat, lng: currentLng }, status: 'on_delivery', rating: 4.8, completedDeliveries: 420
-      });
-      setStatus('picked_up');
-      setLocation({ lat: currentLat, lng: currentLng });
-      const latStep = (customerLocation.lat - restaurantLocation.lat) / 30;
-      const lngStep = (customerLocation.lng - restaurantLocation.lng) / 30;
-      const interval = setInterval(() => {
-        if (step >= 30) {
-          setStatus('delivered'); setEtaSeconds(0); setLocation({ ...customerLocation }); clearInterval(interval); return;
-        }
-        currentLat += latStep; currentLng += lngStep; currentEta = Math.max(0, currentEta - 60);
-        setLocation({ lat: currentLat, lng: currentLng }); setEtaSeconds(currentEta);
-        if (step === 15) setStatus('on_the_way');
-        if (step === 25) setStatus('nearby');
-        step++;
-      }, 3000);
-      return () => clearInterval(interval);
-    } else {
-      if (user) socketService.connect(user.id, user.role[0]);
-      else socketService.connect();
-      
-      socketService.subscribeToOrder(orderId, (data) => {});
-      socketService.onAdminFleetEvent('delivery:assigned', (data: any) => {
-        if (data.orderId === orderId) { setPartner(data.partner); if (data.status) setStatus(data.status); }
-      });
-      socketService.onAdminFleetEvent('delivery:location', (data: any) => {
-        if (data.orderId === orderId) {
-          setLocation({ lat: data.location.lat, lng: data.location.lng });
-          setEtaSeconds(data.etaSeconds || 0); setDistance(data.distanceRemainingMeters || 0);
-          if (data.status) setStatus(data.status);
-        }
-      });
-      socketService.onAdminFleetEvent('delivery:status', (data: any) => {
-        if (data.orderId === orderId) setStatus(data.status);
-      });
-      return () => { socketService.unsubscribeFromOrder(orderId); };
-    }
-  }, [orderId, restaurantLocation, customerLocation, user]);
+    socketService.joinOrderRoom(orderId);
+    return () => {
+      // socketService.leaveOrderRoom(orderId) could be used if implemented
+      // Since it's an explicit leave, let's just use unsubscribeFromOrder without callbacks
+      socketService.unsubscribeFromOrder(orderId);
+    };
+  }, [orderId]);
 
   return { partner, location, status, etaSeconds, distance };
 };
