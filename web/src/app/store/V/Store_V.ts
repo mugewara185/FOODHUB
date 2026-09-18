@@ -29,7 +29,7 @@ import { initializeAllStatesFromFactory } from "./stateInitializers";
 
 // Import Redux logger
 import { createReduxLoggerMiddleware } from "./reduxLogger.middleware";
-import { reduxLoggerControl, REDUX_LOGGER_CONFIG } from "./reduxLogger.config";
+import { reduxLoggerControl, REDUX_LOGGER_CONFIG } from "../../config/reduxLogger.config";
 
 // Initialize root reducer
 const rootReducer = combineReducers({

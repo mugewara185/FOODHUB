@@ -253,7 +253,7 @@ const DevDashboard: React.FC = () => {
                     </ListItemIcon>
                     <ListItemText
                       primary={log.message}
-                      secondary={log.timestamp.toLocaleTimeString()}
+                      secondary={new Date(log.timestamp).toLocaleTimeString()}
                       primaryTypographyProps={{ variant: 'body2' }}
                     />
                   </ListItem>

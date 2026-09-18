@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { LogEntry, LogLevel, LoggerConfig, FilterOptions, LogStats } from './types';
+import { APP_CONFIG } from '@/core/config/app.config';
 
 const LOG_LEVELS: Record<LogLevel, number> = {
   DEBUG: 0,
@@ -10,16 +11,16 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const DEFAULT_CONFIG: LoggerConfig = {
-  maxLogs: 1000,
-  persistLogs: true,
-  logLevel: 'DEBUG',
-  enableStackTrace: true,
-  enableTimestamps: true,
-  consoleLoggingEnabled: true,
-  renderLoggingEnabled: false,
-  routeTrackingEnabled: true,
-  reduxLoggingEnabled: true,
-  apiLoggingEnabled: true,
+  maxLogs: APP_CONFIG.Logger_Config.maxLogs || 1000,
+  persistLogs: APP_CONFIG.Logger_Config.persistLogs || true,
+  logLevel: (APP_CONFIG.Logger_Config.logLevel as LogLevel) || 'DEBUG',
+  enableStackTrace: APP_CONFIG.Logger_Config.enableStackTrace || true,
+  enableTimestamps: APP_CONFIG.Logger_Config.enableTimestamps || true,
+  consoleLoggingEnabled: APP_CONFIG.Logger_Config.consoleLoggingEnabled || true,
+  renderLoggingEnabled: APP_CONFIG.Logger_Config.renderLoggingEnabled || false,
+  routeTrackingEnabled: APP_CONFIG.Logger_Config.routeTrackingEnabled || true,
+  reduxLoggingEnabled: APP_CONFIG.Logger_Config.reduxLoggingEnabled || true,
+  apiLoggingEnabled: APP_CONFIG.Logger_Config.apiLoggingEnabled || true,
 };
 
 // Generate a session ID per browser tab session
@@ -54,7 +55,7 @@ export class TraceLogger {
     private logger: Logger,
     private category: string,
     public readonly traceId: string
-  ) {}
+  ) { }
 
   debug = (message: string, options?: Omit<LogOptions, 'traceId'>) =>
     this.logger.debug(this.category, message, { ...options, traceId: this.traceId });

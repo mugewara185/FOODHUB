@@ -15,6 +15,7 @@ export interface DeliveryAssignment {
   distance: string;
   estimatedTime: string;
   amount: number;
+  priority: 'high' | 'medium' | 'low';
   status: 'assigned' | 'accepted' | 'arrived_pickup' | 'picked_up' | 'out_for_delivery' | 'delivered';
   items: { name: string; quantity: number }[];
 }
@@ -50,6 +51,7 @@ const mockAssignments: DeliveryAssignment[] = [
     distance: '3.2 km',
     estimatedTime: '15 min',
     amount: 89,
+    priority: 'high',
     status: 'assigned',
     items: [
       { name: 'Butter Chicken', quantity: 1 },
@@ -85,6 +87,7 @@ export const deliveryPartnerSlice = createSlice({
       state.status = state.isOnline ? 'ONLINE' : 'OFFLINE';
       if (state.isOnline && state.availableAssignments.length === 0 && !state.activeAssignment) {
         state.availableAssignments = mockAssignments; // load mock assignments
+        // console.log('state.isOnline && state.availableAssignments.length === 0 && !state.activeAssignment', 'color:brown', mockAssignments)
       } else if (!state.isOnline) {
         state.availableAssignments = [];
       }

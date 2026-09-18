@@ -12,7 +12,7 @@
  * 4. Enable performance monitoring for complex operations
  */
 
-import { IS_DEV } from '../../../core/config/app.config';
+import { IS_DEV } from '../../core/config/app.config';
 
 export interface ReduxLoggerConfig {
   // Global enable/disable
@@ -66,7 +66,8 @@ export interface ReduxLoggerConfig {
  */
 export const REDUX_LOGGER_CONFIG: ReduxLoggerConfig = {
   // Global control
-  enabled: IS_DEV,
+  // enabled: IS_DEV,
+  enabled: false,
 
   // Log everything in dev
   logActions: IS_DEV,

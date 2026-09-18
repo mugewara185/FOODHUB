@@ -15,7 +15,7 @@
 
 import type { Middleware } from '@reduxjs/toolkit';
 import { logger, logRedux } from '../../../core/dev/logger';
-import { reduxLoggerControl, type ReduxLoggerConfig } from './reduxLogger.config';
+import { reduxLoggerControl, type ReduxLoggerConfig } from '../../config/reduxLogger.config';
 import type { RootState } from './stateInitializers';
 
 /**
