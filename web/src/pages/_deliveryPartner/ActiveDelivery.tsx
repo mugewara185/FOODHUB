@@ -83,7 +83,7 @@ const ActiveDelivery: React.FC = () => {
       dispatch(updateLocation(newLoc));
       
       // Emit socket event for real-time tracking
-      socketService.emit('driver_location_update', { orderId: activeAssignment.id, location: newLoc });
+      socketService.updatePartnerLocation(activeAssignment.id, newLoc);
       
     }, 5000);
     
@@ -120,7 +120,7 @@ const ActiveDelivery: React.FC = () => {
 
   const handleStatusUpdate = (newStatus: any) => {
     dispatch(updateAssignmentStatus(newStatus));
-    socketService.emit('delivery_status_update', { orderId: activeAssignment.id, status: newStatus });
+    socketService.updateOrderStatus(activeAssignment.id, newStatus);
   };
 
   const handlePickupConfirm = () => {

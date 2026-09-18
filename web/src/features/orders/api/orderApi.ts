@@ -9,7 +9,7 @@
  */
 
 import { APP_CONFIG } from '../../../core/config/app.config';
-import type { Order, CartItem } from '../../../core/types';
+import type { Order, CartItem, PaymentMethod } from '../../../core/types';
 
 // Raw Backend DTO shapes
 interface OrderItemApiDTO {
@@ -38,7 +38,7 @@ interface OrderApiDTO {
   totalAmount: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
   deliveryAddress: string;
-  paymentMethod: 'cash' | 'card' | 'upi';
+  paymentMethod: 'card' | 'upi' | 'wallet' | 'cash_on_delivery' | 'cash';
   note?: string;
   createdAt: string;
   updatedAt?: string;
@@ -55,10 +55,15 @@ const extractRestaurantId = (rid: string | PopulatedRestaurantDTO): string =>
   typeof rid === 'string' ? rid : rid._id;
 
 const normalizePaymentMethod = (
-  method: 'cash' | 'card' | 'upi',
-): 'cod' | 'card' | 'upi' | 'wallet' => {
-  if (method === 'cash') return 'cod';
-  return method;
+  method: string,
+): PaymentMethod => {
+  if (method === 'cash' || method === 'cod' || method === 'cash_on_delivery') {
+    return 'cash_on_delivery';
+  }
+  if (method === 'card') return 'card';
+  if (method === 'upi') return 'upi';
+  if (method === 'wallet') return 'wallet';
+  return 'cash_on_delivery';
 };
 
 export const normalizeOrder = (dto: OrderApiDTO): Order => ({
@@ -135,8 +140,8 @@ const request = async <T>(
   let parsedBody;
   try {
     parsedBody = init?.body ? JSON.parse(init.body as string) : undefined;
-  } catch(e) {}
-  
+  } catch (e) { }
+
   logAPI.request(method, url, parsedBody, traceId);
   const startTime = performance.now();
 
@@ -159,7 +164,7 @@ const request = async <T>(
         payload.message
         ? String(payload.message)
         : `Request failed (${response.status})`;
-    
+
     logAPI.error(method, url, new Error(msg), traceId);
     throw new Error(msg);
   }
