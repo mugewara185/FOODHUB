@@ -8,38 +8,34 @@ import {
   Chip,
   Divider,
   Stack,
-  Card,
-  CardContent,
   Avatar,
   Stepper,
   Step,
   StepLabel,
   LinearProgress,
-  Alert,
   IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
 } from '@mui/material';
 import {
   LocationOn,
-  Phone,
   Restaurant,
   Person,
-  CheckCircle,
-  RadioButtonChecked,
-  PhotoCamera,
-  AttachMoney,
-  AccessTime,
-  Navigation,
   CenterFocusStrong,
 } from '@mui/icons-material';
 import Map from '../../shared/components/maps/Map';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@app/store/hooks';
-import { selectActiveAssignment, selectPartnerLocation, updateLocation, updateAssignmentStatusThunk, selectIsLoading, fetchActiveAssignmentThunk } from '@features/deliveryPartner/deliveryPartnerSlice';
+import {
+  selectActiveAssignment,
+  selectPartnerLocation,
+  selectIsLoading,
+  fetchPartnerStateThunk,
+  updateAssignmentStatusThunk,
+  partnerLocationReceived,
+} from '@features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
 import { useGPSSimulator } from '../../core/dev/gpsSimulator';
 
@@ -58,26 +54,38 @@ const ActiveDelivery: React.FC = () => {
 
   const [pickupDialog, setPickupDialog] = useState(false);
   const [deliveryDialog, setDeliveryDialog] = useState(false);
-  const [otp, setOtp] = useState('');
   const [recenterTrigger, setRecenterTrigger] = useState(0);
 
+  // Fetch partner state (active delivery + location + status) on mount.
+  // This replaces the old fetchActiveAssignmentThunk which always returned null.
   useEffect(() => {
-    // Optionally trigger a fetch here if needed, but for now we just dispatch it to resolve the loading state
-    dispatch(fetchActiveAssignmentThunk());
+    dispatch(fetchPartnerStateThunk());
   }, [dispatch]);
 
-  const targetLoc = activeAssignment?.status === 'out_for_delivery' 
-    ? activeAssignment.dropoffLocation 
-    : activeAssignment?.pickupLocation;
+  const targetLoc =
+    activeAssignment?.status === 'out_for_delivery' || activeAssignment?.status === 'nearby'
+      ? activeAssignment.dropoffLocation
+      : activeAssignment?.pickupLocation;
 
+  // GPS simulator: emits new locations via the callback.
+  // Dispatches partnerLocationReceived (socket-projected naming) and
+  // forwards the update via socketService using explicit IDs.
   useGPSSimulator(
-    !!activeAssignment,
+    !!activeAssignment && !!targetLoc,
     currentLocation,
     targetLoc,
     (newLoc) => {
-      dispatch(updateLocation(newLoc));
-      if (activeAssignment?.orderId) {
-        socketService.updatePartnerLocation(activeAssignment.orderId, newLoc);
+      dispatch(partnerLocationReceived(newLoc));
+
+      if (activeAssignment?.deliveryId && activeAssignment?.orderId && activeAssignment?.partnerId) {
+        socketService.updatePartnerLocation(
+          {
+            deliveryId: activeAssignment.deliveryId,
+            orderId: activeAssignment.orderId,
+            partnerId: activeAssignment.partnerId,
+          },
+          newLoc
+        );
       }
     }
   );
@@ -85,16 +93,24 @@ const ActiveDelivery: React.FC = () => {
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
-        <Typography>Loading...</Typography>
+        <Typography>Loading delivery...</Typography>
       </Box>
     );
   }
 
   if (!activeAssignment) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography>No active delivery</Typography>
-      </Box>
+      <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          No active delivery
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          You don't have a delivery in progress right now.
+        </Typography>
+        <Button variant="outlined" onClick={() => navigate('/partner/dashboard')}>
+          Back to Dashboard
+        </Button>
+      </Paper>
     );
   }
 
@@ -121,10 +137,15 @@ const ActiveDelivery: React.FC = () => {
     { label: 'Delivered', description: 'Order delivered to customer', completed: activeStep > 4 },
   ];
 
-  const progress = (activeStep / 4) * 100; // 4 is max index
+  const progress = (activeStep / 4) * 100;
 
-  const handleStatusUpdate = (newStatus: any) => {
-    dispatch(updateAssignmentStatusThunk({ deliveryId: activeAssignment.deliveryId, status: newStatus }));
+  const handleStatusUpdate = (newStatus: string) => {
+    dispatch(
+      updateAssignmentStatusThunk({
+        deliveryId: activeAssignment.deliveryId,
+        status: newStatus,
+      })
+    );
   };
 
   const handlePickupConfirm = () => {
@@ -133,7 +154,6 @@ const ActiveDelivery: React.FC = () => {
   };
 
   const handleDeliveryConfirm = () => {
-    // skip otp check for mock
     handleStatusUpdate('delivered');
     setDeliveryDialog(false);
   };
@@ -144,10 +164,7 @@ const ActiveDelivery: React.FC = () => {
         <Typography variant="h4" fontWeight={800} gutterBottom>
           Active Delivery
         </Typography>
-        <Chip
-          label={`Order #${activeAssignment.orderId}`}
-          color="primary"
-        />
+        <Chip label={`Order #${activeAssignment.orderId}`} color="primary" />
       </Box>
 
       <Grid container spacing={3}>
@@ -168,26 +185,30 @@ const ActiveDelivery: React.FC = () => {
                   type: 'customer',
                   title: activeAssignment.customer,
                 },
-                ...(currentLocation ? [{
-                  id: 'partner',
-                  position: currentLocation,
-                  type: 'partner',
-                  title: 'Your Location',
-                }] : []),
+                ...(currentLocation
+                  ? [
+                      {
+                        id: 'partner',
+                        position: currentLocation,
+                        type: 'partner' as const,
+                        title: 'Your Location',
+                      },
+                    ]
+                  : []),
               ]}
               recenterTrigger={recenterTrigger}
               showTraffic={true}
               height="100%"
             />
-            <IconButton 
-              onClick={() => setRecenterTrigger(prev => prev + 1)}
-              sx={{ 
-                position: 'absolute', 
-                bottom: 24, 
-                right: 24, 
-                bgcolor: 'white', 
+            <IconButton
+              onClick={() => setRecenterTrigger((prev) => prev + 1)}
+              sx={{
+                position: 'absolute',
+                bottom: 24,
+                right: 24,
+                bgcolor: 'white',
                 boxShadow: 2,
-                '&:hover': { bgcolor: 'grey.100' }
+                '&:hover': { bgcolor: 'grey.100' },
               }}
             >
               <CenterFocusStrong />
@@ -210,7 +231,7 @@ const ActiveDelivery: React.FC = () => {
             />
 
             <Stepper activeStep={activeStep - 1} orientation="vertical">
-              {steps.map((step, index) => (
+              {steps.map((step) => (
                 <Step key={step.label} completed={step.completed}>
                   <StepLabel>
                     <Typography variant="subtitle1" fontWeight={600}>
@@ -227,26 +248,51 @@ const ActiveDelivery: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} lg={4}>
-          {/* Action Buttons */}
           <Paper sx={{ p: 3, mb: 3, borderRadius: 3, textAlign: 'center' }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Actions</Typography>
+            <Typography variant="h6" fontWeight={700} gutterBottom>
+              Actions
+            </Typography>
             {activeStep === 1 && (
-              <Button fullWidth variant="contained" color="primary" size="large" onClick={() => handleStatusUpdate('arrived_pickup')}>
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                size="large"
+                onClick={() => handleStatusUpdate('arrived_pickup')}
+              >
                 Arrived at Restaurant
               </Button>
             )}
             {activeStep === 2 && (
-              <Button fullWidth variant="contained" color="secondary" size="large" onClick={() => setPickupDialog(true)}>
+              <Button
+                fullWidth
+                variant="contained"
+                color="secondary"
+                size="large"
+                onClick={() => setPickupDialog(true)}
+              >
                 Confirm Pickup
               </Button>
             )}
             {activeStep === 3 && (
-              <Button fullWidth variant="contained" color="warning" size="large" onClick={() => handleStatusUpdate('out_for_delivery')}>
+              <Button
+                fullWidth
+                variant="contained"
+                color="warning"
+                size="large"
+                onClick={() => handleStatusUpdate('out_for_delivery')}
+              >
                 Start Delivery
               </Button>
             )}
             {activeStep === 4 && (
-              <Button fullWidth variant="contained" color="success" size="large" onClick={() => setDeliveryDialog(true)}>
+              <Button
+                fullWidth
+                variant="contained"
+                color="success"
+                size="large"
+                onClick={() => setDeliveryDialog(true)}
+              >
                 Mark Delivered
               </Button>
             )}
@@ -254,10 +300,16 @@ const ActiveDelivery: React.FC = () => {
 
           <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Avatar sx={{ bgcolor: 'primary.light' }}><Restaurant /></Avatar>
+              <Avatar sx={{ bgcolor: 'primary.light' }}>
+                <Restaurant />
+              </Avatar>
               <Box>
-                <Typography variant="subtitle1" fontWeight={700}>{activeAssignment.restaurant}</Typography>
-                <Typography variant="body2" color="text.secondary">Pickup Location</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  {activeAssignment.restaurant}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Pickup Location
+                </Typography>
               </Box>
             </Box>
             <Stack spacing={2}>
@@ -266,14 +318,20 @@ const ActiveDelivery: React.FC = () => {
                 <Typography variant="body2">{activeAssignment.pickupAddress}</Typography>
               </Box>
             </Stack>
-            
+
             <Divider sx={{ my: 3 }} />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Avatar sx={{ bgcolor: 'success.light' }}><Person /></Avatar>
+              <Avatar sx={{ bgcolor: 'success.light' }}>
+                <Person />
+              </Avatar>
               <Box>
-                <Typography variant="subtitle1" fontWeight={700}>{activeAssignment.customer}</Typography>
-                <Typography variant="body2" color="text.secondary">Drop-off Location</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  {activeAssignment.customer}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Drop-off Location
+                </Typography>
               </Box>
             </Box>
             <Stack spacing={2}>
@@ -285,34 +343,44 @@ const ActiveDelivery: React.FC = () => {
           </Paper>
 
           <Paper sx={{ p: 3, borderRadius: 3 }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Order Details</Typography>
+            <Typography variant="h6" fontWeight={700} gutterBottom>
+              Order Details
+            </Typography>
             {activeAssignment.items.map((item, index) => (
               <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2">{item.quantity}x {item.name}</Typography>
+                <Typography variant="body2">
+                  {item.quantity}x {item.name}
+                </Typography>
               </Box>
             ))}
             <Divider sx={{ my: 2 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="subtitle1" fontWeight={700}>Earnings</Typography>
-              <Typography variant="subtitle1" fontWeight={700} color="success.main">₹{activeAssignment.amount}</Typography>
+              <Typography variant="subtitle1" fontWeight={700}>
+                Earnings
+              </Typography>
+              <Typography variant="subtitle1" fontWeight={700} color="success.main">
+                ₹{activeAssignment.amount}
+              </Typography>
             </Box>
           </Paper>
         </Grid>
       </Grid>
 
-      {/* Pickup Dialog */}
       <Dialog open={pickupDialog} onClose={() => setPickupDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Confirm Pickup</DialogTitle>
         <DialogContent>
-          <Typography gutterBottom>Have you collected all items from the restaurant?</Typography>
+          <Typography gutterBottom>
+            Have you collected all items from the restaurant?
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPickupDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handlePickupConfirm}>Confirm</Button>
+          <Button variant="contained" onClick={handlePickupConfirm}>
+            Confirm
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delivery Dialog */}
       <Dialog open={deliveryDialog} onClose={() => setDeliveryDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Complete Delivery</DialogTitle>
         <DialogContent>
@@ -320,7 +388,9 @@ const ActiveDelivery: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeliveryDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleDeliveryConfirm}>Delivered</Button>
+          <Button variant="contained" onClick={handleDeliveryConfirm}>
+            Delivered
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

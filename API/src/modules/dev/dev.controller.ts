@@ -65,6 +65,8 @@ export async function seedFactoryData(
     for (const col of payload.collections) {
       const { modelName, documents, clearFirst = true } = col;
 
+      console.dir({ modelName, documents, clearFirst }, { depth: null });
+
       if (!modelName || !Array.isArray(documents)) {
         errors.push(`Skipped invalid collection entry (missing modelName or documents array)`);
         continue;

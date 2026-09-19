@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
 import { useAppSelector, useAppDispatch } from '../../app/store';
-import { updateAssignmentStatus } from '../../features/deliveryPartner/deliveryPartnerSlice';
+// import { updateAssignmentStatus } from '../../features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
 import {
   Menu as MenuIcon,

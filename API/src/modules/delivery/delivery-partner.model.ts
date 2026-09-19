@@ -3,6 +3,7 @@ import mongoose, { Schema, model, Document } from 'mongoose';
 export type DeliveryPartnerStatus = 'available' | 'assigned' | 'on_delivery' | 'offline';
 
 export interface IDeliveryPartner extends Document {
+  userId?: mongoose.Types.ObjectId;
   name: string;
   phone: string;
   vehicle: string;
@@ -17,6 +18,7 @@ export interface IDeliveryPartner extends Document {
 
 const deliveryPartnerSchema = new Schema<IDeliveryPartner>(
   {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', index: true }, // Optional during transition. Made required when account-management creates partners with a guaranteed User link (future vertical).
     name: { type: String, required: true },
     phone: { type: String, required: true },
     vehicle: { type: String, required: true },

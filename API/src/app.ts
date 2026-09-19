@@ -1,4 +1,6 @@
 import express from 'express';
+import dotenv from 'dotenv';
+dotenv.config();
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -49,6 +51,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/dev', devRoutes);
 app.use('/api/admin/analytics', analyticsRoutes);
 app.use('/api/admin/ai', aiRoutes);
+app.use('/api/partner/delivery', deliveryRoutes);
 app.use('/api/admin/delivery', deliveryRoutes);
 
 // 404 handler
