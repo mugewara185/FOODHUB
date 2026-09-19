@@ -31,6 +31,38 @@ export const initSocket = (server: HttpServer) => {
       console.log(`Socket ${socket.id} joined admin fleet room`);
     });
 
+    socket.on('partner:location_updated', async (payload) => {
+      // payload: { deliveryId, orderId, partnerId, location: { lat, lng } }
+      try {
+        const { toGeoJSON } = require('./utils/geo');
+        const { Delivery } = require('./modules/delivery/delivery.model');
+        const { DeliveryPartner } = require('./modules/delivery/delivery-partner.model');
+        const { emitDeliveryLocation } = require('./modules/delivery/delivery.events');
+
+        // 1. Persist to Delivery.currentLocation
+        //    Convert { lat, lng } to GeoJSON via toGeoJSON from utils/geo.ts
+        const geo = toGeoJSON(payload.location);
+        await Delivery.updateOne(
+          { _id: payload.deliveryId },
+          { $set: { currentLocation: geo } }
+        );
+
+        // 2. Update DeliveryPartner.currentLocation
+        await DeliveryPartner.updateOne(
+          { _id: payload.partnerId },
+          { $set: { currentLocation: geo } }
+        );
+
+        // 3. Broadcast
+        emitDeliveryLocation(payload);
+      } catch (err) {
+        console.error('Socket partner:location_updated error:', err);
+        // Log via existing logger, do not crash the socket
+      }
+    });
+    // TODO: authenticate socket connection before trusting payload.partnerId.
+    // Currently any client can spoof a partner location. Deferred.
+
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
     });

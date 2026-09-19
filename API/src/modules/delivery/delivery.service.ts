@@ -39,10 +39,12 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
   await partner.save();
 
   // 3. Emit assignment via type-safe emitter
+  // Approached: Lookup partnerUserId via the partner object we just found instead of modifying Delivery schema.
   emitDeliveryAssigned({
-    deliveryId: delivery.id.toString(),
+    deliveryId: delivery._id.toString(),
     orderId: delivery.orderId.toString(),
     partnerId: delivery.partnerId?.toString() || partner.id.toString(),
+    partnerUserId: partner.userId?.toString() || '',
     status: 'assigned',
     partnerName: partner.name,
     partnerPhone: partner.phone
@@ -82,10 +84,12 @@ export async function updateDeliveryStatus(deliveryId: string, newStatus: Delive
 
   // Emit status change via type-safe emitter
   if (delivery.partnerId) {
+    const partner = await DeliveryPartner.findById(delivery.partnerId);
     emitDeliveryStatus({
-      deliveryId: delivery.id.toString(),
+      deliveryId: delivery._id.toString(),
       orderId: delivery.orderId.toString(),
       partnerId: delivery.partnerId.toString(),
+      partnerUserId: partner?.userId?.toString() || '',
       status: newStatus,
       timestamp: new Date()
     });
@@ -103,11 +107,13 @@ export async function cancelDeliveryForOrder(orderId: string) {
   delivery.timestamps.cancelledAt = new Date();
   await delivery.save();
 
+  let partnerUserId = '';
   if (delivery.partnerId) {
     const partner = await DeliveryPartner.findById(delivery.partnerId);
     if (partner) {
       partner.status = 'available';
       partner.currentAssignedDelivery = undefined;
+      partnerUserId = partner.userId?.toString() || '';
       await partner.save();
     }
   }
@@ -115,9 +121,10 @@ export async function cancelDeliveryForOrder(orderId: string) {
   // Cancelled is a state transition too, but we can emit a status event for it.
   if (delivery.partnerId) {
     emitDeliveryStatus({
-      deliveryId: delivery.id.toString(),
+      deliveryId: delivery._id.toString(),
       orderId: delivery.orderId.toString(),
       partnerId: delivery.partnerId.toString(),
+      partnerUserId,
       status: 'cancelled',
       timestamp: new Date()
     });

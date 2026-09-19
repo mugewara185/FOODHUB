@@ -3,11 +3,14 @@ import { config } from '../../config/env';
 import { AppError } from '../../shared/middleware/errorHandler';
 import { sendSuccess } from '../../shared/utils/response';
 import mongoose from 'mongoose';
+import { Order } from '../orders/order.model';
+import { DeliveryPartner } from '../delivery/delivery-partner.model';
+import { Restaurant } from '../restaurants/restaurant.model';
+import { toGeoJSON } from '../../utils/geo';
+import { Delivery } from '../delivery/delivery.model';
+import { emitDeliveryAssigned } from '../delivery/delivery.events';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────────────────────
-
+// Types
 interface SeedCollectionPayload {
   modelName: string;
   documents: any[];
@@ -18,21 +21,6 @@ interface FactorySeedPayload {
   collections: SeedCollectionPayload[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONTROLLER
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * POST /api/dev/seed-factory-data
- *
- * Generic factory seed endpoint.
- * Accepts an array of { modelName, documents, clearFirst } entries.
- * The frontend factory is responsible for generating valid, schema-aligned
- * documents. The backend's only job is to insert them via the registered
- * Mongoose model.
- *
- * Only active in non-production environments.
- */
 export async function seedFactoryData(
   req: Request,
   res: Response,
@@ -41,7 +29,6 @@ export async function seedFactoryData(
   const seedStart = Date.now();
 
   try {
-    // Safety guard: never run in production
     if (config.nodeEnv === 'production') {
       throw new AppError('Factory seeding is disabled in production.', 403);
     }
@@ -64,8 +51,6 @@ export async function seedFactoryData(
 
     for (const col of payload.collections) {
       const { modelName, documents, clearFirst = true } = col;
-
-      console.dir({ modelName, documents, clearFirst }, { depth: null });
 
       if (!modelName || !Array.isArray(documents)) {
         errors.push(`Skipped invalid collection entry (missing modelName or documents array)`);
@@ -92,12 +77,8 @@ export async function seedFactoryData(
 
       if (documents.length > 0) {
         try {
-          // Use insertMany with ordered:false so individual doc failures don't
-          // abort the whole batch. Validation errors are surfaced in the response.
           await Model.insertMany(documents, { ordered: false });
         } catch (insertErr: any) {
-          // insertMany throws on duplicate key or validation errors but may
-          // have partially inserted — capture and continue.
           const message =
             insertErr?.message?.substring(0, 200) ?? 'Unknown insert error';
           errors.push(`${modelName}: ${message}`);
@@ -133,4 +114,67 @@ export async function seedFactoryData(
     console.error('[seed:error]', error);
     next(error);
   }
+}
+
+export async function assignPartner(req: Request, res: Response) {
+  if (config.nodeEnv === 'production' || process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Dev endpoint disabled in production' });
+  }
+
+  const { orderId, partnerUserId } = req.body as {
+    orderId?: string;
+    partnerUserId?: string;
+  };
+
+  if (!orderId || !partnerUserId) {
+    return res.status(400).json({ success: false, message: 'orderId and partnerUserId are required' });
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+  const partner = await DeliveryPartner.findOne({ userId: partnerUserId });
+  if (!partner) return res.status(404).json({ success: false, message: 'Partner not found for userId' });
+
+  const restaurant = await Restaurant.findById(order.restaurantId);
+  if (!restaurant || !restaurant.location) {
+    return res.status(400).json({ success: false, message: 'Restaurant location missing' });
+  }
+
+  const pickupLocation = toGeoJSON(restaurant.location);
+
+  // DEMO destination: fixed offset since Order has no coordinates.
+  // Real geocoding is a separate concern.
+  const destinationLocation = toGeoJSON({
+    lat: restaurant.location.lat + 0.015,
+    lng: restaurant.location.lng + 0.015,
+  });
+
+  const currentLocation = partner.currentLocation ?? pickupLocation;
+
+  const delivery = await Delivery.create({
+    orderId: order._id,
+    partnerId: partner._id,
+    status: 'assigned',
+    pickupLocation,
+    destinationLocation,
+    currentLocation,
+    timestamps: { assignedAt: new Date() },
+  });
+
+  partner.status = 'on_delivery';
+  partner.currentAssignedDelivery = delivery._id as any;
+  await partner.save();
+
+  emitDeliveryAssigned({
+    deliveryId: delivery._id.toString(),
+    orderId: order._id.toString(),
+    partnerId: partner._id.toString(),
+    partnerUserId: partner.userId!.toString(),
+    status: 'assigned',
+    partnerName: partner.name,
+    partnerPhone: partner.phone,
+  });
+
+  res.json({ success: true, data: delivery });
 }

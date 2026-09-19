@@ -5,17 +5,20 @@ export interface DeliveryBasePayload {
   deliveryId: string;
   orderId: string;
   partnerId: string;
+  partnerUserId?: string; // NEW: Added to support direct partner room emits
 }
 
 export interface DeliveryAssignedPayload extends DeliveryBasePayload {
-  status: DeliveryStatus; // 'assigned'
+  status: DeliveryStatus | string; // 'assigned'
   partnerName: string;
   partnerPhone: string;
+  partnerUserId: string; // explicitly required here
 }
 
 export interface DeliveryStatusPayload extends DeliveryBasePayload {
-  status: DeliveryStatus;
+  status: DeliveryStatus | string;
   timestamp: string | Date;
+  partnerUserId: string; // explicitly required here
 }
 
 export interface DeliveryLocationPayload extends DeliveryBasePayload {
@@ -33,6 +36,9 @@ export function emitDeliveryStatus(payload: DeliveryStatusPayload) {
   const io = getIO();
   io.to(payload.orderId).emit('delivery:status', payload);
   io.to('admin_fleet').emit('delivery:status', payload);
+  if (payload.partnerUserId) {
+    io.to(payload.partnerUserId).emit('delivery:status', payload); // NEW
+  }
 }
 
 export function emitDeliveryAssigned(payload: DeliveryAssignedPayload) {
@@ -42,4 +48,14 @@ export function emitDeliveryAssigned(payload: DeliveryAssignedPayload) {
   const io = getIO();
   io.to(payload.orderId).emit('delivery:assigned', payload);
   io.to('admin_fleet').emit('delivery:assigned', payload);
+  if (payload.partnerUserId) {
+    io.to(payload.partnerUserId).emit('delivery:assigned', payload); // NEW
+  }
+}
+
+export function emitDeliveryLocation(payload: DeliveryLocationPayload) {
+  const io = getIO();
+  io.to(payload.orderId).emit('delivery:location', payload);
+  io.to('admin_fleet').emit('delivery:location', payload);
+  // Do NOT emit back to the partner — they are the source.
 }
