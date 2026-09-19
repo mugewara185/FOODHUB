@@ -1,13 +1,14 @@
-import { createSlice, type PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import type { RootState } from '../../app/store';
+import type { DeliveryAssignment } from '../../core/types/delivery';
+import { showToast } from '../ui/uiSlice';
 
 export type PartnerStatus = 'OFFLINE' | 'ONLINE' | 'ON_DELIVERY';
-
-import type { DeliveryAssignment, DeliveryStatus } from '../../core/types/delivery';
 
 export interface DeliveryPartnerState {
   status: PartnerStatus;
   isOnline: boolean;
+  isLoading: boolean;
   currentLocation: { lat: number; lng: number } | null;
   activeAssignment: DeliveryAssignment | null;
   availableAssignments: DeliveryAssignment[];
@@ -30,25 +31,34 @@ const mockAssignments: DeliveryAssignment[] = [
     restaurant: 'Spice Garden',
     restaurantImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop',
     customer: 'John Doe',
-    pickupLocation: { lat: 19.076, lng: 72.8777 },
-    dropoffLocation: { lat: 19.080, lng: 72.880 },
-    pickupAddress: '123 Park Avenue, Andheri East',
-    dropAddress: '456 Main Street, Andheri West',
-    distance: '3.2 km',
-    estimatedTime: '15 min',
-    amount: 89,
-    priority: 'high',
-    status: 'assigned',
-    items: [
-      { name: 'Butter Chicken', quantity: 1 },
-      { name: 'Garlic Naan', quantity: 2 },
-    ],
+    status: 'pending',
+    pickupLocation: { lat: 19.0760, lng: 72.8777 },
+    dropoffLocation: { lat: 19.0500, lng: 72.9000 },
+    amount: 120,
+    distance: 4.5,
+    estimatedTime: 25,
+    items: [{ name: 'Butter Chicken', quantity: 1 }, { name: 'Naan', quantity: 2 }]
   },
+  {
+    deliveryId: 'DEL-2024-002',
+    orderId: 'ORD-2024-002',
+    restaurant: 'Burger Hub',
+    restaurantImage: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&h=100&fit=crop',
+    customer: 'Jane Smith',
+    status: 'pending',
+    pickupLocation: { lat: 19.0800, lng: 72.8800 },
+    dropoffLocation: { lat: 19.0600, lng: 72.8900 },
+    amount: 85,
+    distance: 2.1,
+    estimatedTime: 15,
+    items: [{ name: 'Classic Burger', quantity: 2 }]
+  }
 ];
 
 const initialState: DeliveryPartnerState = {
   status: 'OFFLINE',
   isOnline: false,
+  isLoading: true, // initial fetch assumed
   currentLocation: { lat: 19.0760, lng: 72.8777 },
   activeAssignment: null,
   availableAssignments: [],
@@ -64,11 +74,29 @@ const initialState: DeliveryPartnerState = {
   }
 };
 
+// Simulated mock fetch to toggle loading state manually if needed, or just set it
+export const fetchActiveAssignmentThunk = createAsyncThunk(
+  'deliveryPartner/fetchActiveAssignment',
+  async (_, { rejectWithValue }) => {
+    // Mock network delay to show loading state
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return null; // Simulate returning no active assignment on load for now
+  }
+);
+
 export const setOnlineStatusThunk = createAsyncThunk(
   'deliveryPartner/setOnlineStatus',
-  async (status: boolean, { rejectWithValue }) => {
+  async (status: boolean, { getState, dispatch, rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/delivery/partner/partner-123/status`, {
+      const state = getState() as any;
+      const partnerId = state.auth.user?.id;
+      
+      if (!partnerId) {
+        dispatch(showToast({ message: 'User not authenticated or missing ID', type: 'error' }));
+        return rejectWithValue('User not authenticated');
+      }
+
+      const response = await fetch(`http://localhost:5000/api/delivery/partner/${partnerId}/status`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -82,6 +110,7 @@ export const setOnlineStatusThunk = createAsyncThunk(
       }
       return status;
     } catch (err: any) {
+      dispatch(showToast({ message: err.message || 'Failed to update status', type: 'error' }));
       return rejectWithValue(err.message);
     }
   }
@@ -89,7 +118,7 @@ export const setOnlineStatusThunk = createAsyncThunk(
 
 export const updateAssignmentStatusThunk = createAsyncThunk(
   'deliveryPartner/updateAssignmentStatusThunk',
-  async ({ deliveryId, status }: { deliveryId: string, status: string }, { rejectWithValue }) => {
+  async ({ deliveryId, status }: { deliveryId: string, status: string }, { dispatch, rejectWithValue }) => {
     try {
       const response = await fetch(`http://localhost:5000/api/delivery/${deliveryId}/status`, {
         method: 'PATCH',
@@ -101,17 +130,17 @@ export const updateAssignmentStatusThunk = createAsyncThunk(
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to update assignment status');
+        throw new Error(data.error || 'Failed to update delivery status');
       }
-      // Note: We don't return state payload because state will be updated purely by the incoming socket event!
-      return true;
+      return { deliveryId, status };
     } catch (err: any) {
+      dispatch(showToast({ message: err.message || 'Failed to update delivery status', type: 'error' }));
       return rejectWithValue(err.message);
     }
   }
 );
 
-export const deliveryPartnerSlice = createSlice({
+const deliveryPartnerSlice = createSlice({
   name: 'deliveryPartner',
   initialState,
   reducers: {
@@ -157,6 +186,16 @@ export const deliveryPartnerSlice = createSlice({
     }
   },
   extraReducers: (builder) => {
+    builder.addCase(fetchActiveAssignmentThunk.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(fetchActiveAssignmentThunk.fulfilled, (state) => {
+      state.isLoading = false;
+    });
+    builder.addCase(fetchActiveAssignmentThunk.rejected, (state) => {
+      state.isLoading = false;
+    });
+
     builder.addCase(setOnlineStatusThunk.fulfilled, (state, action) => {
       state.isOnline = action.payload;
       state.status = action.payload ? 'ONLINE' : 'OFFLINE';
@@ -166,12 +205,7 @@ export const deliveryPartnerSlice = createSlice({
         state.availableAssignments = [];
       }
     });
-    builder.addCase(setOnlineStatusThunk.rejected, (_state, action) => {
-      alert(action.payload as string); // Spec: "frontend shows the error cleanly"
-    });
-    builder.addCase(updateAssignmentStatusThunk.rejected, (_state, action) => {
-      alert(action.payload as string); // Show error from server if illegal transition
-    });
+    // Removed native alerts from .rejected cases
   }
 });
 
@@ -185,6 +219,7 @@ export const {
 
 export const selectPartnerStatus = (state: RootState) => state.deliveryPartner.status;
 export const selectIsPartnerOnline = (state: RootState) => state.deliveryPartner.isOnline;
+export const selectIsLoading = (state: RootState) => state.deliveryPartner.isLoading;
 export const selectActiveAssignment = (state: RootState) => state.deliveryPartner.activeAssignment;
 export const selectAvailableAssignments = (state: RootState) => state.deliveryPartner.availableAssignments;
 export const selectPartnerLocation = (state: RootState) => state.deliveryPartner.currentLocation;

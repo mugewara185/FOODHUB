@@ -17,11 +17,12 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  roles: ('user' | 'admin' | 'owner' | 'partner' | 'dev')[];
+  roles: ('user' | 'admin' | 'owner' | 'partner' | 'dev' | 'delivery_partner')[];
   phone?: string;
   status: 'active' | 'inactive' | 'blocked';
   addresses: IAddress[];
   favoriteRestaurants: Schema.Types.ObjectId[];
+  favoriteFoodItems: Schema.Types.ObjectId[];
   createdAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
@@ -44,7 +45,7 @@ const userSchema = new Schema<IUser>(
     password: { type: String, required: true, minlength: 6, select: false },
     roles: { 
       type: [String], 
-      enum: ['user', 'admin', 'owner', 'partner', 'dev'], 
+      enum: ['user', 'admin', 'owner', 'partner', 'dev', 'delivery_partner'], 
       default: ['user'] 
     },
     phone: { type: String },
@@ -54,7 +55,8 @@ const userSchema = new Schema<IUser>(
       default: 'active'
     },
     addresses: [addressSchema],
-    favoriteRestaurants: [{ type: Schema.Types.ObjectId, ref: 'Restaurant' }]
+    favoriteRestaurants: [{ type: Schema.Types.ObjectId, ref: 'Restaurant' }],
+    favoriteFoodItems: [{ type: Schema.Types.ObjectId }]
   },
   { timestamps: true }
 );

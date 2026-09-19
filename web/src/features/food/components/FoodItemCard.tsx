@@ -20,7 +20,7 @@ import {
 } from '@mui/icons-material';
 import type { CustomizedCartItem as CustomizedItem, FoodItem } from '../../../core/types';
 import FoodCustomizationModal from './FoodCustomizationModal';
-import { useAppDispatch } from '../../../app/store';
+import { useFavorites } from '../../auth/hooks/useFavorites';
 
 interface FoodItemCardProps {
   foodItem: FoodItem;
@@ -37,16 +37,17 @@ const FoodItemCard: React.FC<FoodItemCardProps> = ({
   onAddToCart,
   onAddToCartWithCustomization,
   onUpdateQuantity,
-  onToggleFavorite,
+  onToggleFavorite, // kept for backwards compatibility if needed
 }) => {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite: checkFavorite, toggleFavorite } = useFavorites();
+  const isFavorite = checkFavorite({ kind: 'foodItem', id: foodItem.id });
   const [customizationOpen, setCustomizationOpen] = useState(false);
 
   // const dispatch= useAppDispatch();
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorite(!isFavorite);
+    toggleFavorite({ kind: 'foodItem', id: foodItem.id });
     onToggleFavorite?.(foodItem.id);
   };
 

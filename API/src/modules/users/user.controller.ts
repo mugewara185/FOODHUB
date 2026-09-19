@@ -60,6 +60,26 @@ export async function toggleFavorite(req: Request, res: Response, next: NextFunc
   } catch (err) { next(err); }
 }
 
+export async function toggleFoodFavorite(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = (req as any).user?.id;
+    const user = await User.findById(userId);
+    if (!user) throw new AppError('User not found', 404);
+    
+    const foodItemIdStr = req.params.foodItemId;
+    const exists = user.favoriteFoodItems.some((id: any) => id.toString() === foodItemIdStr);
+    
+    if (exists) {
+      user.favoriteFoodItems = user.favoriteFoodItems.filter((id: any) => id.toString() !== foodItemIdStr);
+    } else {
+      user.favoriteFoodItems.push(new Types.ObjectId(foodItemIdStr) as any);
+    }
+    
+    await user.save();
+    sendSuccess({ res, data: { favoriteFoodItems: user.favoriteFoodItems }, message: 'Food favorites updated' });
+  } catch (err) { next(err); }
+}
+
 export async function updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = (req as any).user?.id;

@@ -200,6 +200,18 @@ export const authApi = {
     }
   },
 
+  async toggleFoodFavorite(foodItemId: string, token: string): Promise<string[]> {
+    try {
+      const payload = await request<{ favoriteFoodItems: string[] }>(`/users/favorites/food/${foodItemId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return payload.favoriteFoodItems;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
   async addAddress(addressData: any, token: string): Promise<any[]> {
     try {
       const payload = await request<{ addresses: any[] }>('/users/addresses', {

@@ -34,6 +34,8 @@ S5a - Polish: Image fallback + Search dedup - DONE
 - The old `socketService.onNotification` inside `App.tsx` remains and drops toast messages for legacy workflows. It is disconnected from the formal `notificationSlice`.
 - The backend does not yet emit specific `delayed` or `offline` states, so the handler stub in `useDeliveryNotifications` remains a TODO.
 - `RestaurantCard.tsx` (the inactive variant) was ignored and left as is, as requested by scope.
+- The spec proposed a polymorphic Favorite entity. Current implementation uses embedded arrays on User. Decision: extend the existing pattern with a reusable frontend layer. Migrate to polymorphic entity only when a third favorite type appears.
+- `useRestaurantLogic` and `useFavorites` are parallel paths. Unify them only in a dedicated refactor session, not opportunistically.
 
 ## Known Gaps / Blockers
 - Frontend compilation (`npx tsc --noEmit` in `web`) produces a large number of pre-existing errors (over 3000 lines). We are strictly ignoring these and focusing only on Delivery/Order-specific code.
@@ -43,3 +45,9 @@ Run S5b: Favorites.
 
 ## Completion %
 100%
+## E2E Findings
+- [x] Bug 1: /partner/active redirecting aggressively. Fixed by adding isLoading to deliveryPartnerSlice.ts and replacing the unconditional mount redirect with a three-state render.
+- [x] Bug 2: Online/offline toggle rejecting with generic string and throwing a native alert(). Fixed by replacing the hardcoded partner-123 with dynamic user id from the Redux auth state and dispatching showToast directly from the thunk catch block for elegant error UX.
+
+## Environment Notes
+- **Vitest EMFILE Limits**: During local UI test runs (jsdom environment), the @mui/icons-material imports frequently exhaust the OS file descriptor limit resulting in EMFILE: too many open files. Headless tests prove logic functionally passes but sometimes crash explicitly due to this OS bottleneck.

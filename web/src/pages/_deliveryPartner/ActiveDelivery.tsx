@@ -39,7 +39,7 @@ import {
 import Map from '../../shared/components/maps/Map';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@app/store/hooks';
-import { selectActiveAssignment, selectPartnerLocation, updateLocation, updateAssignmentStatusThunk } from '@features/deliveryPartner/deliveryPartnerSlice';
+import { selectActiveAssignment, selectPartnerLocation, updateLocation, updateAssignmentStatusThunk, selectIsLoading, fetchActiveAssignmentThunk } from '@features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
 import { useGPSSimulator } from '../../core/dev/gpsSimulator';
 
@@ -54,17 +54,17 @@ const ActiveDelivery: React.FC = () => {
   const dispatch = useAppDispatch();
   const activeAssignment = useAppSelector(selectActiveAssignment);
   const currentLocation = useAppSelector(selectPartnerLocation);
+  const isLoading = useAppSelector(selectIsLoading);
 
   const [pickupDialog, setPickupDialog] = useState(false);
   const [deliveryDialog, setDeliveryDialog] = useState(false);
   const [otp, setOtp] = useState('');
   const [recenterTrigger, setRecenterTrigger] = useState(0);
-  
+
   useEffect(() => {
-    if (!activeAssignment) {
-      navigate('/partner');
-    }
-  }, [activeAssignment, navigate]);
+    // Optionally trigger a fetch here if needed, but for now we just dispatch it to resolve the loading state
+    dispatch(fetchActiveAssignmentThunk());
+  }, [dispatch]);
 
   const targetLoc = activeAssignment?.status === 'out_for_delivery' 
     ? activeAssignment.dropoffLocation 
@@ -82,8 +82,20 @@ const ActiveDelivery: React.FC = () => {
     }
   );
 
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
+        <Typography>Loading...</Typography>
+      </Box>
+    );
+  }
+
   if (!activeAssignment) {
-    return <Typography>No active delivery</Typography>;
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography>No active delivery</Typography>
+      </Box>
+    );
   }
 
   const getStepIndex = () => {

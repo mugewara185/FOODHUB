@@ -185,6 +185,27 @@ export const toggleFavoriteThunk = createAsyncThunk<string[], string, { rejectVa
   }
 );
 
+export const toggleFoodFavoriteThunk = createAsyncThunk<string[], string, { rejectValue: string, state: any }>(
+  "auth/toggleFoodFavorite",
+  async (foodItemId, { getState, rejectWithValue }) => {
+    logger.info('AUTH', 'Toggling food favorite', { event: 'FAVORITE.FOOD.TOGGLE.START', data: { foodItemId } });
+    try {
+      const state = getState() as any;
+      const token = state.auth.user?.token;
+      if (!token) {
+        logger.warn('AUTH', 'Cannot toggle food favorite: not authenticated', { event: 'FAVORITE.FOOD.TOGGLE.UNAUTHENTICATED' });
+        return rejectWithValue("Not authenticated");
+      }
+      const updatedFavorites = await authApi.toggleFoodFavorite(foodItemId, token);
+      logger.info('AUTH', 'Toggled food favorite successfully', { event: 'FAVORITE.FOOD.TOGGLE.SUCCESS' });
+      return updatedFavorites;
+    } catch (err: any) {
+      logger.error('AUTH', 'Failed to toggle food favorite', { event: 'FAVORITE.FOOD.TOGGLE.FAILURE', error: err });
+      return rejectWithValue(getErrorMessage(err));
+    }
+  }
+);
+
 export const updateProfileThunk = createAsyncThunk<AuthUser, any, { rejectValue: string, state: any }>(
   "auth/updateProfile",
   async (data, { getState, rejectWithValue }) => {
@@ -345,6 +366,13 @@ const authSlice = createSlice({
     builder.addCase(toggleFavoriteThunk.fulfilled, (state, action) => {
       if (state.user) {
         state.user.favoriteRestaurants = action.payload;
+        persistSession(state.user);
+      }
+    });
+
+    builder.addCase(toggleFoodFavoriteThunk.fulfilled, (state, action) => {
+      if (state.user) {
+        state.user.favoriteFoodItems = action.payload;
         persistSession(state.user);
       }
     });

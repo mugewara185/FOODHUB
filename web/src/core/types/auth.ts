@@ -56,6 +56,7 @@ export interface User {
   updatedAt: string;
   addresses?: IAddress[];
   favoriteRestaurants?: string[];
+  favoriteFoodItems?: string[];
 }
 
 export interface AuthUser extends User {
