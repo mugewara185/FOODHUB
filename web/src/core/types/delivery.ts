@@ -23,8 +23,8 @@ export interface DeliveryAssignment {
   dropoffLocation: Coordinates;
   pickupAddress: string;
   dropAddress: string;
-  distance: string;
-  estimatedTime: string;
+  distance: string | number; // in kilometers
+  estimatedTime: string | number; // in minutes
   amount: number;
   priority: 'high' | 'medium' | 'low';
   status: DeliveryStatus;

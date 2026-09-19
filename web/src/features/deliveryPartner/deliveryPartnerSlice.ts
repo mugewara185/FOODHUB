@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import type { RootState } from '../../app/store';
 import type { DeliveryAssignment } from '../../core/types/delivery';
 import { showToast } from '../ui/uiSlice';
@@ -28,32 +28,46 @@ const mockAssignments: DeliveryAssignment[] = [
   {
     deliveryId: 'DEL-2024-001',
     orderId: 'ORD-2024-001',
+    partnerId: undefined, // not provided yet
     restaurant: 'Spice Garden',
     restaurantImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop',
     customer: 'John Doe',
-    status: 'pending',
     pickupLocation: { lat: 19.0760, lng: 72.8777 },
     dropoffLocation: { lat: 19.0500, lng: 72.9000 },
-    amount: 120,
+    pickupAddress: 'Spice Garden, Mumbai', // placeholder, can be refined
+    dropAddress: 'Customer address near Chembur, Mumbai', // placeholder
     distance: 4.5,
     estimatedTime: 25,
-    items: [{ name: 'Butter Chicken', quantity: 1 }, { name: 'Naan', quantity: 2 }]
+    amount: 120,
+    priority: 'medium', // default assumption
+    status: 'pending',
+    items: [
+      { name: 'Butter Chicken', quantity: 1 },
+      { name: 'Naan', quantity: 2 }
+    ]
   },
   {
     deliveryId: 'DEL-2024-002',
     orderId: 'ORD-2024-002',
+    partnerId: undefined, // not provided yet
     restaurant: 'Burger Hub',
     restaurantImage: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&h=100&fit=crop',
     customer: 'Jane Smith',
-    status: 'pending',
     pickupLocation: { lat: 19.0800, lng: 72.8800 },
     dropoffLocation: { lat: 19.0600, lng: 72.8900 },
-    amount: 85,
+    pickupAddress: 'Burger Hub, Mumbai', // placeholder
+    dropAddress: 'Customer address near Dadar, Mumbai', // placeholder
     distance: 2.1,
     estimatedTime: 15,
-    items: [{ name: 'Classic Burger', quantity: 2 }]
+    amount: 85,
+    priority: 'low', // shorter distance, lower priority
+    status: 'pending',
+    items: [
+      { name: 'Classic Burger', quantity: 2 }
+    ]
   }
 ];
+
 
 const initialState: DeliveryPartnerState = {
   status: 'OFFLINE',
