@@ -10,7 +10,7 @@ async function main() {
 
   const userId = new ObjectId('6aad6084ed0930cf2320b59f');       // admin0
   const partnerId = new ObjectId('6aaa5854cef1bf6a6d5c0325');    // Kavitha Singh
-    console.log('Linking partner', partnerId, 'to user', userId);
+    // console.log('Linking partner', partnerId, 'to user', userId);
   // Add userId to the DeliveryPartner doc (even though the schema
   // doesn't have the field yet, MongoDB will accept it)
   await db.collection('deliverypartners').updateOne(

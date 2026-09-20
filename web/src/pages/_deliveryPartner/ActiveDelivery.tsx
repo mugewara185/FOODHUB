@@ -61,7 +61,8 @@ const ActiveDelivery: React.FC = () => {
   useEffect(() => {
     dispatch(fetchPartnerStateThunk());
   }, [dispatch]);
-
+  
+console.log('ActiveDelivery render: activeAssignment=', activeAssignment, 'currentLocation=', currentLocation, 'isLoading=', isLoading);
   const targetLoc =
     activeAssignment?.status === 'out_for_delivery' || activeAssignment?.status === 'nearby'
       ? activeAssignment.dropoffLocation
@@ -346,7 +347,7 @@ const ActiveDelivery: React.FC = () => {
             <Typography variant="h6" fontWeight={700} gutterBottom>
               Order Details
             </Typography>
-            {activeAssignment.items.map((item, index) => (
+            {activeAssignment.items?.map((item, index) => (
               <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2">
                   {item.quantity}x {item.name}

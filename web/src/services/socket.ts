@@ -27,7 +27,7 @@ class SocketService {
       console.log(
         "Socket connected:",
         this.socket?.id,
-        role ? `(Role: ${role})` : "",
+        role ? `(Role: ${role})` : "Role:no role specified!!!",
       );
       this.notifyConnectionState("connected");
       if (userId) {

@@ -17,6 +17,7 @@ import notificationRoutes from './modules/notifications/notification.routes';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
 import aiRoutes from './modules/ai/ai.routes';
 import deliveryRoutes from './modules/delivery/delivery.routes';
+import deliveryPartnerRoutes from './modules/delivery/delivery.partner.routes';
 
 // Import models so they are registered with Mongoose for dynamic seeding
 import './modules/notifications/notification.model';
@@ -51,7 +52,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/dev', devRoutes);
 app.use('/api/admin/analytics', analyticsRoutes);
 app.use('/api/admin/ai', aiRoutes);
-app.use('/api/partner/delivery', deliveryRoutes);
+app.use('/api/delivery/partner', deliveryPartnerRoutes);
 app.use('/api/admin/delivery', deliveryRoutes);
 
 // 404 handler

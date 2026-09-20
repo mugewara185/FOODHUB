@@ -43,9 +43,19 @@ const initialState: DeliveryPartnerState = {
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────
+const getToken = () => {
+  try {
+    const raw = localStorage.getItem('zom2.auth.session');
+    if (!raw) return '';
+    return JSON.parse(raw).token || '';
+  } catch {
+    return '';
+  }
+};
+
+// ============================================================================
 // THUNKS
-// ─────────────────────────────────────────────────────────────────────────
+// ============================================================================
 
 /**
  * Fetches the partner's current state from the backend.
@@ -57,7 +67,7 @@ export const fetchPartnerStateThunk = createAsyncThunk(
     try {
       const response = await fetch('http://localhost:5000/api/delivery/partner/me', {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getToken()}`,
         },
       });
       const data = await response.json();
@@ -83,7 +93,7 @@ export const setOnlineStatusThunk = createAsyncThunk(
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify({ status: shouldBeOnline ? 'available' : 'offline' }),
       });
@@ -113,7 +123,7 @@ export const updateAssignmentStatusThunk = createAsyncThunk(
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify({ status }),
       });
@@ -147,7 +157,7 @@ export const acceptAssignmentThunk = createAsyncThunk(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getToken()}`,
         },
       });
       const data = await response.json();
@@ -176,7 +186,7 @@ export const rejectAssignmentThunk = createAsyncThunk(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getToken()}`,
         },
       });
       const data = await response.json();
