@@ -46,7 +46,7 @@ import {
 } from '@mui/icons-material';
 // import RestaurantCard from '../../../features/restaurant/components/RestaurantCard';
 // import RestaurantCard from '../../../features/restaurants/components/RestaurantCard/Restaurants_Card';
-import RestaurantCard from '../../../features/restaurants/components/RestaurantCard/RestaurantCard_V';
+import RestaurantCard from '../../../features/restaurant/components/RestaurantCard/RestaurantCard_V';
 import { MOCK_RESTAURANTS , CUISINES, DELIVERY_TIMES } from '../../../core/constants/food';
 import { type Restaurant } from '../../../core/types';
 //redux

@@ -31,6 +31,7 @@ S5a - Polish: Image fallback + Search dedup - DONE
 - `vitest` (dev) in API workspace to properly run backend boundary assertion tests without frontend mocking.
 
 ## Debt / Deferred
+- Display-only mocks in `useDeliveryTracking.ts`: `rating: 4.8` and `completedDeliveries: 420` are hardcoded for the customer tracking view until they are added to the socket payload. Do NOT fix them in the current session.
 - The old `socketService.onNotification` inside `App.tsx` remains and drops toast messages for legacy workflows. It is disconnected from the formal `notificationSlice`.
 - The backend does not yet emit specific `delayed` or `offline` states, so the handler stub in `useDeliveryNotifications` remains a TODO.
 - `RestaurantCard.tsx` (the inactive variant) was ignored and left as is, as requested by scope.

@@ -59,7 +59,7 @@ import AdminAIPage from '../../pages/admin/ai/AdminAIPage';
 import InvestigationPage from '../../pages/admin/ai/InvestigationPage';
 import AdminDeliveryDashboard from '../../pages/admin/delivery';
 
-import { de } from 'date-fns/locale';
+
 import DevLayout from '@/core/dev/ui/layout/DevLayout';
 import DevDashboard from '@/core/dev/ui/Dashboard';
 import ComponentTreeExplorer from '@/core/dev/ui/pages/ComponentTree';
@@ -72,6 +72,8 @@ import PerformanceMetrics from '@/core/dev/ui/pages/PerformanceMetrics';
 import ComponentPlayground from '@/core/dev/ui/pages/ComponentPlayground';
 import DocumentationViewer from '@/core/dev/ui/pages/DocumentationViewer';
 import { RouteLogger } from './RouteLogger';
+
+import { IS_DEV } from '../../core/config/app.config';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -176,18 +178,20 @@ const AppRoutes: React.FC = () => {
         </Route>
 
         {/* dev */}
-        <Route path="/dev" element={<DevLayout />} >
-          <Route index element={<DevDashboard />} />
-          <Route path='component-tree' element={<ComponentTreeExplorer />} />
-          <Route path='components' element={<ComponentPlayground />} />
-          <Route path='state' element={<StateInspector />} />
-          <Route path='props' element={<PropsPanel />} />
-          <Route path='versions' element={<VersionSwitcher />} />
-          <Route path='network' element={<NetworkInspector />} />
-          <Route path='logs' element={<LogPanel />} />
-          <Route path='performance' element={<PerformanceMetrics />} />
-          <Route path='docs' element={<DocumentationViewer />} />
-        </Route>
+        {IS_DEV && (
+          <Route path="/dev" element={<DevLayout />} >
+            <Route index element={<DevDashboard />} />
+            <Route path='component-tree' element={<ComponentTreeExplorer />} />
+            <Route path='components' element={<ComponentPlayground />} />
+            <Route path='state' element={<StateInspector />} />
+            <Route path='props' element={<PropsPanel />} />
+            <Route path='versions' element={<VersionSwitcher />} />
+            <Route path='network' element={<NetworkInspector />} />
+            <Route path='logs' element={<LogPanel />} />
+            <Route path='performance' element={<PerformanceMetrics />} />
+            <Route path='docs' element={<DocumentationViewer />} />
+          </Route>
+        )}
       </Routes>
     </>
   );

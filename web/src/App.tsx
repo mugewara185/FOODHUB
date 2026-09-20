@@ -1,7 +1,11 @@
 import React, { useEffect } from "react";
 import { AuthProvider } from "./contexts/AuthContext";
 import AppRoutes from "./app/routes";
-import FloatingDevConsole from "@/core/dev/ui/modals/FloatingDevConsole";
+import { APP_CONFIG, IS_DEV } from "./core/config/app.config";
+
+const FloatingDevConsole = IS_DEV
+  ? React.lazy(() => import("@/core/dev/ui/modals/FloatingDevConsole"))
+  : null;
 import { CUISINES } from "@core/constants/food";
 import { selectAllRestaurants } from "./features/restaurant/restaurantSlice";
 import { selectFeaturedRestaurants } from "./features/restaurant/restaurantSlice";
@@ -11,7 +15,6 @@ import { useAppDispatch, useAppSelector } from "@app/store/hooks";
 import { useDevContext } from "@core/dev/contexts/DevContext";
 import { useLogger, logger } from "./core/dev/logger";
 import LogConsole from "./core/dev/logger";
-import { APP_CONFIG } from "./core/config/app.config";
 import { Toast } from "./shared/components/notifications";
 import { socketService } from "./services/socket";
 import { showToast } from "./features/ui/uiSlice";
@@ -80,8 +83,8 @@ const App: React.FC = () => {
     <AuthProvider>
       <Toast />
       <AppRoutes />
-      {(APP_CONFIG.DEV_BYPASS_AUTH || user?.role.includes('dev')) && (
-        <>
+      {IS_DEV && FloatingDevConsole && (APP_CONFIG.DEV_BYPASS_AUTH || user?.role.includes('dev')) && (
+        <React.Suspense fallback={null}>
           <FloatingDevConsole
             allRestaurants={allRestaurants}
             featuredRestaurants={featuredRestaurants}
@@ -91,7 +94,7 @@ const App: React.FC = () => {
             cuisineLength={CUISINES.length}
           />
           <RoleSwitcher />
-        </>
+        </React.Suspense>
       )}
       <LogConsole
         open={LogConsoleOpen}

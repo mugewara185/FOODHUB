@@ -1,0 +1,12 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "*.{js,css,png,jpg,jpeg,gif,svg,ico,woff,woff2}"]
+  },
+  "routes": [
+    {
+      "route": "/dev/*",
+      "statusCode": 404
+    }
+  ]
+}

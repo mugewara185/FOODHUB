@@ -5,7 +5,7 @@ import { restaurants, menus, reviews } from "@/data/dummyData";
 import { RestaurantHeader } from "@/features/restaurant/components/RestaurantHeader";
 import { MenuItemCard } from "@/features/restaurant/components/MenuItemCard";
 import type { MenuItem, CartItem } from "@/data/types";
-import { logger } from "@/utils/logger";
+import { logger } from "@/core/dev/logger";
 
 const LOCAL_CART_KEY = "miniZomCart";
 

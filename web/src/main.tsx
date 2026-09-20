@@ -9,11 +9,8 @@ import { LoggerProvider } from './core/dev/contexts/LoggerContext';
 import { ErrorBoundary } from './shared/components/ErrorBoundary/ErrorBoundary';
 import { logger } from './core/dev/logger';
 
-import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
-import theme from './shared/styles/theme';
-import foodtheme from './shared/styles/foodTheme';
 import './index.css';
 
 import '@fontsource/poppins/300.css';
@@ -22,21 +19,33 @@ import '@fontsource/poppins/500.css';
 import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
 
+import { IS_DEV } from './core/config/app.config';
+
 logger.info('APP', 'Application Initialized', { event: 'APP.INIT' });
 
+const TheApp = (
+  <ErrorBoundary>
+    <BrowserRouter>
+      <CssBaseline />
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </BrowserRouter>
+  </ErrorBoundary>
+);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
-    <LoggerProvider>
-      <ErrorBoundary>
-        <BrowserRouter>
-            <CssBaseline />
-              <Provider store={store}>
-                <DevProvider>
-                  <App />
-                </DevProvider>
-              </Provider>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </LoggerProvider>
+  <React.StrictMode>
+    {IS_DEV ? (
+      <LoggerProvider>
+        <DevProvider>
+          {TheApp}
+        </DevProvider>
+      </LoggerProvider>
+    ) : (
+      TheApp
+    )}
+  </React.StrictMode>
 );
 
 // V2 (commented code omitted to simplify)

@@ -2,8 +2,8 @@ import { faker } from "@faker-js/faker";
 
 import type { Review } from "../../../data/types";
 
-import users from "./users";
-import orders from "./orders";
+import { users } from "./users";
+import { orders } from "./orders";
 import foodItems from "./foodItems";
 import restaurants from "./restaurants";
 
@@ -124,7 +124,4 @@ export const generateReviews = (
     };
   });
 
-const reviews =
-  generateReviews();
-
-export default reviews;
+export const reviews = generateReviews();

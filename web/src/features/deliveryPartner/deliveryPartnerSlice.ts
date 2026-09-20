@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction, createAsyncThunk } from '@reduxjs/tool
 import type { RootState } from '../../app/store';
 import type { DeliveryAssignment } from '../../core/types/delivery';
 import { showToast } from '../ui/uiSlice';
+import api from '../../core/utils/api';
 
 export type PartnerStatus = 'OFFLINE' | 'ONLINE' | 'ON_DELIVERY';
 
@@ -43,16 +44,6 @@ const initialState: DeliveryPartnerState = {
   },
 };
 
-const getToken = () => {
-  try {
-    const raw = localStorage.getItem('zom2.auth.session');
-    if (!raw) return '';
-    return JSON.parse(raw).token || '';
-  } catch {
-    return '';
-  }
-};
-
 // ============================================================================
 // THUNKS
 // ============================================================================
@@ -65,14 +56,9 @@ export const fetchPartnerStateThunk = createAsyncThunk(
   'deliveryPartner/fetchPartnerState',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:5000/api/delivery/partner/me', {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Failed to fetch partner state');
+      const data = await api.get('delivery/partner/me');
+      if (data.success === false) {
+        throw new Error(data.message || 'Failed to fetch partner state');
       }
       return data.data;
     } catch (err: any) {
@@ -89,17 +75,9 @@ export const setOnlineStatusThunk = createAsyncThunk(
   'deliveryPartner/setOnlineStatus',
   async (shouldBeOnline: boolean, { dispatch, rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:5000/api/delivery/partner/me/status', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ status: shouldBeOnline ? 'available' : 'offline' }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Failed to update status');
+      const data = await api.patch('delivery/partner/me/status', { status: shouldBeOnline ? 'available' : 'offline' });
+      if (data.success === false) {
+        throw new Error(data.message || 'Failed to update status');
       }
       return data.data;
     } catch (err: any) {
@@ -119,17 +97,9 @@ export const updateAssignmentStatusThunk = createAsyncThunk(
     { dispatch, rejectWithValue }
   ) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/delivery/${deliveryId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ status }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Failed to update delivery status');
+      const data = await api.patch(`delivery/${deliveryId}/status`, { status });
+      if (data.success === false) {
+        throw new Error(data.message || 'Failed to update delivery status');
       }
       return { deliveryId, status, delivery: data.data };
     } catch (err: any) {
@@ -153,16 +123,9 @@ export const acceptAssignmentThunk = createAsyncThunk(
     { dispatch, rejectWithValue }
   ) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/delivery/${orderId}/accept`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Failed to accept delivery');
+      const data = await api.post(`delivery/${orderId}/accept`);
+      if (data.success === false) {
+        throw new Error(data.message || 'Failed to accept delivery');
       }
       return data.data;
     } catch (err: any) {
@@ -182,16 +145,9 @@ export const rejectAssignmentThunk = createAsyncThunk(
     { dispatch, rejectWithValue }
   ) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/delivery/${orderId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Failed to decline delivery');
+      const data = await api.post(`delivery/${orderId}/reject`);
+      if (data.success === false) {
+        throw new Error(data.message || 'Failed to decline delivery');
       }
       return { orderId };
     } catch (err: any) {
