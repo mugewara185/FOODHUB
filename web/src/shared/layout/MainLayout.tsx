@@ -663,15 +663,15 @@ const MainLayout: React.FC = () => {
         }}
       >
         <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
-            <Person />
+          <Avatar sx={{ bgcolor: 'primary.main' }} src={user?.avatar}>
+            {user?.name?.charAt(0) || <Person />}
           </Avatar>
           <Box>
             <Typography variant="body1" fontWeight={600}>
-              John Doe
+              {isAuthenticated ? (user?.name || 'User') : 'Guest'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              john@example.com
+              {isAuthenticated ? (user?.email || '') : 'Not logged in'}
             </Typography>
           </Box>
         </Box>
@@ -692,14 +692,34 @@ const MainLayout: React.FC = () => {
         </List>
         <Divider />
         <Box sx={{ p: 2 }}>
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{ mb: 2 }}
-            onClick={() => navigate('/login')}
-          >
-            Login / Sign Up
-          </Button>
+          {isAuthenticated ? (
+            <Button
+              variant="contained"
+              color="error"
+              fullWidth
+              startIcon={<Logout />}
+              sx={{ mb: 2 }}
+              onClick={() => {
+                handleDrawerToggle();
+                logout();
+              }}
+            >
+              Logout
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<Login />}
+              sx={{ mb: 2 }}
+              onClick={() => {
+                handleDrawerToggle();
+                navigate('/login');
+              }}
+            >
+              Login / Sign Up
+            </Button>
+          )}
         </Box>
       </Drawer>
 
