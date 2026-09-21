@@ -319,10 +319,6 @@ These items are explicitly flagged in `docs/chatgpt-analysis.md` **Section 5.3**
 
 ---
 
-
-
----
-
 ## Resume Prompt
 
 ```
