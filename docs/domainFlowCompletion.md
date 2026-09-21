@@ -32,7 +32,8 @@ Five decisions from the earlier design session. **These are recommendations, not
 
 **Implication**: Every state-machine transition emits from the `Order` model. The `Delivery` model holds partner/route data, not lifecycle ownership.
 
-**Status**: PENDING ACCEPTANCE — confirm before starting DF-C1
+**Status**: ACCEPTED — 2026-09-21
+Decision 1 — ACCEPTED — Order is canonical; Delivery projects into it.
 
 ---
 
@@ -44,7 +45,8 @@ Five decisions from the earlier design session. **These are recommendations, not
 
 **Implication**: Assignment does NOT happen automatically. The `AWAITING_PARTNER` state is a real waiting state. A partner action causes the `PARTNER_ASSIGNED` transition.
 
-**Status**: PENDING ACCEPTANCE — confirm before starting DF-D2
+**Status**: ACCEPTED — 2026-09-21
+Decision 2 — ACCEPTED — Broadcast-and-accept assignment.
 
 ---
 
@@ -56,7 +58,8 @@ Five decisions from the earlier design session. **These are recommendations, not
 
 **Implication**: `PENDING_OWNER` is a real waiting state. Owner inaction blocks progression. The simulator's owner strategy must include an accept/reject behavior.
 
-**Status**: PENDING ACCEPTANCE — confirm before starting DF-B1
+**Status**: ACCEPTED — 2026-09-21
+Decision 3 — ACCEPTED — Manual owner accept.
 
 ---
 
@@ -68,7 +71,8 @@ Five decisions from the earlier design session. **These are recommendations, not
 
 **Implication**: Payment state exists in the data model but no payment logic is implemented. A dedicated payment vertical will own this later.
 
-**Status**: PENDING ACCEPTANCE — confirm before starting DF-C1
+**Status**: ACCEPTED — 2026-09-21
+Decision 4 — ACCEPTED — Payment deferred; paymentStatus stubbed.
 
 ---
 
@@ -80,7 +84,8 @@ Five decisions from the earlier design session. **These are recommendations, not
 
 **Implication**: The `reviews` module needs two review types. Aggregated ratings on Restaurant and DeliveryPartner models should be updated on each review submission.
 
-**Status**: PENDING ACCEPTANCE — confirm before starting DF-F1
+**Status**: ACCEPTED — 2026-09-21
+Decision 5 — ACCEPTED — Customer rates both restaurant and partner.
 
 ---
 
