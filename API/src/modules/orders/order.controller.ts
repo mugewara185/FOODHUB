@@ -1,4 +1,5 @@
 import { Response, NextFunction } from 'express';
+import { transitionOrderStatus } from './order.service';
 import { z } from 'zod';
 import { Order } from './order.model';
 import { Restaurant } from '../restaurants/restaurant.model';
@@ -161,6 +162,48 @@ export async function cancelOrder(req: AuthRequest, res: Response, next: NextFun
     });
 
     sendSuccess({ res, message: 'Order cancelled', data: order });
+  } catch (err) {
+    next(err);
+  }
+}
+
+function getActorRole(req: AuthRequest): string {
+  if (req.user!.roles.includes('admin')) return 'admin';
+  if (req.user!.roles.includes('owner')) return 'owner';
+  return req.user!.roles[0];
+}
+
+export async function acceptOrder(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const updatedOrder = await transitionOrderStatus(req.params.id, 'confirmed', { id: req.user!.id, role: getActorRole(req) });
+    sendSuccess({ res, message: 'Order accepted', data: updatedOrder });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function rejectOrder(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const updatedOrder = await transitionOrderStatus(req.params.id, 'rejected', { id: req.user!.id, role: getActorRole(req) });
+    sendSuccess({ res, message: 'Order rejected', data: updatedOrder });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function markPreparing(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const updatedOrder = await transitionOrderStatus(req.params.id, 'preparing', { id: req.user!.id, role: getActorRole(req) });
+    sendSuccess({ res, message: 'Order marked as preparing', data: updatedOrder });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function markReady(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const updatedOrder = await transitionOrderStatus(req.params.id, 'ready_for_pickup', { id: req.user!.id, role: getActorRole(req) });
+    sendSuccess({ res, message: 'Order marked as ready', data: updatedOrder });
   } catch (err) {
     next(err);
   }

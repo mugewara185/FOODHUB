@@ -1,4 +1,4 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IMenuItem {
   name: string;
@@ -11,6 +11,7 @@ export interface IMenuItem {
 
 export interface IRestaurant extends Document {
   name: string;
+  ownerId?: Types.ObjectId;
   description: string;
   cuisine: string[];
   address: string;
@@ -48,6 +49,9 @@ const menuItemSchema = new Schema<IMenuItem>({
 const restaurantSchema = new Schema<IRestaurant>(
   {
     name: { type: String, required: true, trim: true },
+    // Optional during transition. Required once account-management creates
+    // restaurants with a guaranteed owner (future vertical).
+    ownerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     description: { type: String, default: '' },
     cuisine: [{ type: String }],
     address: { type: String, required: true },

@@ -5,7 +5,7 @@
 
 ## Current Phase
 
-**DF-A2 — Align frontend types — NEXT**
+**DF-B2 — Owner dashboard frontend — NEXT**
 
 ---
 
@@ -172,7 +172,10 @@ REVIEWED                ← terminal: review submitted
 
 ### Phase-flow B — Owner flow (missing entirely)
 
-- [ ] **DF-B1**: Backend: Owner order management endpoints
+- [x] **DF-B1**: Backend: Owner order management endpoints
+    — Completed 2026-09-22. Restaurant.ownerId added (optional, backfilled).
+    order.service.ts created with transitionOrderStatus service. Four
+    endpoints added with owner/admin RBAC.
   - **Files in scope**
     - `API/src/modules/orders/order.controller.ts` — add `PATCH /orders/:id/accept`, `PATCH /orders/:id/reject`, `PATCH /orders/:id/preparing`, `PATCH /orders/:id/ready`
     - `API/src/modules/orders/order.service.ts` — implement transition guards for owner actions
@@ -318,11 +321,17 @@ REVIEWED                ← terminal: review submitted
 
 - S1–S5a: See `web/Docs/Delivery flow/delivery_status.md` — delivery partner flow, GPS simulation, customer tracking, admin fleet, notifications verified working end-to-end
 - **DF-A1**: Order + Delivery status enums canonicalized. Pre-save hook fixed to skip validation on new documents. All backend test scripts pass. tsc clean.
+- **DF-B1**: Owner endpoints /accept, /reject, /preparing, /ready functional. Legal transitions enforced, illegal rejected (400), role check enforced (403). Restaurant.ownerId link verified for the demo restaurant.
+
+## Capabilities Extracted
+
+- `order.service.ts` — Order state transition service owns validation and authorization. All future order-status changes should go through `transitionOrderStatus`.
 
 ---
 
 ## Known Gaps / Blockers
 
+- **Restaurant.ownerId**: added as optional; backfilled one restaurant for demo. Required-when-created deferred to account-management vertical.
 - **Frontend TS compilation**: `npx tsc --noEmit` in `web/` produces 3000+ pre-existing errors (noted in `delivery_status.md`). Focus only on delivery/order-specific code. Do not fix pre-existing errors in unrelated areas.
 - **Order placement endpoint**: Unknown if `POST /orders` currently exists and enforces `CREATED → PENDING_OWNER` transition. Must inspect `API/src/modules/orders/` before DF-C1.
 - **Owner pages**: No `/owner/*` pages confirmed to exist. Must inspect `web/src/pages/` before DF-B2.
@@ -351,11 +360,12 @@ Carried from `web/Docs/Delivery flow/delivery_status.md`:
 
 ## Next Exact Task
 
-**DF-A2**: Align frontend types with new backend enums.
-
-1. Locate frontend types for `Order` and `Delivery`.
-2. Update them to match the new canonical state machine.
-3. Fix any resulting TypeScript errors in `web/`.
+**DF-B2**: Owner dashboard frontend.
+1. Inspect web/src/pages/ for any existing owner pages.
+2. Create web/src/features/orders/ownerOrderSlice.ts (new slice).
+3. Create /owner routes with OrderQueue + ActiveOrders views.
+4. Subscribe to order:new and order:statusChanged socket events.
+5. Implement accept/reject/preparing/ready UI actions.
 
 ---
 
