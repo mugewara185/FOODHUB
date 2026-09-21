@@ -5,7 +5,7 @@
 
 ## Current Phase
 
-**DF-A1 — Canonicalize Order status enum — NOT STARTED**
+**DF-A2 — Align frontend types — NEXT**
 
 ---
 
@@ -148,8 +148,8 @@ REVIEWED                ← terminal: review submitted
 
 ### Phase-flow A — State machine alignment
 
-- [ ] **DF-A1**: Canonicalize `Order` status enum on backend
-  - **Files in scope**
+- [x] **DF-A1**: Canonicalize `Order` status enum on backend
+  — Completed 2026-09-21. Enums updated across Order, Delivery, and all consumers. DB migrated (5 orders, 1 delivery). All tests pass.
     - `API/src/modules/orders/order.model.ts` — update `status` enum to canonical machine
     - `API/src/modules/orders/order.service.ts` — add/update transition guards
     - `API/src/modules/delivery/delivery.state.ts` — align delivery states to canonical machine; `Delivery` projects from `Order`
@@ -317,6 +317,7 @@ REVIEWED                ← terminal: review submitted
 *(Will fill as phases complete. Reference delivery_status.md entries for S1–S5a already verified.)*
 
 - S1–S5a: See `web/Docs/Delivery flow/delivery_status.md` — delivery partner flow, GPS simulation, customer tracking, admin fleet, notifications verified working end-to-end
+- **DF-A1**: Order + Delivery status enums canonicalized. Pre-save hook fixed to skip validation on new documents. All backend test scripts pass. tsc clean.
 
 ---
 
@@ -334,6 +335,12 @@ REVIEWED                ← terminal: review submitted
 
 Carried from `web/Docs/Delivery flow/delivery_status.md`:
 
+- **Test infrastructure**: 4 files in `__tests__/` folders are standalone scripts run via `npx tsx`, not Vitest suites:
+    - `API/src/modules/ai/__tests__/mcp.integration.test.ts`
+    - `API/src/modules/ai/__tests__/smoke.test.ts`
+    - `API/src/modules/delivery/__tests__/offline-rejection.test.ts`
+    - `API/src/modules/dev/__tests__/assign-partner.test.ts`
+  They cause false failures in `npm test` (Vitest reports "No test suite found"). Fix by renaming to `.script.ts` and moving out of `__tests__/`, OR by converting them to real Vitest suites. Not blocking.
 - Display-only mocks in `useDeliveryTracking.ts`: `rating: 4.8` and `completedDeliveries: 420` are hardcoded. Fix when backend partner stats are added to socket payload.
 - Legacy `socketService.onNotification` in `App.tsx` drops toast messages for old workflows. Disconnected from `notificationSlice`. Clean up in a dedicated refactor session.
 - Backend does not yet emit `delayed` or `offline` states — handler stub in `useDeliveryNotifications` remains TODO.
@@ -344,15 +351,11 @@ Carried from `web/Docs/Delivery flow/delivery_status.md`:
 
 ## Next Exact Task
 
-**DF-A1**: Inspect and canonicalize `Order` status enum on backend.
+**DF-A2**: Align frontend types with new backend enums.
 
-Before writing any code:
-1. Read `API/src/modules/orders/order.model.ts` — current status enum
-2. Read `API/src/modules/delivery/delivery.state.ts` — delivery states
-3. Read `API/src/modules/delivery/delivery.model.ts` — delivery model structure
-4. Compare against canonical state machine above
-5. Identify gaps and conflicts
-6. Then edit `order.model.ts` to match canonical enum
+1. Locate frontend types for `Order` and `Delivery`.
+2. Update them to match the new canonical state machine.
+3. Fix any resulting TypeScript errors in `web/`.
 
 ---
 

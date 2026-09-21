@@ -51,7 +51,7 @@ export async function evaluateRisk(delivery: IDelivery) {
     severity = 'high';
     type = 'speed_drop';
     humanTemplate = `Order #${delivery.orderId} is ${Math.round(facts.etaSecondsCurrent/60)} minutes behind schedule. Partner speed dropped from ${facts.avgSpeedPrev4Min} km/h to ${facts.avgSpeedLast4Min} km/h over the last 4 minutes.`;
-  } else if (delivery.status === 'pending' && age > 600) {
+  } else if (delivery.status === 'partner_assigned' && age > 600) {
     severity = 'medium';
     type = 'pickup_delay';
     humanTemplate = `Order #${delivery.orderId} has been preparing for ${Math.round(age/60)} minutes.`;

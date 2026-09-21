@@ -1,8 +1,12 @@
 import { assertValidTransition, DeliveryStatus, InvalidStateTransitionError } from './delivery.state';
 
 const ALL_STATES: DeliveryStatus[] = [
-  'pending', 'assigned', 'accepted', 'arrived_pickup', 'picked_up',
-  'out_for_delivery', 'nearby', 'delivered', 'cancelled'
+  'partner_assigned',
+  'arrived_pickup',
+  'picked_up',
+  'out_for_delivery',
+  'nearby',
+  'delivered',
 ];
 
 let passCount = 0;
@@ -17,17 +21,14 @@ for (const from of ALL_STATES) {
     if (from === to) shouldPass = true;
     else {
       const allowed: Record<string, string[]> = {
-        pending: ['assigned', 'cancelled'],
-        assigned: ['accepted', 'cancelled', 'pending'],
-        accepted: ['arrived_pickup', 'cancelled'],
-        arrived_pickup: ['picked_up', 'cancelled'],
-        picked_up: ['out_for_delivery', 'cancelled'],
-        out_for_delivery: ['nearby', 'delivered', 'cancelled'],
-        nearby: ['delivered', 'cancelled'],
+        partner_assigned: ['arrived_pickup'],
+        arrived_pickup: ['picked_up'],
+        picked_up: ['out_for_delivery'],
+        out_for_delivery: ['nearby', 'delivered'],
+        nearby: ['delivered'],
         delivered: [],
-        cancelled: []
       };
-      shouldPass = allowed[from].includes(to);
+      shouldPass = allowed[from]?.includes(to);
     }
 
     try {

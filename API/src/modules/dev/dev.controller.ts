@@ -155,7 +155,7 @@ export async function assignPartner(req: Request, res: Response) {
   const delivery = await Delivery.create({
     orderId: order._id,
     partnerId: partner._id,
-    status: 'assigned',
+    status: 'partner_assigned',
     pickupLocation,
     destinationLocation,
     currentLocation,
@@ -171,7 +171,7 @@ export async function assignPartner(req: Request, res: Response) {
     orderId: order._id.toString(),
     partnerId: partner._id.toString(),
     partnerUserId: partner.userId!.toString(),
-    status: 'assigned',
+    status: 'partner_assigned',
     partnerName: partner.name,
     partnerPhone: partner.phone,
   });

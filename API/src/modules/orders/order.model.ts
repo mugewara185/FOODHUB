@@ -1,6 +1,20 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+export type OrderStatus =
+  | 'created'
+  | 'pending_owner'
+  | 'rejected'
+  | 'confirmed'
+  | 'preparing'
+  | 'ready_for_pickup'
+  | 'awaiting_partner'
+  | 'partner_assigned'
+  | 'picked_up'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'completed'
+  | 'reviewed'
+  | 'cancelled';
 
 export interface IOrderItem {
   menuItemId: string;
@@ -38,8 +52,23 @@ const orderSchema = new Schema<IOrder>(
     totalAmount: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'],
-      default: 'pending',
+      enum: [
+        'created',
+        'pending_owner',
+        'rejected',
+        'confirmed',
+        'preparing',
+        'ready_for_pickup',
+        'awaiting_partner',
+        'partner_assigned',
+        'picked_up',
+        'out_for_delivery',
+        'delivered',
+        'completed',
+        'reviewed',
+        'cancelled'
+      ],
+      default: 'created',
     },
     deliveryAddress: { type: String, required: true },
     paymentMethod: { type: String, enum: ['cash', 'card', 'upi'], default: 'cash' },

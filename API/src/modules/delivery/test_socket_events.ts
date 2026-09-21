@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import { io as Client, Socket as ClientSocket } from 'socket.io-client';
 import mongoose from 'mongoose';
 import { Delivery } from './delivery.model';
+import { DeliveryPartner } from './delivery-partner.model';
 import { updateDeliveryStatus } from './delivery.service';
 import { initSocket } from '../../socket';
 
@@ -30,10 +31,10 @@ async function runTest() {
   const mockPartnerId = new mongoose.Types.ObjectId().toString();
 
   const mockDeliveryDoc = {
-    id: mockDeliveryId,
+    _id: mockDeliveryId,
     orderId: mockOrderId,
     partnerId: mockPartnerId,
-    status: 'assigned',
+    status: 'partner_assigned',
     timestamps: {},
     save: async function () { return this; }
   };
@@ -41,6 +42,17 @@ async function runTest() {
   const originalFindById = Delivery.findById;
   Delivery.findById = (id: string) => {
     if (id === mockDeliveryId) return mockDeliveryDoc as any;
+    return null as any;
+  };
+
+  const originalPartnerFindById = DeliveryPartner.findById;
+  DeliveryPartner.findById = (id: string) => {
+    if (id === mockPartnerId) return {
+      id: mockPartnerId,
+      userId: 'mock-user-id',
+      name: 'Mock Partner',
+      phone: '+91 0000000000'
+    } as any;
     return null as any;
   };
 
@@ -55,8 +67,8 @@ async function runTest() {
     receivedPayload = payload;
   });
 
-  console.log('Triggering updateDeliveryStatus(assigned -> accepted)...');
-  await updateDeliveryStatus(mockDeliveryId, 'accepted');
+  console.log('Triggering updateDeliveryStatus(partner_assigned -> arrived_pickup)...');
+  await updateDeliveryStatus(mockDeliveryId, 'arrived_pickup');
 
   // Wait for socket event
   await new Promise(r => setTimeout(r, 200));
@@ -69,7 +81,7 @@ async function runTest() {
   if (receivedPayload.deliveryId === mockDeliveryId && 
       receivedPayload.orderId === mockOrderId && 
       receivedPayload.partnerId === mockPartnerId && 
-      receivedPayload.status === 'accepted') {
+      receivedPayload.status === 'arrived_pickup') {
     console.log('✅ PASS: Socket round-trip verified. Received valid delivery:status with payload:', receivedPayload);
   } else {
     console.error('❌ FAILED: Received invalid payload:', receivedPayload);
@@ -77,12 +89,12 @@ async function runTest() {
   }
 
   // 5. Negative Assertion: Illegal Transition
-  console.log('Triggering updateDeliveryStatus(accepted -> assigned)... expecting failure & no emit');
+  console.log('Triggering updateDeliveryStatus(arrived_pickup -> partner_assigned)... expecting failure & no emit');
   let illegalPayloadReceived = false;
   clientSocket.on('delivery:status', () => { illegalPayloadReceived = true; });
   
   try {
-    await updateDeliveryStatus(mockDeliveryId, 'assigned');
+    await updateDeliveryStatus(mockDeliveryId, 'partner_assigned');
     console.error('❌ FAILED: Illegal transition did not throw an error');
     process.exit(1);
   } catch (err: any) {
@@ -102,6 +114,7 @@ async function runTest() {
   clientSocket.disconnect();
   httpServer.close();
   Delivery.findById = originalFindById; // restore
+  DeliveryPartner.findById = originalPartnerFindById; // restore
   console.log('--- TEST FINISHED SUCCESSFULLY ---');
   process.exit(0);
 }

@@ -59,3 +59,13 @@ export function emitDeliveryLocation(payload: DeliveryLocationPayload) {
   io.to('admin_fleet').emit('delivery:location', payload);
   // Do NOT emit back to the partner — they are the source.
 }
+
+export function emitDeliveryReleased(payload: {
+  deliveryId: string;
+  orderId: string;
+  partnerId: string;
+}) {
+  const io = getIO();
+  io.to(payload.orderId).emit('delivery:released', payload);
+  io.to('admin_fleet').emit('delivery:released', payload);
+}

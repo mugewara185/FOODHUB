@@ -64,17 +64,14 @@ const deliverySchema = new Schema<IDelivery>(
     status: {
       type: String,
       enum: [
-        'pending',
-        'assigned',
-        'accepted',
+        'partner_assigned',
         'arrived_pickup',
         'picked_up',
         'out_for_delivery',
         'nearby',
-        'delivered',
-        'cancelled'
+        'delivered'
       ],
-      default: 'pending',
+      required: true
     },
     etaSeconds: { type: Number },
     distanceRemainingMeters: { type: Number },
@@ -105,13 +102,24 @@ deliverySchema.post('init', function (doc) {
 // Defense in depth: validate state machine on save
 deliverySchema.pre('save', function (next) {
   if (this.isModified('status')) {
-    const from = (this as any)._original_status || 'pending';
+    const from = (this as any)._original_status;
     const to = this.status;
-    try {
-      assertValidTransition(from, to);
-    } catch (err: any) {
-      return next(err);
+
+    // New documents have no prior state; the initial status is always valid.
+    if (!from) {
+      (this as any)._original_status = to;
+      return next();
     }
+
+    if (from !== to) {
+      try {
+        assertValidTransition(from, to);
+      } catch (err: any) {
+        return next(err);
+      }
+    }
+
+    (this as any)._original_status = to;
   }
   next();
 });

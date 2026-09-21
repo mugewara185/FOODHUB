@@ -1,24 +1,23 @@
+// ARCHITECTURE: Order is the canonical lifecycle owner. Delivery is a
+// projection. Micro states (arrived_pickup, nearby) are Delivery-only
+// and do not appear in OrderStatus. The Delivery record is created only
+// when a partner accepts a broadcast — there is no "waiting" delivery.
+
 export type DeliveryStatus =
-  | 'pending'
-  | 'assigned'
-  | 'accepted'
+  | 'partner_assigned'
   | 'arrived_pickup'
   | 'picked_up'
   | 'out_for_delivery'
   | 'nearby'
-  | 'delivered'
-  | 'cancelled';
+  | 'delivered';
 
 export const VALID_DELIVERY_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
-  pending: ['assigned', 'cancelled'],
-  assigned: ['accepted', 'cancelled', 'pending'], // can go back to pending if rejected/timeout
-  accepted: ['arrived_pickup', 'cancelled'],
-  arrived_pickup: ['picked_up', 'cancelled'],
-  picked_up: ['out_for_delivery', 'cancelled'],
-  out_for_delivery: ['nearby', 'delivered', 'cancelled'], // can skip nearby directly to delivered
-  nearby: ['delivered', 'cancelled'],
+  partner_assigned: ['arrived_pickup'],
+  arrived_pickup: ['picked_up'],
+  picked_up: ['out_for_delivery'],
+  out_for_delivery: ['nearby', 'delivered'],
+  nearby: ['delivered'],
   delivered: [],
-  cancelled: []
 };
 
 export class InvalidStateTransitionError extends Error {

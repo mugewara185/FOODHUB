@@ -7,7 +7,7 @@ import { sendSuccess } from '../../shared/utils/response';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
 import { getIO } from '../../socket';
 
-import { assignDelivery, cancelDeliveryForOrder } from '../delivery/delivery.service';
+import { assignDelivery, releaseDeliveryForOrder } from '../delivery/delivery.service';
 
 // Helper to simulate order progression for demonstration of real-time tracking
 const simulateOrderProgression = async (orderId: string, userId: string, restaurantLoc: [number, number], customerLoc: [number, number]) => {
@@ -142,14 +142,14 @@ export async function cancelOrder(req: AuthRequest, res: Response, next: NextFun
       throw new AppError('Not authorized', 403);
     }
 
-    if (!['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status)) {
+    if (!['created', 'pending_owner', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status)) {
       throw new AppError('Order cannot be cancelled at this stage', 400);
     }
 
     order.status = 'cancelled';
     await order.save();
 
-    await cancelDeliveryForOrder(order.id);
+    await releaseDeliveryForOrder(order.id);
 
     const io = getIO();
     io.to(order.id).emit('order_status_update', { orderId: order.id, status: 'cancelled' });

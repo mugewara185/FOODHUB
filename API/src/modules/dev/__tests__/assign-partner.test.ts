@@ -75,12 +75,12 @@ async function runTest() {
   // Assertions
   if (receivedPayload.orderId !== orderId) throw new Error('orderId mismatch');
   if (receivedPayload.partnerUserId !== partnerUserId) throw new Error('partnerUserId mismatch');
-  if (receivedPayload.status !== 'assigned') throw new Error('status mismatch');
+  if (receivedPayload.status !== 'partner_assigned') throw new Error('status mismatch');
 
   // DB Checks
   const delivery = await Delivery.findById(receivedPayload.deliveryId);
   if (!delivery) throw new Error('Delivery not saved to DB');
-  if (delivery.status !== 'assigned') throw new Error('Delivery status is not assigned in DB');
+  if (delivery.status !== 'partner_assigned') throw new Error('Delivery status is not assigned in DB');
   
   const partner = await DeliveryPartner.findOne({ userId: partnerUserId });
   if (partner?.status !== 'on_delivery') throw new Error('Partner status is not on_delivery');

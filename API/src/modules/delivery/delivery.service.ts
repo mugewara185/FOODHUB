@@ -5,7 +5,7 @@ import { Order } from '../orders/order.model';
 import { Types } from 'mongoose';
 import { getIO } from '../../socket';
 import { assertValidTransition, DeliveryStatus } from './delivery.state';
-import { emitDeliveryAssigned, emitDeliveryStatus } from './delivery.events';
+import { emitDeliveryAssigned, emitDeliveryStatus, emitDeliveryReleased } from './delivery.events';
 
 export async function assignDelivery(orderId: string, restaurantLocation: [number, number], customerLocation: [number, number]) {
   // 1. Find nearest available partner (for demo, just find any available)
@@ -26,13 +26,9 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
     pickupLocation: { type: 'Point', coordinates: restaurantLocation },
     destinationLocation: { type: 'Point', coordinates: customerLocation },
     currentLocation: { type: 'Point', coordinates: partnerStart },
-    status: 'pending',
-    timestamps: {}
+    status: 'partner_assigned',
+    timestamps: { assignedAt: new Date() }
   });
-
-  assertValidTransition(delivery.status, 'assigned');
-  delivery.status = 'assigned';
-  delivery.timestamps.assignedAt = new Date();
 
   await delivery.save();
   partner.currentAssignedDelivery = delivery._id as any;
@@ -45,7 +41,7 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
     orderId: delivery.orderId.toString(),
     partnerId: delivery.partnerId?.toString() || partner.id.toString(),
     partnerUserId: partner.userId?.toString() || '',
-    status: 'assigned',
+    status: 'partner_assigned',
     partnerName: partner.name,
     partnerPhone: partner.phone
   });
@@ -78,7 +74,6 @@ export async function updateDeliveryStatus(deliveryId: string, newStatus: Delive
 
   if (newStatus === 'picked_up') delivery.timestamps.pickedUpAt = new Date();
   if (newStatus === 'delivered') delivery.timestamps.deliveredAt = new Date();
-  if (newStatus === 'cancelled') delivery.timestamps.cancelledAt = new Date();
 
   await delivery.save();
 
@@ -98,14 +93,11 @@ export async function updateDeliveryStatus(deliveryId: string, newStatus: Delive
   return delivery;
 }
 
-export async function cancelDeliveryForOrder(orderId: string) {
+export async function releaseDeliveryForOrder(orderId: string) {
   const delivery = await Delivery.findOne({ orderId, status: { $ne: 'delivered' } });
   if (!delivery) return;
 
-  assertValidTransition(delivery.status, 'cancelled');
-  delivery.status = 'cancelled';
-  delivery.timestamps.cancelledAt = new Date();
-  await delivery.save();
+  await delivery.deleteOne();
 
   let partnerUserId = '';
   if (delivery.partnerId) {
@@ -118,15 +110,11 @@ export async function cancelDeliveryForOrder(orderId: string) {
     }
   }
 
-  // Cancelled is a state transition too, but we can emit a status event for it.
   if (delivery.partnerId) {
-    emitDeliveryStatus({
+    emitDeliveryReleased({
       deliveryId: delivery._id.toString(),
       orderId: delivery.orderId.toString(),
-      partnerId: delivery.partnerId.toString(),
-      partnerUserId,
-      status: 'cancelled',
-      timestamp: new Date()
+      partnerId: delivery.partnerId.toString()
     });
   }
 }
