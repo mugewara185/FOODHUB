@@ -1,15 +1,12 @@
 import { type Coordinates } from './index';
 
 export type DeliveryStatus =
-  | 'pending'
-  | 'assigned'
-  | 'accepted'
+  | 'partner_assigned'
   | 'arrived_pickup'
   | 'picked_up'
   | 'out_for_delivery'
   | 'nearby'
-  | 'delivered'
-  | 'cancelled';
+  | 'delivered';
 
 export interface DeliveryAssignment {
   deliveryId: string; // The canonical ID for the delivery

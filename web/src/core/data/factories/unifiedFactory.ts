@@ -277,7 +277,7 @@ function generateOrder(index: number): Order {
   const tax = subtotal * 0.05;
   const discount = Math.random() > 0.8 ? 50 : 0;
 
-  const statuses: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
+  const statuses: OrderStatus[] = ['created', 'pending_owner', 'rejected', 'confirmed', 'preparing', 'ready_for_pickup', 'awaiting_partner', 'partner_assigned', 'picked_up', 'out_for_delivery', 'delivered', 'completed', 'reviewed', 'cancelled'];
   const paymentMethods: PaymentMethod[] = ['card', 'upi', 'wallet', 'cash_on_delivery'];
 
   return {

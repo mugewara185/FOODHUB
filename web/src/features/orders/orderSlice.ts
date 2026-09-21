@@ -186,7 +186,7 @@ export const createOrderThunk = createAsyncThunk<Order, CheckoutPayload, { state
         tax: cart.tax,
         discount: cart.discount,
         total: cart.total,
-        status: 'pending',
+        status: 'pending_owner',
         paymentMethod: paymentMethod as Order['paymentMethod'],
         paymentStatus: 'pending',
         deliveryInfo: { address: deliveryAddress },
@@ -204,7 +204,7 @@ export const createOrderThunk = createAsyncThunk<Order, CheckoutPayload, { state
 
 /**
  * Cancel an existing order.
- * Only orders with status 'pending' or 'confirmed' can be cancelled (enforced by backend).
+ * Only orders with status 'pending_owner' or 'confirmed' can be cancelled (enforced by backend).
  *
  * mock mode: patches the order status locally
  * api  mode: PATCH /api/orders/:id/cancel

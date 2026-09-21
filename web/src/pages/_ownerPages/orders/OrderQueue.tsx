@@ -32,7 +32,7 @@ const OrderQueue: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'warning';
+      case 'pending_owner': return 'warning';
       case 'confirmed': return 'info';
       case 'preparing': return 'info';
       case 'out_for_delivery': return 'secondary';
@@ -43,7 +43,7 @@ const OrderQueue: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return <Schedule />;
+      case 'pending_owner': return <Schedule />;
       case 'confirmed': return <Schedule />;
       case 'preparing': return <Restaurant />;
       case 'out_for_delivery': return <LocalShipping />;
@@ -91,7 +91,7 @@ const OrderQueue: React.FC = () => {
         </Paper>
 
         <Grid container spacing={1}>
-          {order.status === 'pending' && (
+          {order.status === 'pending_owner' && (
             <Grid item xs={12}>
               <Button fullWidth variant="contained" color="warning" startIcon={<Restaurant />} onClick={() => handleStatusChange(order.id, 'confirmed')}>
                 Confirm Order
@@ -138,9 +138,9 @@ const OrderQueue: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <Schedule />
               <Typography variant="h6" fontWeight={700}>New Orders</Typography>
-              <Chip label={orders.filter((o:any) => o.status === 'pending' || o.status === 'confirmed').length} color="warning" />
+              <Chip label={orders.filter((o:any) => o.status === 'pending_owner' || o.status === 'confirmed').length} color="warning" />
             </Box>
-            {orders.filter((o:any) => o.status === 'pending' || o.status === 'confirmed').map(renderOrderCard)}
+            {orders.filter((o:any) => o.status === 'pending_owner' || o.status === 'confirmed').map(renderOrderCard)}
           </Paper>
         </Grid>
 

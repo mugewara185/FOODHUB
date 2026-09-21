@@ -70,7 +70,7 @@ const getStatusColor = (status: string) => {
     case 'delivered': return 'success';
     case 'preparing': return 'info';
     case 'out_for_delivery': return 'primary';
-    case 'pending': return 'warning';
+    case 'pending_owner': return 'warning';
     default: return 'default';
   }
 };
@@ -80,7 +80,7 @@ const getStatusIcon = (status: string) => {
     case 'delivered': return <CheckCircle fontSize="small" />;
     case 'preparing': return <Schedule fontSize="small" />;
     case 'out_for_delivery': return <LocalShipping fontSize="small" />;
-    case 'pending': return <Warning fontSize="small" />;
+    case 'pending_owner': return <Warning fontSize="small" />;
     default: return null;
   }
 };

@@ -1,3 +1,5 @@
+// NOTE: This is a pre-existing mock owner dashboard. DF-B2 replaces
+// it with the real owner flow. Do NOT extend this file.
 import React, { useEffect } from 'react';
 import {
   Box, Grid, Paper, Typography, Card, CardContent, Avatar, Chip, Button,
@@ -16,7 +18,7 @@ import { type Order } from '../../core/types/food';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'pending': return <Schedule color="warning" />;
+    case 'pending_owner': return <Schedule color="warning" />;
     case 'preparing': return <Restaurant color="info" />;
     case 'out_for_delivery': return <CheckCircle color="success" />;
     case 'delivered': return <CheckCircle color="success" />;
@@ -43,14 +45,14 @@ const OwnerDashboard: React.FC = () => {
     return <Alert severity="error">Error: {error}</Alert>;
   }
 
-  const liveOrders = orders.filter((o: any) => ['pending', 'confirmed', 'preparing'].includes(o.status)).slice(0, 5);
+  const liveOrders = orders.filter((o: any) => ['pending_owner', 'confirmed', 'preparing'].includes(o.status)).slice(0, 5);
   const outOfStockItems = menu.filter((i: any) => !i.isAvailable);
 
   const handleUpdateStatus = (orderId: string, currentStatus: string) => {
     let nextStatus: any = 'preparing';
-    if (currentStatus === 'pending') nextStatus = 'confirmed';
+    if (currentStatus === 'pending_owner') nextStatus = 'confirmed';
     else if (currentStatus === 'confirmed') nextStatus = 'preparing';
-    else if (currentStatus === 'preparing') nextStatus = 'out_for_delivery';
+    else if (currentStatus === 'preparing') nextStatus = 'ready_for_pickup';
     dispatch(updateOrderStatus({ orderId, status: nextStatus }));
   };
 
@@ -144,7 +146,7 @@ const OwnerDashboard: React.FC = () => {
             <List>
               {liveOrders.map((order: any, index: number) => (
                 <React.Fragment key={order.id}>
-                  <ListItem sx={{ bgcolor: order.status === 'pending' ? 'warning.light' : 'info.light', borderRadius: 2, mb: 1 }}>
+                  <ListItem sx={{ bgcolor: order.status === 'pending_owner' ? 'warning.light' : 'info.light', borderRadius: 2, mb: 1 }}>
                     <ListItemAvatar><Avatar sx={{ bgcolor: 'white' }}>{getStatusIcon(order.status)}</Avatar></ListItemAvatar>
                     <ListItemText
                       primary={
@@ -155,8 +157,8 @@ const OwnerDashboard: React.FC = () => {
                       }
                       secondary={`${order.items.length} items • ${new Date(order.createdAt).toLocaleTimeString()}`}
                     />
-                    <Button size="small" variant="contained" color={order.status === 'pending' ? 'warning' : 'success'} sx={{ ml: 2 }} onClick={() => handleUpdateStatus(order.id, order.status)}>
-                      {order.status === 'pending' ? 'Accept' : (order.status === 'confirmed' ? 'Start Prep' : 'Ready')}
+                    <Button size="small" variant="contained" color={order.status === 'pending_owner' ? 'warning' : 'success'} sx={{ ml: 2 }} onClick={() => handleUpdateStatus(order.id, order.status)}>
+                      {order.status === 'pending_owner' ? 'Accept' : (order.status === 'confirmed' ? 'Start Prep' : 'Ready')}
                     </Button>
                   </ListItem>
                   {index < liveOrders.length - 1 && <Divider sx={{ my: 1 }} />}

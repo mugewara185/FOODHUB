@@ -45,7 +45,7 @@ interface Order {
   };
   items: { name: string; quantity: number }[];
   total: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  status: 'created' | 'pending_owner' | 'rejected' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'awaiting_partner' | 'partner_assigned' | 'picked_up' | 'out_for_delivery' | 'delivered' | 'completed' | 'reviewed' | 'cancelled';
   date: string;
   deliveryTime: string;
   rating?: number;
@@ -128,14 +128,14 @@ const Orders: React.FC = () => {
   const filteredOrders = mockOrders.filter(order => {
     if (activeTab === 0) return true;
     if (activeTab === 1) return order.status === 'delivered';
-    if (activeTab === 2) return ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status);
+    if (activeTab === 2) return ['pending_owner', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status);
     if (activeTab === 3) return order.status === 'cancelled';
     return true;
   });
 
   const getStatusColor = (status: Order['status']) => {
-    const colors = {
-      pending: 'warning',
+    const colors: any = {
+      pending_owner: 'warning',
       confirmed: 'info',
       preparing: 'info',
       out_for_delivery: 'primary',
@@ -147,7 +147,7 @@ const Orders: React.FC = () => {
 
   const getStatusIcon = (status: Order['status']) => {
     const icons = {
-      pending: <AccessTime />,
+      pending_owner: <AccessTime />,
       confirmed: <CheckCircle />,
       preparing: <Kitchen />,
       out_for_delivery: <LocalShipping />,

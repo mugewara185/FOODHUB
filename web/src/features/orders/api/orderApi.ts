@@ -36,7 +36,7 @@ interface OrderApiDTO {
   restaurantName: string;
   items: OrderItemApiDTO[];
   totalAmount: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  status: 'created' | 'pending_owner' | 'rejected' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'awaiting_partner' | 'partner_assigned' | 'picked_up' | 'out_for_delivery' | 'delivered' | 'completed' | 'reviewed' | 'cancelled';
   deliveryAddress: string;
   paymentMethod: 'card' | 'upi' | 'wallet' | 'cash_on_delivery' | 'cash';
   note?: string;

@@ -195,7 +195,7 @@ export interface Cart {
 // 5. ORDERS
 // ─────────────────────────────────────────────────────────────────────────
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+export type OrderStatus = 'created' | 'pending_owner' | 'rejected' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'awaiting_partner' | 'partner_assigned' | 'picked_up' | 'out_for_delivery' | 'delivered' | 'completed' | 'reviewed' | 'cancelled';
 export type PaymentMethod = 'card' | 'upi' | 'wallet' | 'cash_on_delivery';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
 
@@ -289,7 +289,7 @@ export interface LiveTracking {
   estimatedArrival: Date | string; // ISO timestamp or Date object
   currentStep?: number;
   totalSteps?: number;
-  status: 'assigned' | 'picked_up' | 'on_the_way' | 'arrived' | 'delivered';
+  status: 'partner_assigned' | 'arrived_pickup' | 'picked_up' | 'out_for_delivery' | 'nearby' | 'delivered';
   updatedAt?: string;
   lastUpdate?: Date | string;
 }

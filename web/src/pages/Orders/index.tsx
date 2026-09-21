@@ -27,14 +27,14 @@ const Orders: React.FC = () => {
   const filteredOrders = orders.filter(order => {
     if (activeTab === 0) return true;
     if (activeTab === 1) return order.status === 'delivered';
-    if (activeTab === 2) return ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status);
+    if (activeTab === 2) return ['pending_owner', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status);
     if (activeTab === 3) return order.status === 'cancelled';
     return true;
   });
 
   const getStatusColor = (status: string) => {
     const colors: any = {
-      pending: 'warning',
+      pending_owner: 'warning',
       confirmed: 'info',
       preparing: 'info',
       out_for_delivery: 'primary',
@@ -49,7 +49,7 @@ const Orders: React.FC = () => {
       case 'delivered': return <CheckCircle />;
       case 'cancelled': return <Cancel />;
       case 'out_for_delivery': return <LocalShipping />;
-      case 'pending':
+      case 'pending_owner':
       case 'confirmed':
       case 'preparing': return <AccessTime />;
       default: return <Restaurant />;

@@ -30,7 +30,7 @@ export default function AdminDeliveryDashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'on_delivery': return 'primary';
-      case 'assigned': return 'warning';
+      case 'partner_assigned': return 'warning';
       case 'available':
       case 'online': return 'success';
       default: return 'default';

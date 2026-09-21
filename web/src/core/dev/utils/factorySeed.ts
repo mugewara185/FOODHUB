@@ -56,8 +56,8 @@ export interface SeedConfig {
 // Backend Order.paymentMethod enum: ['cash', 'card', 'upi']
 const PAYMENT_METHODS = ['cash', 'card', 'upi'] as const;
 
-// Backend Order.status enum: ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled']
-const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'] as const;
+// Backend Order.status enum: ['created', 'pending_owner', 'rejected', 'confirmed', 'preparing', 'ready_for_pickup', 'awaiting_partner', 'partner_assigned', 'picked_up', 'out_for_delivery', 'delivered', 'completed', 'reviewed', 'cancelled']
+const ORDER_STATUSES = ['created', 'pending_owner', 'rejected', 'confirmed', 'preparing', 'ready_for_pickup', 'awaiting_partner', 'partner_assigned', 'picked_up', 'out_for_delivery', 'delivered', 'completed', 'reviewed', 'cancelled'] as const;
 
 // Backend User.roles enum: ['user', 'admin', 'owner', 'partner', 'dev']
 // Note: frontend UserRole uses 'restaurant_owner'/'delivery_partner' but backend uses 'owner'/'partner'
@@ -670,19 +670,19 @@ export const buildFactorySeedPayload = (
       let status: string;
       const r = Math.random();
       if (scenario === 'underperformer') {
-        status = r < 0.30 ? 'cancelled' : r < 0.60 ? 'delivered' : r < 0.80 ? 'pending' : pick(['confirmed', 'preparing', 'out_for_delivery']);
+        status = r < 0.30 ? 'cancelled' : r < 0.60 ? 'delivered' : r < 0.80 ? 'pending_owner' : pick(['confirmed', 'preparing', 'out_for_delivery']);
       } else if (scenario === 'strong') {
-        status = r < 0.05 ? 'cancelled' : r < 0.75 ? 'delivered' : pick(['pending', 'confirmed', 'preparing', 'out_for_delivery']);
+        status = r < 0.05 ? 'cancelled' : r < 0.75 ? 'delivered' : pick(['pending_owner', 'confirmed', 'preparing', 'out_for_delivery']);
       } else if (scenario === 'popular_problematic') {
-        status = r < 0.15 ? 'cancelled' : r < 0.65 ? 'delivered' : r < 0.85 ? 'out_for_delivery' : pick(['pending', 'confirmed', 'preparing']);
+        status = r < 0.15 ? 'cancelled' : r < 0.65 ? 'delivered' : r < 0.85 ? 'out_for_delivery' : pick(['pending_owner', 'confirmed', 'preparing']);
       } else if (scenario === 'improving') {
         const cancelRate = daysAgoValue > 45 ? 0.25 : 0.05; // Was bad, now good
-        status = r < cancelRate ? 'cancelled' : r < 0.70 ? 'delivered' : pick(['pending', 'confirmed', 'preparing', 'out_for_delivery']);
+        status = r < cancelRate ? 'cancelled' : r < 0.70 ? 'delivered' : pick(['pending_owner', 'confirmed', 'preparing', 'out_for_delivery']);
       } else if (scenario === 'declining') {
         const cancelRate = daysAgoValue < 30 ? 0.35 : 0.05; // Used to be good, now bad
-        status = r < cancelRate ? 'cancelled' : r < 0.70 ? 'delivered' : pick(['pending', 'confirmed', 'preparing', 'out_for_delivery']);
+        status = r < cancelRate ? 'cancelled' : r < 0.70 ? 'delivered' : pick(['pending_owner', 'confirmed', 'preparing', 'out_for_delivery']);
       } else {
-        status = r < 0.10 ? 'cancelled' : r < 0.70 ? 'delivered' : pick(['pending', 'confirmed', 'preparing', 'out_for_delivery']);
+        status = r < 0.10 ? 'cancelled' : r < 0.70 ? 'delivered' : pick(['pending_owner', 'confirmed', 'preparing', 'out_for_delivery']);
       }
 
       const userDoc = userDocs.find((u) => u._id === userId);

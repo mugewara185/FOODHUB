@@ -7,7 +7,7 @@ export interface DeliveryBasePayload {
 }
 
 export interface DeliveryAssignedPayload extends DeliveryBasePayload {
-  status: DeliveryStatus; // 'assigned'
+  status: DeliveryStatus; // 'partner_assigned'
   partnerName: string;
   partnerPhone: string;
 }

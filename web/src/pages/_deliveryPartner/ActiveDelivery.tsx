@@ -117,10 +117,9 @@ console.log('ActiveDelivery render: activeAssignment=', activeAssignment, 'curre
 
   const getStepIndex = () => {
     switch (activeAssignment.status) {
-      case 'assigned': return 0;
-      case 'accepted': return 1;
-      case 'arrived_pickup': return 2;
-      case 'picked_up': return 3;
+      case 'partner_assigned': return 0;
+      case 'arrived_pickup': return 1;
+      case 'picked_up': return 2;
       case 'out_for_delivery': return 3;
       case 'nearby': return 3;
       case 'delivered': return 4;

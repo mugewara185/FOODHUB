@@ -21,7 +21,7 @@ export const generateOrders = (count = 20): Order[] =>
         price: m.price,
       })),
       total: items.reduce((sum, it) => sum + it.price, 0),
-      status: faker.helpers.arrayElement(["pending", "completed", "cancelled"]),
+      status: faker.helpers.arrayElement(["pending_owner", "completed", "cancelled"]),
       createdAt: faker.date.recent({ days: 30 }).toISOString(),
     };
   });

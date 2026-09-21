@@ -130,7 +130,7 @@ export const ownerMockApi = {
         todayRevenue += o.total;
       }
 
-      if (['pending', 'confirmed', 'preparing'].includes(o.status)) {
+      if (['pending_owner', 'confirmed', 'preparing'].includes(o.status)) {
         pendingOrders++;
       }
 

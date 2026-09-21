@@ -99,7 +99,7 @@ export interface Order {
   restaurantId: string;
   items: CartItem[];
   total: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  status: 'created' | 'pending_owner' | 'rejected' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'awaiting_partner' | 'partner_assigned' | 'picked_up' | 'out_for_delivery' | 'delivered' | 'completed' | 'reviewed' | 'cancelled';
   paymentMethod: 'cod' | 'card' | 'upi' | 'wallet';
   paymentStatus: 'pending' | 'paid' | 'failed';
   deliveryAddress: Address;

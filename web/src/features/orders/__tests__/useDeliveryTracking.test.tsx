@@ -48,14 +48,14 @@ describe('useDeliveryTracking Hook', () => {
       partnerId: 'partner-123',
       partnerName: 'Test Partner',
       partnerPhone: '+1234567890',
-      status: 'assigned'
+      status: 'partner_assigned'
     };
     
     act(() => onAssigned(assignedPayload));
 
     expect(result.current.partner?.name).toBe('Test Partner');
     expect(result.current.partner?.phone).toBe('+1234567890');
-    expect(result.current.status).toBe('assigned');
+    expect(result.current.status).toBe('partner_assigned');
   });
 
   it('delivery:location -> lat/lng updated, ETA recalculated', () => {

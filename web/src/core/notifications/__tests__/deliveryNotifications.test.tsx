@@ -58,7 +58,7 @@ describe('useDeliveryNotifications Hook', () => {
       partnerId: 'partner-1',
       partnerName: 'John',
       partnerPhone: '1234',
-      status: 'assigned'
+      status: 'partner_assigned'
     }));
 
     const state = store.getState().notifications;
@@ -94,7 +94,7 @@ describe('useDeliveryNotifications Hook', () => {
       partnerId: 'partner-2',
       partnerName: 'Jane',
       partnerPhone: '5555',
-      status: 'assigned'
+      status: 'partner_assigned'
     }));
 
     const state = store.getState().notifications;

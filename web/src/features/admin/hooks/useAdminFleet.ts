@@ -42,7 +42,7 @@ export const useAdminFleet = () => {
         if (partner.id === payload.partnerId) {
           return {
             ...partner,
-            status: 'assigned',
+            status: 'partner_assigned',
             currentAssignedDelivery: payload.deliveryId
           };
         }

@@ -83,13 +83,13 @@ describe('useAdminFleet Hook', () => {
       partnerId: 'partner-1',
       partnerName: 'Test Partner',
       partnerPhone: '1234567890',
-      status: 'assigned'
+      status: 'partner_assigned'
     };
     
     act(() => onAssigned(assignedPayload));
     
     let partner = result.current.fleet[0];
-    expect(partner.status).toBe('assigned');
+    expect(partner.status).toBe('partner_assigned');
     expect(partner.currentAssignedDelivery).toBe('del-1');
 
     // 3. delivery:location

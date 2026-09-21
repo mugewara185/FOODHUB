@@ -53,16 +53,16 @@ import type { Order } from '../../../core/types';
 import { logComponent } from '../../../core/dev/logger';
 
 const statusColors: Record<string, string> = {
-  pending: 'warning',
+  pending_owner: 'warning',
   confirmed: 'info',
   preparing: 'primary',
   out_for_delivery: 'secondary',
   delivered: 'success',
-  cancelled: 'error',
+  cancelled: 'error'
 };
 
 const statusIcons: Record<string, JSX.Element> = {
-  pending: <Schedule />,
+  pending_owner: <Schedule />,
   confirmed: <CheckCircle />,
   preparing: <Kitchen />,
   out_for_delivery: <LocalShipping />,
@@ -206,7 +206,7 @@ const OrdersList: React.FC = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="pending_owner">Pending Owner</MenuItem>
                 <MenuItem value="confirmed">Confirmed</MenuItem>
                 <MenuItem value="preparing">Preparing</MenuItem>
                 <MenuItem value="out_for_delivery">Out for Delivery</MenuItem>

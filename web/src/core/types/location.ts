@@ -17,7 +17,7 @@ export interface DeliveryPartner {
   vehicleType: 'bike' | 'scooter' | 'car';
   vehicleNumber: string;
   currentLocation: Coordinates;
-  status: 'online' | 'offline' | 'on_delivery' | 'available' | 'assigned';
+  status: 'online' | 'offline' | 'on_delivery' | 'available' | 'partner_assigned';
   rating: number;
   lastUpdate: Date;
   currentAssignedDelivery?: string;
@@ -46,7 +46,7 @@ export interface LiveTracking {
   estimatedArrival: Date;
   currentStep: number;
   totalSteps: number;
-  status: 'assigned' | 'picked_up' | 'on_the_way' | 'arrived' | 'delivered';
+  status: 'partner_assigned' | 'arrived_pickup' | 'picked_up' | 'out_for_delivery' | 'nearby' | 'delivered';
   lastUpdate: Date;
 }
 
