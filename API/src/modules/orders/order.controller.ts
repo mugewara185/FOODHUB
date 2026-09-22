@@ -10,42 +10,6 @@ import { getIO } from '../../socket';
 
 import { assignDelivery, releaseDeliveryForOrder } from '../delivery/delivery.service';
 
-// Helper to simulate order progression for demonstration of real-time tracking
-const simulateOrderProgression = async (orderId: string, userId: string, restaurantLoc: [number, number], customerLoc: [number, number]) => {
-  const statuses = ['confirmed', 'preparing', 'out_for_delivery'];
-  let delay = 5000; // 5s between states for demo
-
-  for (const status of statuses) {
-    setTimeout(async () => {
-      try {
-        const order = await Order.findById(orderId);
-        if (order && order.status !== 'cancelled') {
-          order.status = status as any;
-          await order.save();
-          
-          const io = getIO();
-          // Emit to the specific order tracking room
-          io.to(orderId).emit('order_status_update', { orderId, status });
-          // Emit a notification to the user's personal room
-          io.to(userId).emit('notification', { 
-            title: 'Order Update', 
-            message: `Your order is now ${status.replace('_', ' ')}`,
-            orderId,
-            status 
-          });
-
-          if (status === 'out_for_delivery') {
-             await assignDelivery(orderId, restaurantLoc, customerLoc);
-          }
-        }
-      } catch (err) {
-        console.error('Simulation error:', err);
-      }
-    }, delay);
-    delay += 5000;
-  }
-};
-
 const createOrderSchema = z.object({
   restaurantId: z.string().min(1),
   items: z.array(
@@ -89,17 +53,26 @@ export async function createOrder(req: AuthRequest, res: Response, next: NextFun
       restaurantName: restaurant.name,
       items: validatedItems,
       totalAmount,
+      status: 'pending_owner',
       deliveryAddress: body.deliveryAddress,
       paymentMethod: body.paymentMethod ?? 'cash',
+      paymentStatus: 'pending',
       note: body.note,
     });
 
-    // Mock customer location slightly away from restaurant for demo
-    const restaurantLoc: [number, number] = restaurant.location ? [restaurant.location.lng, restaurant.location.lat] : [72.8777, 19.0760];
-    const customerLoc: [number, number] = [restaurantLoc[0] + 0.015, restaurantLoc[1] + 0.015];
-
-    // Start background simulation
-    simulateOrderProgression(order.id, req.user!.id, restaurantLoc, customerLoc);
+    const io = getIO();
+    const ownerRoom = restaurant.ownerId?.toString();
+    if (ownerRoom) {
+      io.to(ownerRoom).emit('order:new', {
+        orderId: order._id.toString(),
+        status: 'pending_owner',
+        restaurantId: restaurant._id.toString(),
+        restaurantName: restaurant.name,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+      });
+    }
 
     sendSuccess({ res, statusCode: 201, message: 'Order placed successfully', data: order });
   } catch (err) {

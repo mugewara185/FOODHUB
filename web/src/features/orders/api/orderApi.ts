@@ -72,7 +72,7 @@ export const normalizeOrder = (dto: OrderApiDTO): Order => ({
   restaurantId: extractRestaurantId(dto.restaurantId),
   restaurantName: dto.restaurantName,
   items: dto.items.map((item) => ({
-    foodItemId: item.menuItemId,
+    menuItemId: item.menuItemId,
     name: item.name,
     price: item.price,
     quantity: item.quantity,
@@ -109,9 +109,9 @@ export interface CreateOrderPayload {
 export const mapCartItemToOrderItem = (
   item: CartItem,
 ): CreateOrderPayload['items'][number] => ({
-  menuItemId: item.foodItemId,
-  name: item.name,
-  price: item.price,
+  menuItemId: item.foodItem.id,
+  name: item.foodItem.name,
+  price: item.foodItem.price,
   quantity: item.quantity,
 });
 

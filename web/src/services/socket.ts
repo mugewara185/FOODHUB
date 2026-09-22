@@ -214,6 +214,18 @@ class SocketService {
     this.socket?.on("order:status_changed", callback);
   }
 
+  offOrderStatusChanged(callback?: (data: any) => void) {
+    this.socket?.off("order:status_changed", callback);
+  }
+
+  onOrderNew(callback: (data: { orderId: string; status: string; [key: string]: any }) => void) {
+    this.socket?.on("order:new", callback);
+  }
+
+  offOrderNew(callback?: (data: any) => void) {
+    this.socket?.off("order:new", callback);
+  }
+
   removeAllListeners() {
     this.socket?.removeAllListeners();
   }

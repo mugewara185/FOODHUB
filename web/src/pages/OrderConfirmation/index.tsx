@@ -144,7 +144,7 @@ const mapOrderToDetails = (order: any): OrderDetails => ({
     phone: '+91 0000000000',
   },
   items: order.items.map((item: any) => ({
-    id: item.foodItemId,
+    id: item.menuItemId,
     name: item.name,
     quantity: item.quantity,
     price: item.price,

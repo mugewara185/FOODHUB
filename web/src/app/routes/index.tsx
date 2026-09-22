@@ -44,6 +44,8 @@ import PartnerSettings from '../../pages/_deliveryPartner/Settings';
 import OwnerLayout from '../../shared/layout/OwnerLayout';
 import OwnerDashboard from '../../pages/_ownerPages/DashBoard';
 import OwnerSettings from '../../pages/_ownerPages/Settings';
+import Queue from '../../pages/_owner/Queue';
+import Active from '../../pages/_owner/Active';
 
 //admin routes
 import AdminLayout from '../../shared/layout/AdminLayout';
@@ -174,7 +176,8 @@ const AppRoutes: React.FC = () => {
         } >
           <Route index element={<OwnerDashboard />} />
           <Route path='settings' element={<OwnerSettings />} />
-          {/* <Route path='s' */}
+          <Route path='queue' element={<Queue />} />
+          <Route path='active' element={<Active />} />
         </Route>
 
         {/* dev */}

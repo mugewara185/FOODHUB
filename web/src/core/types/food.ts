@@ -93,11 +93,18 @@ export interface Cart {
   total: number;
 }
 
+export interface OrderItem {
+  menuItemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 export interface Order {
   id: string;
   userId: string;
   restaurantId: string;
-  items: CartItem[];
+  items: OrderItem[];
   total: number;
   status: 'created' | 'pending_owner' | 'rejected' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'awaiting_partner' | 'partner_assigned' | 'picked_up' | 'out_for_delivery' | 'delivered' | 'completed' | 'reviewed' | 'cancelled';
   paymentMethod: 'cod' | 'card' | 'upi' | 'wallet';

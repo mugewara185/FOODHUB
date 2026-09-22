@@ -32,6 +32,7 @@ export interface IOrder extends Document {
   status: OrderStatus;
   deliveryAddress: string;
   paymentMethod: 'cash' | 'card' | 'upi';
+  paymentStatus: 'pending' | 'completed' | 'failed';
   note?: string;
   createdAt: Date;
 }
@@ -72,6 +73,7 @@ const orderSchema = new Schema<IOrder>(
     },
     deliveryAddress: { type: String, required: true },
     paymentMethod: { type: String, enum: ['cash', 'card', 'upi'], default: 'cash' },
+    paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
     note: { type: String },
   },
   { timestamps: true }

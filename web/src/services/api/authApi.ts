@@ -78,7 +78,8 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
 };
 
 const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
-  console.log('buildAuthUser -> ', payload)
+  // console.log('buildAuthUser -> ', payload)
+  logger.info('AUTH-API', 'Building authenticated user', { event: 'AUTH.USER.BUILD', data: payload });
   const roles: UserRole[] = payload.user.roles ?? (payload.user.role ?? ['user']);
   const isAdmin = roles.includes('admin');
   const permissions: Permission[] = isAdmin
