@@ -1,5 +1,5 @@
 import React from 'react';
-import { SectionWrapper, PageHeader } from '@features/ui/components';
+import { SectionWrapper } from '@features/ui/components';
 import CheckoutContainer from '@/pages/Checkout/Checkout';
 
 const Checkout: React.FC = () => {

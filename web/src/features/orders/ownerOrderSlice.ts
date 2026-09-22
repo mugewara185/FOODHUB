@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Order } from '../../core/types/food';
 import { fetchOwnerQueueThunk, fetchOwnerActiveThunk } from './ownerOrderApi';
+import { normalizeOrder } from './api/orderApi';
 
 export interface OwnerOrderState {
   pendingOrders: Order[];
@@ -53,32 +54,11 @@ const ownerOrderSlice = createSlice({
       state.activeOrders = action.payload.filter((o) => o.status === 'confirmed' || o.status === 'preparing');
     },
     orderReceived(state, action: PayloadAction<any>) {
-      const payload = action.payload;
-      // We normalize manually here if it's raw, but socket might give us somewhat raw format. 
-      // The socket sends: orderId, status, restaurantId, restaurantName, items, totalAmount, createdAt
-      // Let's just build a minimal Order out of it for the UI
-      if (payload.status === 'pending_owner') {
-        // avoid duplicates
-        if (!state.pendingOrders.find(o => o.id === payload.orderId)) {
-          state.pendingOrders.unshift({
-            id: payload.orderId,
-            userId: '', // not strictly needed for owner UI
-            restaurantId: payload.restaurantId,
-            restaurantName: payload.restaurantName,
-            items: payload.items.map((i: any) => ({
-              menuItemId: i.menuItemId,
-              name: i.name,
-              price: i.price,
-              quantity: i.quantity
-            })),
-            total: payload.totalAmount,
-            status: payload.status,
-            paymentMethod: 'cod', // fallback
-            paymentStatus: 'pending',
-            deliveryAddress: { id: '', name: '', phone: '', street: '', city: '', state: '', zipCode: '', isDefault: false, type: 'other' },
-            createdAt: payload.createdAt || new Date().toISOString(),
-            estimatedDelivery: '',
-          } as Order);
+      const o = action.payload;
+      const order = normalizeOrder(o);
+      if (order.status === 'pending_owner') {
+        if (!state.pendingOrders.find((x) => x.id === order.id)) {
+          state.pendingOrders.unshift(order);
         }
       }
     }

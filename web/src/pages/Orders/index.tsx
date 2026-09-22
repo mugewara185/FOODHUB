@@ -172,7 +172,7 @@ const Orders: React.FC = () => {
                           </Box>
                           
                           <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Order #{order.id} ? {new Date(order.createdAt || order.date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            Order #{order.id} ? {new Date(order.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </Typography>
 
                           <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap' }}>
@@ -188,7 +188,7 @@ const Orders: React.FC = () => {
                             <Box sx={{ mt: 2, maxWidth: 300 }}>
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                                 <Typography variant="body2" fontWeight={600}>Estimated Delivery</Typography>
-                                <Typography variant="body2" fontWeight={600} color="primary">{order.deliveryTime || '30 min'}</Typography>
+                                <Typography variant="body2" fontWeight={600} color="primary">{order.deliveryInfo?.estimatedTime || '30 min'}</Typography>
                               </Box>
                               <LinearProgress variant="determinate" value={70} color="primary" sx={{ height: 6, borderRadius: 3 }} />
                             </Box>

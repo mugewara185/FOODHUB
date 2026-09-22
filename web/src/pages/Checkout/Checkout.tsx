@@ -15,7 +15,6 @@ import {
   FormControlLabel,
   FormControl,
   FormLabel,
-  IconButton,
   Alert,
   Stepper,
   Step,
@@ -53,6 +52,7 @@ import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
 import { createOrderThunk, selectOrderCreating, selectOrderError, clearOrderError } from '@/features/orders/orderSlice';
 import { clearCart } from '@/features/cart/cartSlice';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Address } from '@/core/types';
 
 // Payment methods
 const PAYMENT_METHODS = [
@@ -87,7 +87,6 @@ const Checkout: React.FC = () => {
     type: 'home',
     isDefault: false,
   });
-  const [deliveryLocation, setDeliveryLocation] = useState<Location | null>(null);
 
 
   // Handle next step
@@ -271,8 +270,7 @@ const Checkout: React.FC = () => {
                   {/* </StepContent> */}
                   {/* <StepContent> */}
                   <LocationPicker
-                    onLocationSelect={(location) => {
-                      setDeliveryLocation(location);
+                    onLocationSelect={() => {
                       // Save location to form data
                     }}
                     height="400px"

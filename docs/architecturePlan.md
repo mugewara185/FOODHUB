@@ -7,6 +7,8 @@
 
 **CP-A1 — Workspace setup — NOT STARTED**
 
+## Completion: 65%
+
 ---
 
 ## Track Map

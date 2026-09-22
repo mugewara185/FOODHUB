@@ -77,11 +77,19 @@ const Orders: React.FC = () => {
 
   const getStatusColor = (status: Order['status']) => {
     const colors: Record<Order['status'], string> = {
+      created: 'default',
       pending_owner: 'warning',
+      rejected: 'error',
       confirmed: 'info',
       preparing: 'info',
+      ready_for_pickup: 'info',
+      awaiting_partner: 'warning',
+      partner_assigned: 'info',
+      picked_up: 'primary',
       out_for_delivery: 'primary',
       delivered: 'success',
+      completed: 'success',
+      reviewed: 'success',
       cancelled: 'error',
     };
     return colors[status];
@@ -89,12 +97,19 @@ const Orders: React.FC = () => {
 
   const getStatusIcon = (status: Order['status']) => {
     const icons: Record<Order['status'], React.ReactNode> = {
-
+      created: <ShoppingBag />,
       pending_owner: <AccessTime />,
+      rejected: <Cancel />,
       confirmed: <CheckCircle />,
       preparing: <Kitchen />,
+      ready_for_pickup: <ShoppingBag />,
+      awaiting_partner: <AccessTime />,
+      partner_assigned: <LocalShipping />,
+      picked_up: <LocalShipping />,
       out_for_delivery: <LocalShipping />,
       delivered: <CheckCircle />,
+      completed: <CheckCircle />,
+      reviewed: <RateReview />,
       cancelled: <Cancel />,
     };
     return icons[status];

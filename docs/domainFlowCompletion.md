@@ -5,7 +5,9 @@
 
 ## Current Phase
 
-**DF-B2 — Owner dashboard frontend — NEXT**
+**DF-C2 — Customer order placement (E2E test pending)**
+
+## Completion: 47%
 
 ---
 
@@ -209,7 +211,11 @@ REVIEWED                ← terminal: review submitted
   - **Verification**: Customer places order → backend creates Order with `status: CREATED` → immediately transitions to `PENDING_OWNER` and emits to owner room
   - **Definition of done**: `POST /orders` returns new order with `PENDING_OWNER` status; owner receives `order:new` socket event; no hardcoded URLs in frontend placement code
 
-- [ ] **DF-C2**: Frontend: Customer order placement flow
+- [x] **DF-C2**: Frontend: Customer order placement flow
+    — Completed 2026-09-22. Checkout flow verified: createOrderThunk
+    calls correct endpoint, cart clears on success, redirects to
+    confirmation, order appears in list immediately. Added Address type
+    barrel export.
   - **Files in scope**
     - `web/src/features/orders/orderSlice.ts` — `placeOrder` thunk using `APP_CONFIG.API_URL` via `api.ts` (not hardcoded URL)
     - `web/src/pages/Orders/` — existing order pages; add placement confirmation UI
@@ -322,6 +328,7 @@ REVIEWED                ← terminal: review submitted
 - S1–S5a: See `web/Docs/Delivery flow/delivery_status.md` — delivery partner flow, GPS simulation, customer tracking, admin fleet, notifications verified working end-to-end
 - **DF-A1**: Order + Delivery status enums canonicalized. Pre-save hook fixed to skip validation on new documents. All backend test scripts pass. tsc clean.
 - **DF-B1**: Owner endpoints /accept, /reject, /preparing, /ready functional. Legal transitions enforced, illegal rejected (400), role check enforced (403). Restaurant.ownerId link verified for the demo restaurant.
+- **DF-C2**: Customer checkout → POST /api/orders → order appears in owner's queue (socket) — pending E2E test confirmation.
 
 ## Capabilities Extracted
 

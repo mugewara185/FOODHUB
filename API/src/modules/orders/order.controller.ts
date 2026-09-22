@@ -63,15 +63,7 @@ export async function createOrder(req: AuthRequest, res: Response, next: NextFun
     const io = getIO();
     const ownerRoom = restaurant.ownerId?.toString();
     if (ownerRoom) {
-      io.to(ownerRoom).emit('order:new', {
-        orderId: order._id.toString(),
-        status: 'pending_owner',
-        restaurantId: restaurant._id.toString(),
-        restaurantName: restaurant.name,
-        items: order.items,
-        totalAmount: order.totalAmount,
-        createdAt: order.createdAt,
-      });
+      io.to(ownerRoom).emit('order:new', order.toObject());
     }
 
     sendSuccess({ res, statusCode: 201, message: 'Order placed successfully', data: order });
