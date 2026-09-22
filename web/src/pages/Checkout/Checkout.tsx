@@ -70,6 +70,7 @@ const Checkout: React.FC = () => {
   const { user } = useAuth();
   
   // Real addresses from user profile
+  console.log('User addresses:', user);
   const MOCK_ADDRESSES = user?.addresses || [];
 
   // Cart state from Redux
@@ -106,7 +107,7 @@ const Checkout: React.FC = () => {
   // Handle place order — dispatches createOrderThunk, clears cart on success
   const handlePlaceOrder = async () => {
     // Build the delivery address string from the selected mock address
-    const address = MOCK_ADDRESSES.find((a) => a.id === selectedAddress);
+    const address = MOCK_ADDRESSES.find((a) => a?.id === selectedAddress);
     const deliveryAddress = address
       ? `${address.name}, ${address.street}, ${address.city}, ${address.state} - ${address.zipCode}`
       : '123 Main Street, Mumbai, Maharashtra - 400001';

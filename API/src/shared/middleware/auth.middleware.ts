@@ -42,6 +42,8 @@ export async function protect(
 
 export function authorize(...allowedRoles: string[]) {
   return (req: AuthRequest, _res: Response, next: NextFunction) => {
+    console.log('aut.middleware -> authorize -> req.user', req.user);
+    console.log("allowedRoles", allowedRoles);
     if (!req.user || !req.user.roles.some(role => allowedRoles.includes(role))) {
       return next(new AppError(`Not authorized, must be one of: ${allowedRoles.join(', ')}`, 403));
     }
