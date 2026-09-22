@@ -152,7 +152,7 @@ const AppRoutes: React.FC = () => {
 
         {/* partner routes */}
         <Route path="/partner/*" element={
-          <ProtectedRoute allowedRoles={['delivery_partner']}>
+          <ProtectedRoute allowedRoles={['partner']}>
             <PartnerLayout />
           </ProtectedRoute>
         } >
@@ -168,7 +168,7 @@ const AppRoutes: React.FC = () => {
 
         {/* owner routes  */}
         <Route path="/owner/*" element={
-          <ProtectedRoute allowedRoles={['restaurant_owner']}>
+          <ProtectedRoute allowedRoles={['owner']}>
             <OwnerLayout />
           </ProtectedRoute>
         } >

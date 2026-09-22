@@ -1,5 +1,5 @@
 // Role types
-export type UserRole = 'admin' | 'dev' | 'restaurant_owner' | 'user' | 'delivery_partner';
+export type UserRole = 'admin' | 'dev' | 'owner' | 'partner' | 'user';
 
 // Permissions
 export type Permission =

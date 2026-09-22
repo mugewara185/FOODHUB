@@ -50,8 +50,20 @@ export async function transitionOrderStatus(
   // 7. Emits order_status_update to the order room (existing pattern)
   io.to(order.id).emit('order_status_update', { orderId: order.id, status: newStatus });
   
-  // 8. Emits a new order:statusChanged to admin_fleet
-  io.to('admin_fleet').emit('order:statusChanged', { orderId: order.id, status: newStatus, actorRole: actor.role });
+  // 8. Emits order:status_changed to owner room and admin_fleet
+  const restaurant = await Restaurant.findById(order.restaurantId);
+  if (restaurant?.ownerId) {
+    io.to(restaurant.ownerId.toString()).emit('order:status_changed', {
+      orderId: order.id,
+      status: newStatus,
+      actorRole: actor.role,
+    });
+  }
+  io.to('admin_fleet').emit('order:status_changed', {
+    orderId: order.id,
+    status: newStatus,
+    actorRole: actor.role,
+  });
 
   // 9. Returns the updated order
   return order;

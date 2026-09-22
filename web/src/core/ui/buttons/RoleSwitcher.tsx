@@ -99,7 +99,7 @@ export const RoleSwitcher: React.FC = () => {
       isSelected: (pathname) => pathname.startsWith('/admin'),
     },
     {
-      id: 'restaurant_owner',
+      id: 'owner',
       label: 'Merchant Owner Hub',
       subtitle: 'Restaurant Operations, Menu & Orders',
       badgeText: 'OWNER CONTROL',
@@ -111,7 +111,7 @@ export const RoleSwitcher: React.FC = () => {
       isSelected: (pathname) => pathname.startsWith('/owner'),
     },
     {
-      id: 'delivery_partner',
+      id: 'partner',
       label: 'Logistics Fleet',
       subtitle: 'Delivery Operations, Live Dispatch & Routes',
       badgeText: 'FLEET MODE',

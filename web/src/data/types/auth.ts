@@ -2,7 +2,7 @@
 // AUTHENTICATION TYPES
 // ============================================================================
 
-import type { AuthUser } from '@/core/types/auth';
+import type { AuthUser, UserRole } from '@/core/types/auth';
 
 // Re-export core user/permission types
 export {
@@ -77,7 +77,7 @@ export interface AuthContextType extends AuthState {
 // Role configuration for permission mapping
 export interface RoleConfig {
   id: string;
-  name: 'admin' | 'restaurant_owner' | 'user' | 'delivery_partner';
+  name: UserRole;
   displayName: string;
   permissions: string[];
   description: string;

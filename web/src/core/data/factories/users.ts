@@ -50,7 +50,7 @@ export const users: (User & { password?: string, address?: string })[] = [
     name: "Restaurant Owner",
     email: "owner@",
     password: "owner",
-    role: "restaurant_owner",
+    role: "owner",
     restaurantId: "r1", // Matches fake restaurant IDs
     avatar: "https://i.pravatar.cc/150?u=owner",
     address: "Spice Garden Restaurant",
@@ -65,7 +65,7 @@ export const users: (User & { password?: string, address?: string })[] = [
     name: "Delivery Partner",
     email: "partner@",
     password: "partner",
-    role: "delivery_partner",
+    role: "partner",
     avatar: "https://i.pravatar.cc/150?u=partner",
     address: "Street 7, Mumbai",
     isActive: true,

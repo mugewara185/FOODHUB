@@ -13,7 +13,7 @@ const router = Router();
 router.get(
   '/me',
   protect,
-  authorize('delivery_partner'),
+  authorize('partner'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const partner = await DeliveryPartner.findOne({ userId: req.user!.id });
@@ -63,7 +63,7 @@ router.get(
 router.patch(
   '/me/status',
   protect,
-  authorize('delivery_partner'),
+  authorize('partner'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { status } = req.body as { status?: string };

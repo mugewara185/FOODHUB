@@ -71,10 +71,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       if (user.roles.includes('admin')) {
         return <Navigate to="/admin" replace />;
       }
-      if (user.roles.includes('restaurant_owner')) {
+      if (user.roles.includes('owner')) {
         return <Navigate to="/owner" replace />;
       }
-      if (user.roles.includes('delivery_partner')) {
+      if (user.roles.includes('partner')) {
         return <Navigate to="/partner" replace />;
       }
       return <Navigate to="/" replace />;

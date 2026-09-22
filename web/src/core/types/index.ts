@@ -6,7 +6,7 @@
 // 1. USER & AUTHENTICATION
 // ─────────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'admin' | 'dev' | 'restaurant_owner' | 'user' | 'delivery_partner';
+export type UserRole = 'admin' | 'dev' | 'owner' | 'partner' | 'user';
 
 export type Permission =
   | 'view_dashboard'

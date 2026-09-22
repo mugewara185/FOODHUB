@@ -1,4 +1,4 @@
-import type { AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData } from '../../data/types/auth';
+import type { AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData, UserRole, Permission } from '../../data/types/auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -12,8 +12,8 @@ interface AuthApiUserPayload {
   id: string;
   name: string;
   email: string;
-  role?: Array<'user' | 'admin' | 'owner' | 'partner'>;
-  roles?: Array<'user' | 'admin' | 'owner' | 'partner'>;
+  role?: UserRole[];
+  roles?: UserRole[];
   phone?: string;
   avatar?: string;
   createdAt?: string;
@@ -26,7 +26,7 @@ interface AuthApiPayload {
   token: string;
   user: AuthApiUserPayload;
   refreshToken?: string;
-  roles?: Array<'user' | 'admin' | 'owner' | 'partner'>;
+  roles?: UserRole[];
 }
 
 const getErrorMessage = (error: unknown): string => {
@@ -79,9 +79,9 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
 
 const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
   console.log('buildAuthUser -> ', payload)
-  const role = payload.user.roles ?? 'user'
-  // === 'admin' ? 'admin' : 'user';
-  const permissions = role === 'admin'
+  const roles: UserRole[] = payload.user.roles ?? (payload.user.role ?? ['user']);
+  const isAdmin = roles.includes('admin');
+  const permissions: Permission[] = isAdmin
     ? ['view_dashboard', 'manage_users', 'manage_restaurants', 'manage_menu', 'manage_orders', 'view_reports', 'place_order', 'view_profile']
     : ['place_order', 'view_profile', 'track_orders', 'cancel_orders'];
 
@@ -91,7 +91,7 @@ const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
     email: payload.user.email,
     phone: payload.user.phone,
     avatar: payload.user.avatar,
-    role,
+    role: roles,
     token: payload.token,
     refreshToken: payload.refreshToken || `refresh-${payload.token}`,
     expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7,

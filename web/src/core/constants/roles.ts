@@ -18,6 +18,23 @@ export const PERMISSIONS: Record<Permission, string> = {
 };
 
 export const ROLES: Record<UserRole, Role> = {
+  dev: {
+    id: '0',
+    name: 'dev',
+    displayName: 'Developer',
+    permissions: [
+      'view_dashboard',
+      'manage_users',
+      'manage_restaurants',
+      'manage_menu',
+      'manage_orders',
+      'manage_payments',
+      'view_reports',
+      'manage_delivery',
+      'view_profile',
+    ],
+    description: 'Developer with full system access',
+  },
   admin: {
     id: '1',
     name: 'admin',
@@ -35,9 +52,9 @@ export const ROLES: Record<UserRole, Role> = {
     ],
     description: 'Full access to all system features',
   },
-  restaurant_owner: {
+  owner: {
     id: '2',
-    name: 'restaurant_owner',
+    name: 'owner',
     displayName: 'Restaurant Owner',
     permissions: [
       'view_dashboard',
@@ -61,9 +78,9 @@ export const ROLES: Record<UserRole, Role> = {
     ],
     description: 'Place orders and track them',
   },
-  delivery_partner: {
+  partner: {
     id: '4',
-    name: 'delivery_partner',
+    name: 'partner',
     displayName: 'Delivery Partner',
     permissions: [
       'view_dashboard',
@@ -76,9 +93,10 @@ export const ROLES: Record<UserRole, Role> = {
 };
 
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  dev: 5,
   admin: 4,
-  restaurant_owner: 3,
-  delivery_partner: 2,
+  owner: 3,
+  partner: 2,
   user: 1,
 };
 

@@ -65,9 +65,7 @@ const roleColors: Record<string, string> = {
   user: 'info',
   customer: 'info', // alias for user
   partner: 'warning',
-  delivery_partner: 'warning',
   owner: 'success',
-  restaurant_owner: 'success',
   admin: 'error',
 };
 
@@ -231,13 +229,13 @@ const UserList: React.FC = () => {
             />
             <Chip
               label="Delivery Partners"
-              onClick={() => setRoleFilter('delivery_partner')}
-              color={roleFilter === 'delivery_partner' ? 'warning' : 'default'}
+              onClick={() => setRoleFilter('partner')}
+              color={roleFilter === 'partner' ? 'warning' : 'default'}
             />
             <Chip
               label="Restaurant Owners"
-              onClick={() => setRoleFilter('restaurant_owner')}
-              color={roleFilter === 'restaurant_owner' ? 'success' : 'default'}
+              onClick={() => setRoleFilter('owner')}
+              color={roleFilter === 'owner' ? 'success' : 'default'}
             />
           </Grid>
         </Grid>

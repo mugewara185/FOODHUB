@@ -17,7 +17,7 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
-  roles: ('user' | 'admin' | 'owner' | 'partner' | 'dev' | 'delivery_partner')[];
+  roles: ('user' | 'admin' | 'owner' | 'partner' | 'dev')[];
   phone?: string;
   status: 'active' | 'inactive' | 'blocked';
   addresses: IAddress[];
@@ -45,7 +45,7 @@ const userSchema = new Schema<IUser>(
     password: { type: String, required: true, minlength: 6, select: false },
     roles: { 
       type: [String], 
-      enum: ['user', 'admin', 'owner', 'partner', 'dev', 'delivery_partner'], 
+      enum: ['user', 'admin', 'owner', 'partner', 'dev'], 
       default: ['user'] 
     },
     phone: { type: String },

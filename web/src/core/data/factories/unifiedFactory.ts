@@ -202,7 +202,7 @@ function generateUser(index: number, roles?: UserRole[], includeTestAccounts = t
       email: 'owner@zom2.local',
       phone: '+91 9999999997',
       avatar: 'https://i.pravatar.cc/150?u=owner',
-      role: 'restaurant_owner',
+      role: 'owner',
       restaurantId: 'r1',
       address: 'Spice Garden Restaurant',
       isActive: true,
@@ -217,7 +217,7 @@ function generateUser(index: number, roles?: UserRole[], includeTestAccounts = t
       email: 'partner@zom2.local',
       phone: '+91 9999999996',
       avatar: 'https://i.pravatar.cc/150?u=partner',
-      role: 'delivery_partner',
+      role: 'partner',
       address: 'Street 7, Mumbai',
       isActive: true,
       emailVerified: true,
@@ -256,7 +256,7 @@ function generateUser(index: number, roles?: UserRole[], includeTestAccounts = t
     avatar: faker.image.avatar(),
     role,
     address: faker.location.streetAddress(),
-    restaurantId: role === 'restaurant_owner' ? `r${index + 1}` : undefined,
+    restaurantId: role === 'owner' ? `r${index + 1}` : undefined,
     isActive: true,
     emailVerified: Math.random() > 0.2,
     phoneVerified: Math.random() > 0.3,
@@ -421,7 +421,7 @@ const data = generateAllDummyData();
 // Example 2: Generate with custom counts
 const customData = generateAllDummyData({
   restaurants: { count: 50, cuisines: ['Italian', 'Mexican'] },
-  users: { count: 20, roles: ['user', 'delivery_partner'] },
+  users: { count: 20, roles: ['user', 'partner'] },
   orders: { count: 100 },
   reviews: { count: 200 },
 });
