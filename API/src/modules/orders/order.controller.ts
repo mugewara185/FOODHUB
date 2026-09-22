@@ -119,6 +119,38 @@ export async function getUserOrders(req: AuthRequest, res: Response, next: NextF
   }
 }
 
+export async function getOwnerOrders(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const restaurant = await Restaurant.findOne({ ownerId: req.user!.id });
+    if (!restaurant) {
+      throw new AppError('No restaurant linked to this owner', 404);
+    }
+
+    let statuses = ['pending_owner', 'confirmed', 'preparing'];
+    if (req.query.status) {
+      const parsedStatuses = (req.query.status as string).split(',');
+      const validStatuses = [
+        'created', 'pending_owner', 'rejected', 'confirmed', 'preparing',
+        'ready_for_pickup', 'awaiting_partner', 'partner_assigned', 'picked_up',
+        'out_for_delivery', 'delivered', 'completed', 'reviewed', 'cancelled'
+      ];
+      for (const s of parsedStatuses) {
+        if (!validStatuses.includes(s)) {
+          throw new AppError(`Invalid status: ${s}`, 400);
+        }
+      }
+      statuses = parsedStatuses;
+    }
+
+    const orders = await Order.find({ restaurantId: restaurant._id, status: { $in: statuses } })
+      .sort({ createdAt: -1 });
+
+    sendSuccess({ res, message: 'Owner orders fetched', data: orders });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getOrderById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
     const order = await Order.findById(req.params.id).populate('restaurantId', 'name imageUrl address phone');
