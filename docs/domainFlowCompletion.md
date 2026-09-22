@@ -5,7 +5,7 @@
 
 ## Current Phase
 
-**DF-C2 — Customer order placement (E2E test pending)**
+**DF-C3 — Customer order tracking enhancement — NEXT**
 
 ## Completion: 47%
 
@@ -328,7 +328,7 @@ REVIEWED                ← terminal: review submitted
 - S1–S5a: See `web/Docs/Delivery flow/delivery_status.md` — delivery partner flow, GPS simulation, customer tracking, admin fleet, notifications verified working end-to-end
 - **DF-A1**: Order + Delivery status enums canonicalized. Pre-save hook fixed to skip validation on new documents. All backend test scripts pass. tsc clean.
 - **DF-B1**: Owner endpoints /accept, /reject, /preparing, /ready functional. Legal transitions enforced, illegal rejected (400), role check enforced (403). Restaurant.ownerId link verified for the demo restaurant.
-- **DF-C2**: Customer checkout → POST /api/orders → order appears in owner's queue (socket) — pending E2E test confirmation.
+- **DF-C2**: Customer checkout → POST /api/orders → order appears in owner's queue via order:new socket event — E2E verified 2026-09-23. Fixed: Checkout bug caused by trying to access nested item.foodItem instead of flattened item properties.
 
 ## Capabilities Extracted
 
@@ -367,12 +367,11 @@ Carried from `web/Docs/Delivery flow/delivery_status.md`:
 
 ## Next Exact Task
 
-**DF-B2**: Owner dashboard frontend.
-1. Inspect web/src/pages/ for any existing owner pages.
-2. Create web/src/features/orders/ownerOrderSlice.ts (new slice).
-3. Create /owner routes with OrderQueue + ActiveOrders views.
-4. Subscribe to order:new and order:statusChanged socket events.
-5. Implement accept/reject/preparing/ready UI actions.
+**DF-C3**: Customer order tracking page enhancement.
+1. Inspect web/src/pages/Orders/ tracking views.
+2. Ensure the tracking timeline shows all canonical states.
+3. Subscribe to order:status_changed for realtime updates.
+4. Do not hardcode status strings.
 
 ---
 

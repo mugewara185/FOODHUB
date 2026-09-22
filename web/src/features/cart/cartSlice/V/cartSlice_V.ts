@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from '../../../../app/store';
-import type { CartItem, CustomizedItem } from '../../../../core/types';
+import type { CartItem, CustomizedCartItem } from '../../../../core/types';
 // Types
 export interface CartState {
   items: CartItem[];
@@ -74,7 +74,7 @@ const cartSlice = createSlice({
       if (existingItem) {
         existingItem.quantity += 1;
       } else {
-        const newItem: CartItem | CustomizedItem = {
+        const newItem: CartItem | CustomizedCartItem = {
           ...action.payload,
           id: uuidv4(),
         };

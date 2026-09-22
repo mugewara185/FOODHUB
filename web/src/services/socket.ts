@@ -13,8 +13,21 @@ class SocketService {
     (status: "connected" | "reconnecting" | "disconnected") => void
   > = new Set();
 
+  get isConnected(): boolean {
+    return this.socket?.connected ?? false;
+  }
+
   connect(userId?: string, role?: string) {
-    if (this.socket) return this.socket;
+    if (this.socket) {
+      if (userId) {
+        if (this.socket.connected) {
+          this.joinUserRoom(userId);
+        } else {
+          this.socket.once("connect", () => this.joinUserRoom(userId));
+        }
+      }
+      return this.socket;
+    }
 
     this.socket = io(
       import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",

@@ -182,7 +182,7 @@ class ReduxLoggerControl {
       case 'whitelist':
         return filter.actions?.includes(actionType) ?? false;
       case 'blacklist':
-        return !filter.actions?.includes(actionType) ?? true;
+        return !(filter.actions?.includes(actionType) ?? false);
       case 'all':
       default:
         return true;

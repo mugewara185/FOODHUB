@@ -12,13 +12,23 @@ export const useDeliverySocket = (role: 'customer' | 'partner' | 'admin', callba
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('disconnected');
 
   useEffect(() => {
-    // Note: Connection management (socketService.connect/disconnect) is exclusively handled by App.tsx
+    // 1. Read current state synchronously
+    setConnectionStatus(socketService.isConnected ? 'connected' : 'disconnected');
     
+    // 2. Subscribe to transitions
     const handleConnectionChange = (status: 'connected' | 'reconnecting' | 'disconnected') => {
       setConnectionStatus(status);
     };
 
     socketService.onConnectionChange(handleConnectionChange);
+
+    return () => {
+      socketService.offConnectionChange(handleConnectionChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (connectionStatus !== 'connected') return;
 
     if (callbacks?.onAssigned) socketService.onDeliveryAssigned(callbacks.onAssigned);
     if (callbacks?.onStatus) socketService.onDeliveryStatus(callbacks.onStatus);
@@ -30,8 +40,6 @@ export const useDeliverySocket = (role: 'customer' | 'partner' | 'admin', callba
     }
 
     return () => {
-      socketService.offConnectionChange(handleConnectionChange);
-      
       if (callbacks?.onAssigned) socketService.offDeliveryAssigned(callbacks.onAssigned);
       if (callbacks?.onStatus) socketService.offDeliveryStatus(callbacks.onStatus);
       if (callbacks?.onLocation) {
@@ -41,7 +49,7 @@ export const useDeliverySocket = (role: 'customer' | 'partner' | 'admin', callba
         socketService.leaveAdminFleet();
       }
     };
-  }, [role, callbacks]);
+  }, [role, callbacks, connectionStatus]);
 
   return { connectionStatus };
 };

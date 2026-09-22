@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { api } from '../../core/utils/api';
 import { normalizeOrder } from './api/orderApi';
-import type { Order } from '../../core/types/food';
+import type { Order } from '../../core/types';
 import { showToast } from '../ui/uiSlice';
 
 // Helper for thunk errors

@@ -176,9 +176,9 @@ export const createOrderThunk = createAsyncThunk<Order, CheckoutPayload, { state
         restaurantId: cart.restaurantId,
         restaurantName: cart.restaurantName ?? 'Restaurant',
         items: cart.items.map((item) => ({
-          menuItemId: item.foodItem.id,
-          name: item.foodItem.name,
-          price: item.foodItem.price,
+          foodItemId: item.foodItemId,
+          name: item.name,
+          price: item.price,
           quantity: item.quantity,
         })),
         subtotal: cart.subtotal,

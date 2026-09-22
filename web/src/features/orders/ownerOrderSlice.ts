@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Order } from '../../core/types/food';
+import type { Order } from '../../core/types';
 import { fetchOwnerQueueThunk, fetchOwnerActiveThunk } from './ownerOrderApi';
 import { normalizeOrder } from './api/orderApi';
 
