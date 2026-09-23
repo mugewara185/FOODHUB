@@ -5,7 +5,7 @@ import type { DeliveryAssignedPayload, DeliveryStatusPayload } from '../../../co
 import { useEffect } from 'react';
 import { socketService } from '@/services/socket';
 
-type NotificationRole = 'customer' | 'partner' | 'admin';
+type NotificationRole = 'customer' | 'partner' | 'admin' | 'owner';
 
 export const useDeliveryNotifications = (role: NotificationRole) => {
   const dispatch = useAppDispatch();
@@ -28,6 +28,10 @@ export const useDeliveryNotifications = (role: NotificationRole) => {
         title = 'Delivery Assigned';
         message = `Order ${payload.orderId} assigned to ${payload.partnerName}.`;
         targetPath = '/admin/delivery';
+      } else if (role === 'owner') {
+        title = 'Delivery Assigned';
+        message = `Partner ${payload.partnerName} assigned for order ${payload.orderId}.`;
+        targetPath = '/owner/active';
       }
 
       dispatch(addNotification({

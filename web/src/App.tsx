@@ -3,7 +3,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import AppRoutes from "./app/routes";
 import { APP_CONFIG, IS_DEV } from "./core/config/app.config";
 
-const FloatingDevConsole = IS_DEV
+const FloatingDevConsole = import.meta.env.DEV
   ? React.lazy(() => import("@/core/dev/ui/modals/FloatingDevConsole"))
   : null;
 import { CUISINES } from "@core/constants/food";
@@ -83,7 +83,7 @@ const App: React.FC = () => {
     <AuthProvider>
       <Toast />
       <AppRoutes />
-      {IS_DEV && FloatingDevConsole && (APP_CONFIG.DEV_BYPASS_AUTH || user?.role.includes('dev')) && (
+      {import.meta.env.DEV && FloatingDevConsole && (APP_CONFIG.DEV_BYPASS_AUTH || user?.role.includes('dev')) && (
         <React.Suspense fallback={null}>
           <FloatingDevConsole
             allRestaurants={allRestaurants}

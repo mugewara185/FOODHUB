@@ -11,9 +11,9 @@
 
 ## Current Phase
 
-**Session 6 of 6 — Host-Readiness Verification — NEXT**
+**Session 6 of 6 - Host-Readiness Verification - COMPLETED**
 
-## Completion: 83% (5 of 6 sessions)
+## Completion: 100% (6 of 6 sessions)
 
 *(Backend foundation: DF-A1 + DF-B1 + DF-C2 already verified. This plan picks up from there.)*
 
@@ -524,27 +524,27 @@ Files that can be deleted without breaking the completed flow:
 All items must be true before Azure deployment.
 
 ### Build
-- [ ] `npx vite build` in `web/` exits code 0
-- [ ] `grep -r "localhost" web/dist/assets/` returns zero hits
-- [ ] `grep -l "FloatingDevConsole" web/dist/assets/*.js` returns zero files
-- [ ] `web/staticwebapp.config.json` exists with SPA fallback for all routes
+- [x] `npx vite build` in `web/` exits code 0
+- [x] `grep -r "localhost" web/dist/assets/` returns zero hits
+- [x] `grep -l "FloatingDevConsole" web/dist/assets/*.js` returns zero files
+- [x] `web/staticwebapp.config.json` exists with SPA fallback for all routes
 
 ### Flow completeness
-- [ ] Customer places order → order appears in owner queue (real data, no mocks)
-- [ ] Owner accepts → customer tracking updates without page refresh
-- [ ] Owner rejects → customer sees rejected state with clear UI (not silent)
-- [ ] Owner marks preparing + ready → customer tracking advances
-- [ ] Partner receives `delivery:available` broadcast → sees it in Available Orders
-- [ ] Partner accepts → customer sees PARTNER_ASSIGNED with real partner name
-- [ ] Partner marks picked up → customer tracking advances
-- [ ] Partner marks delivered → customer sees DELIVERED + review prompt
-- [ ] Customer submits restaurant + partner review → ratings update in database
+- [x] Customer places order → order appears in owner queue (real data, no mocks)
+- [x] Owner accepts → customer tracking updates without page refresh
+- [x] Owner rejects → customer sees rejected state with clear UI (not silent)
+- [x] Owner marks preparing + ready → customer tracking advances
+- [x] Partner receives `delivery:available` broadcast → sees it in Available Orders
+- [x] Partner accepts → customer sees PARTNER_ASSIGNED with real partner name
+- [x] Partner marks picked up → customer tracking advances
+- [x] Partner marks delivered → customer sees DELIVERED + review prompt
+- [x] Customer submits restaurant + partner review → ratings update in database
 
 ### UI cleanliness (per-role)
-- [ ] **Customer**: No mock data visible anywhere. Tracking timeline shows all canonical states. Notification bell wired. No silent 404 sidebar links.
-- [ ] **Owner**: Real restaurant name in sidebar. Badge counts from live data. No hardcoded "5 Live Orders". All sidebar links load a page. Notification bell wired and counts real events.
-- [ ] **Partner**: Real partner name in sidebar. Available Orders badge from real Redux state. Profile shows real data. Notification bell wired.
-- [ ] **Admin**: Delivery dashboard functional (already done). No hardcoded `badge: 24`. All broken sidebar sub-links replaced with Coming-soon.
+- [x] **Customer**: No mock data visible anywhere. Tracking timeline shows all canonical states. Notification bell wired. No silent 404 sidebar links.
+- [x] **Owner**: Real restaurant name in sidebar. Badge counts from live data. No hardcoded "5 Live Orders". All sidebar links load a page. Notification bell wired and counts real events.
+- [x] **Partner**: Real partner name in sidebar. Available Orders badge from real Redux state. Profile shows real data. Notification bell wired.
+- [x] **Admin**: Delivery dashboard functional (already done). No hardcoded `badge: 24`. All broken sidebar sub-links replaced with Coming-soon.
 
 ### In the first 30 seconds, a stranger visiting the URL must be able to:
 

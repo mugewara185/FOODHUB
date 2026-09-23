@@ -32,7 +32,7 @@ import { showToast } from '../../../features/ui/uiSlice';
 import { CUISINES } from '../../../core/constants/food';
 //dev
 import { useDevContext } from '../../../core/dev/contexts/DevContext';
-import FloatingDevConsole  from '../../../core/dev/ui/modals/FloatingDevConsole';
+
 
 // Import new section components
 import PromoSection from '@features/home/components/PromoSection';
@@ -241,15 +241,6 @@ const HomeV2: React.FC = () => {
         <TestimonialsSection />
       </Container>
 
-      {/* Floating Dev Console */}
-      <FloatingDevConsole
-        allRestaurants={allRestaurants}
-        featuredRestaurants={featuredRestaurants}
-        loading={loading}
-        availableVersions={availableVersions}
-        selectedVersions={selectedVersions}
-        cuisineLength={CUISINES.length}
-      />
     </Box>
   );
 };

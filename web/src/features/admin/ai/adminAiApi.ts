@@ -37,7 +37,7 @@ export interface AIResponse {
 
 import { type AIMessage } from './adminAiSlice';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export async function sendAIMessage(messages: AIMessage[], conversationId?: string): Promise<AIResponse> {
   const token = localStorage.getItem('token');

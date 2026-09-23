@@ -145,7 +145,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
         },
       });
 
-      const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
       const response = await fetch(`${apiBaseUrl}/dev/seed-factory-data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

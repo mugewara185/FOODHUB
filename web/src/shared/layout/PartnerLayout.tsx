@@ -22,7 +22,6 @@ import {
 import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
 import { useAppSelector, useAppDispatch } from '../../app/store';
 import { fetchPartnerStateThunk } from '../../features/deliveryPartner/deliveryPartnerSlice';
-import { socketService } from '../../services/socket';
 import {
   Menu as MenuIcon,
   Dashboard,
@@ -33,11 +32,9 @@ import {
   Help,
   Settings,
   Logout,
-  Notifications,
   PowerSettingsNew,
   TrendingUp,
   Star,
-  LocationOn,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeliveryNotifications';

@@ -212,7 +212,7 @@ const OrderTracking: React.FC = () => {
               </Avatar>
               <Box>
                 <Typography variant="subtitle1" fontWeight={600}>
-                  Rahul Sharma
+                  Delivery Partner
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   ⭐ 4.9 • 150+ deliveries

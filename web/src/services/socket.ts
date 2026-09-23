@@ -30,7 +30,7 @@ class SocketService {
     }
 
     this.socket = io(
-      import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
+      import.meta.env.VITE_SOCKET_URL || "",
       {
         transports: ["websocket"],
       },

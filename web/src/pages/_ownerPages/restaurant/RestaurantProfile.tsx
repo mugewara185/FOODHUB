@@ -33,7 +33,7 @@ const RestaurantProfile: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
 
   const restaurant = {
-    name: 'Spice Garden',
+    name: 'Restaurant Name',
     email: 'contact@spicegarden.com',
     phone: '+91 98765 43210',
     address: '123 Park Avenue, Andheri East, Mumbai - 400069',

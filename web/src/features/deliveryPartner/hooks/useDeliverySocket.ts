@@ -8,7 +8,7 @@ interface DeliverySocketCallbacks {
   onLocation?: (payload: DeliveryLocationPayload) => void;
 }
 
-export const useDeliverySocket = (role: 'customer' | 'partner' | 'admin', callbacks?: DeliverySocketCallbacks) => {
+export const useDeliverySocket = (role: 'customer' | 'partner' | 'admin' | 'owner', callbacks?: DeliverySocketCallbacks) => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('disconnected');
 
   useEffect(() => {

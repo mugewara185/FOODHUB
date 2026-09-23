@@ -177,7 +177,7 @@ const AdminLayout: React.FC = () => {
           src="https://i.pravatar.cc/150?img=7"
         />
         <Typography variant="subtitle1" fontWeight={600}>
-          Admin User
+          {user?.name || 'Administrator'}
         </Typography>
         <Typography variant="caption" color="text.secondary" display="block">
           Super Admin
@@ -429,10 +429,10 @@ const AdminLayout: React.FC = () => {
             <MenuItem key={i} sx={{ whiteSpace: 'normal', py: 1.5 }}>
               <Box>
                 <Typography variant="body2" fontWeight={600}>
-                  New Order #{`ORD-2024-00${i}`}
+                  New Order #{`ORD-${1000 + i}`}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  From Spice Garden • ₹{450 + i * 100}
+                  From Restaurant • ₹{450 + i * 100}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" display="block">
                   5 minutes ago

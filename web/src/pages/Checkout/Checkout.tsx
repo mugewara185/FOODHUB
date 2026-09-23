@@ -536,7 +536,7 @@ const Checkout: React.FC = () => {
                 Order Summary
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Spice Garden • 25-30 mins
+                {cart.restaurantName || 'Restaurant'} • 25-30 mins
               </Typography>
             </Box>
 

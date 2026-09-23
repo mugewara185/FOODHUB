@@ -183,7 +183,7 @@ const Support: React.FC = () => {
 
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <TextField fullWidth label="Name" defaultValue="Rahul Sharma" />
+                <TextField fullWidth label="Name" defaultValue="Delivery Partner" />
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField fullWidth label="Email" defaultValue="rahul@example.com" />

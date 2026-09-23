@@ -100,7 +100,7 @@ const Dashboard: React.FC = () => {
         setError(null);
         logger.info('ADMIN.ANALYTICS.LOAD.START', `Loading analytics for period: ${timeRange}`);
         
-        const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
         const token = getAuthToken();
 
         const response = await fetch(`${apiBaseUrl}/admin/analytics/dashboard?period=${timeRange}`, {

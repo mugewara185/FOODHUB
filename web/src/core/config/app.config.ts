@@ -32,7 +32,7 @@ export const APP_CONFIG = {
   DATA_SOURCE: (import.meta.env.VITE_DATA_SOURCE || 'mock') as 'mock' | 'api',
 
   // Backend API base URL (used in API mode)
-  API_URL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  API_URL: import.meta.env.VITE_API_URL || '/api',
 
   Logger_Config: {
     maxLogs: 1000,

@@ -57,25 +57,25 @@ const OwnerProfile: React.FC = () => {
           </Box>
         )}
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="subtitle2" color="text.secondary">Name</Typography>
             <Typography variant="h6">{restaurant.name}</Typography>
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="subtitle2" color="text.secondary">City</Typography>
             <Typography variant="h6">{restaurant.city}</Typography>
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="subtitle2" color="text.secondary">Cuisine</Typography>
             <Typography variant="h6">
               {Array.isArray(restaurant.cuisine) ? restaurant.cuisine.join(', ') : restaurant.cuisine}
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="subtitle2" color="text.secondary">Rating</Typography>
             <Typography variant="h6">{restaurant.rating} ⭐</Typography>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormControlLabel
               control={<Switch checked={restaurant.isOpen} disabled />}
               label={restaurant.isOpen ? 'Currently Open' : 'Currently Closed'}

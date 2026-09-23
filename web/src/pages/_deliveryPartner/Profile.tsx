@@ -10,8 +10,6 @@ import {
   Divider,
   Chip,
   Stack,
-  Card,
-  CardContent,
   IconButton,
 } from '@mui/material';
 import {
@@ -56,7 +54,7 @@ const Profile: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 3, borderRadius: 3, textAlign: 'center' }}>
             <Box sx={{ position: 'relative', display: 'inline-block' }}>
               <Avatar
@@ -95,7 +93,7 @@ const Profile: React.FC = () => {
             <Divider sx={{ my: 3 }} />
 
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="h6" fontWeight={700}>
                   {displayDeliveries}
                 </Typography>
@@ -103,7 +101,7 @@ const Profile: React.FC = () => {
                   Deliveries
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="h6" fontWeight={700}>
                   {displayRating}
                 </Typography>
@@ -129,14 +127,14 @@ const Profile: React.FC = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper sx={{ p: 3, borderRadius: 3 }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>
               Personal Information
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Full Name"
@@ -144,7 +142,7 @@ const Profile: React.FC = () => {
                   disabled={!editMode}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Email"
@@ -152,7 +150,7 @@ const Profile: React.FC = () => {
                   disabled={true}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Phone"

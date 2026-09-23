@@ -12,8 +12,6 @@ import {
   Divider,
   Chip,
   Stack,
-  Card,
-  CardContent,
   IconButton,
   List,
   ListItem,
@@ -24,12 +22,9 @@ import {
   Edit,
   CameraAlt,
   AdminPanelSettings,
-  Security,
   History,
-  Notifications,
   Email,
   Phone,
-  LocationOn,
   Badge as BadgeIcon,
 } from '@mui/icons-material';
 
@@ -59,7 +54,7 @@ const AdminProfile: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Left Column - Profile Card */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 3, borderRadius: 3, textAlign: 'center' }}>
             <Box sx={{ position: 'relative', display: 'inline-block' }}>
               <Avatar
@@ -117,14 +112,14 @@ const AdminProfile: React.FC = () => {
         </Grid>
 
         {/* Right Column */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           {/* Personal Information */}
           <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>
               Personal Information
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Full Name"
@@ -132,7 +127,7 @@ const AdminProfile: React.FC = () => {
                   disabled={!editMode}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Email"
@@ -140,7 +135,7 @@ const AdminProfile: React.FC = () => {
                   disabled={!editMode}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Phone"

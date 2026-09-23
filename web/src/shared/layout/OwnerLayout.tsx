@@ -16,8 +16,6 @@ import {
   Avatar,
   Badge,
   Chip,
-  Menu,
-  MenuItem,
   Paper,
   useTheme,
   useMediaQuery,
@@ -37,7 +35,6 @@ import {
   Help,
   Logout,
   Store,
-  AccessTime,
 } from '@mui/icons-material';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -174,15 +171,15 @@ const menuItems = [
       <Box sx={{ p: 2 }}>
         <Paper variant="outlined" sx={{ p: 1.5 }}>
           <Grid container spacing={1}>
-            <Grid xs={4} sx={{ textAlign: 'center' }}>
+            <Grid size={{ xs: 4 }} sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">Today</Typography>
               <Typography variant="h6" fontWeight={700}>—</Typography>
             </Grid>
-            <Grid xs={4} sx={{ textAlign: 'center' }}>
+            <Grid size={{ xs: 4 }} sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">Orders</Typography>
               <Typography variant="h6" fontWeight={700}>—</Typography>
             </Grid>
-            <Grid xs={4} sx={{ textAlign: 'center' }}>
+            <Grid size={{ xs: 4 }} sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">Pending</Typography>
               <Typography variant="h6" fontWeight={700}>{pendingCount > 0 ? pendingCount : '—'}</Typography>
             </Grid>
