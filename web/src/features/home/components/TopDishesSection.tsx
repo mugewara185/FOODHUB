@@ -12,7 +12,11 @@ import {
   Button,
   Rating,
 } from '@mui/material';
-import { ShoppingCart, Star } from '@mui/icons-material';
+import { ShoppingCart } from '@mui/icons-material';
+import foodItems from '../../../core/data/factories/foodItems';
+import { useNavigate } from 'react-router-dom';
+import { useAppDispatch } from '../../../app/store';
+import { showToast } from '../../ui/uiSlice';
 
 interface Dish {
   id: string;
@@ -25,67 +29,22 @@ interface Dish {
   badge?: string;
 }
 
-const TOP_DISHES: Dish[] = [
-  {
-    id: '1',
-    name: 'Margherita Pizza',
-    restaurant: 'Pizza Palace',
-    image: 'https://images.unsplash.com/photo-1579192181049-1290520d00d5?w=400&h=300&fit=crop',
-    price: 299,
-    rating: 4.8,
-    orders: 2400,
-    badge: 'BESTSELLER',
-  },
-  {
-    id: '2',
-    name: 'Butter Chicken',
-    restaurant: 'Curry Kitchen',
-    image: 'https://images.unsplash.com/photo-1603070706739-b620dadc0ab0?w=400&h=300&fit=crop',
-    price: 349,
-    rating: 4.9,
-    orders: 3100,
-    badge: 'TOP RATED',
-  },
-  {
-    id: '3',
-    name: 'Classic Burger',
-    restaurant: 'Burger Hub',
-    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop',
-    price: 249,
-    rating: 4.7,
-    orders: 2800,
-    badge: 'TRENDING',
-  },
-  {
-    id: '4',
-    name: 'Pad Thai',
-    restaurant: 'Noodle House',
-    image: 'https://images.unsplash.com/photo-1599599810694-b5ac4dd64e41?w=400&h=300&fit=crop',
-    price: 279,
-    rating: 4.6,
-    orders: 2100,
-  },
-  {
-    id: '5',
-    name: 'Chocolate Lava Cake',
-    restaurant: 'Sweet Delights',
-    image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop',
-    price: 199,
-    rating: 4.9,
-    orders: 1900,
-  },
-  {
-    id: '6',
-    name: 'Sushi Roll Combo',
-    restaurant: 'Sushi Dreams',
-    image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop',
-    price: 399,
-    rating: 4.8,
-    orders: 1700,
-  },
-];
+// Map actual food items from the factory
+const ACTUAL_TOP_DISHES: Dish[] = foodItems
+  .filter(item => item.isBestSeller)
+  .slice(0, 8) // Get 8 items for a 4-column layout
+  .map((item, index) => ({
+    id: item.id,
+    name: item.name,
+    restaurant: item.restaurantName,
+    image: item.image,
+    price: item.price,
+    rating: item.rating,
+    orders: 1200 + (index * 340), 
+    badge: index < 2 ? 'TRENDING' : (index % 3 === 0 ? 'BESTSELLER' : undefined),
+  }));
 
-const DishCard: React.FC<Dish> = ({
+const DishCard: React.FC<Dish & { onAdd: () => void }> = ({
   name,
   restaurant,
   image,
@@ -93,6 +52,7 @@ const DishCard: React.FC<Dish> = ({
   rating,
   orders,
   badge,
+  onAdd,
 }) => (
   <Card
     sx={{
@@ -100,9 +60,12 @@ const DishCard: React.FC<Dish> = ({
       transition: 'all 0.3s ease',
       position: 'relative',
       overflow: 'visible',
+      display: 'flex',
+      flexDirection: 'column',
+      borderRadius: 3,
       '&:hover': {
-        boxShadow: 4,
-        transform: 'translateY(-8px)',
+        boxShadow: '0 12px 24px rgba(0,0,0,0.08)',
+        transform: 'translateY(-6px)',
       },
     }}
   >
@@ -114,38 +77,48 @@ const DishCard: React.FC<Dish> = ({
         color="primary"
         sx={{
           position: 'absolute',
-          top: 12,
-          right: 12,
+          top: 10,
+          right: 10,
           zIndex: 10,
-          fontWeight: 700,
-          fontSize: '0.7rem',
+          fontWeight: 800,
+          fontSize: '0.65rem',
+          height: 22,
         }}
       />
     )}
 
-    <CardMedia component="img" height="200" image={image} alt={name} />
+    <CardMedia 
+      component="img" 
+      height="140" 
+      image={image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop'} 
+      alt={name} 
+      sx={{ objectFit: 'cover' }}
+      onError={(e: any) => {
+        e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
+      }}
+    />
 
-    <CardContent sx={{ pb: 2 }}>
-      <Stack spacing={1.5}>
+    <CardContent sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', '&:last-child': { pb: 2 } }}>
+      <Stack spacing={1}>
         {/* Name & Restaurant */}
         <Box>
-          <Typography variant="h6" fontWeight={700} noWrap>
+          <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2} noWrap title={name}>
             {name}
           </Typography>
-          <Typography variant="caption" color="textSecondary">
+          <Typography variant="caption" color="textSecondary" noWrap title={restaurant} sx={{ display: 'block', mt: 0.5 }}>
             {restaurant}
           </Typography>
         </Box>
 
         {/* Rating & Orders */}
-        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-            <Rating value={Math.floor(rating)} size="small" readOnly />
+            <Rating value={Math.floor(rating)} size="small" readOnly sx={{ fontSize: '0.9rem' }} />
             <Typography variant="caption" fontWeight={700}>
               {rating}
             </Typography>
           </Stack>
-          <Typography variant="caption" color="textSecondary">
+          <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem' }}>
             {orders.toLocaleString()} orders
           </Typography>
         </Stack>
@@ -154,16 +127,20 @@ const DishCard: React.FC<Dish> = ({
         <Stack
           direction="row"
           spacing={1}
-          sx={{ alignItems: 'center', justifyContent: 'space-between' }}
+          sx={{ alignItems: 'center', justifyContent: 'space-between', mt: 'auto', pt: 1 }}
         >
-          <Typography variant="h6" fontWeight={700} color="primary">
+          <Typography variant="subtitle1" fontWeight={800} color="primary.main">
             ₹{price}
           </Typography>
           <Button
             variant="contained"
             size="small"
-            startIcon={<ShoppingCart sx={{ fontSize: 18 }} />}
-            sx={{ textTransform: 'capitalize' }}
+            startIcon={<ShoppingCart sx={{ fontSize: 16 }} />}
+            sx={{ textTransform: 'capitalize', px: 2, py: 0.5, borderRadius: 2 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
           >
             Add
           </Button>
@@ -174,33 +151,40 @@ const DishCard: React.FC<Dish> = ({
 );
 
 const TopDishesSection: React.FC = () => {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
   return (
-    <Container maxWidth="lg" sx={{ py: 10 }}>
-      <Box sx={{ mb: 6, textAlign: 'center' }}>
-        <Typography variant="overline" sx={{ fontWeight: 600, color: 'primary.main' }}>
+    <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Box sx={{ mb: 5, textAlign: 'center' }}>
+        <Typography variant="overline" sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: 1.5 }}>
           MOST ORDERED
         </Typography>
-        <Typography variant="h3" fontWeight={800} gutterBottom>
+        <Typography variant="h3" fontWeight={800} gutterBottom sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }}>
           Popular Dishes
         </Typography>
-        <Typography variant="body1" color="textSecondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-          Discover what our customers love the most
+        <Typography variant="body2" color="textSecondary" sx={{ maxWidth: 600, mx: 'auto' }}>
+          Discover what our customers love the most in your area
         </Typography>
       </Box>
 
-      <Grid container spacing={3}>
-        {TOP_DISHES.map((dish) => (
-          <Grid item xs={12} sm={6} md={4} key={dish.id}>
-            <DishCard {...dish} />
+      <Grid container spacing={2.5}>
+        {ACTUAL_TOP_DISHES.map((dish) => (
+          <Grid item xs={12} sm={6} md={3} key={dish.id}>
+            <DishCard 
+              {...dish} 
+              onAdd={() => dispatch(showToast({ message: `${dish.name} added to cart!`, type: 'success' }))} 
+            />
           </Grid>
         ))}
       </Grid>
 
-      <Box sx={{ textAlign: 'center', mt: 6 }}>
+      <Box sx={{ textAlign: 'center', mt: 5 }}>
         <Button
           variant="outlined"
           size="large"
-          sx={{ textTransform: 'capitalize', px: 4, py: 1.5 }}
+          sx={{ textTransform: 'capitalize', px: 4, py: 1.2, borderRadius: 3, fontWeight: 600 }}
+          onClick={() => navigate('/restaurants')}
         >
           Explore More Dishes
         </Button>

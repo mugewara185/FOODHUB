@@ -48,9 +48,13 @@ const PROMOS: Promo[] = [
   },
 ];
 
+import { useAppDispatch } from '../../../app/store';
+import { showToast } from '../../ui/uiSlice';
+
 const PromoSection: React.FC = () => {
+  const dispatch = useAppDispatch();
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
+    <Container maxWidth="lg" sx={{ py: 10 }}>
       <Box sx={{ mb: 4, textAlign: 'center' }}>
         <Stack direction="row" justify="center" spacing={1} sx={{ mb: 2 }}>
           <TrendingUp sx={{ color: 'primary.main' }} />
@@ -139,6 +143,10 @@ const PromoSection: React.FC = () => {
                       textTransform: 'capitalize',
                       bgcolor: promo.color,
                       '&:hover': { bgcolor: promo.color, opacity: 0.9 },
+                    }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(promo.code);
+                      dispatch(showToast({ message: `Code ${promo.code} copied and applied!`, type: 'success' }));
                     }}
                   >
                     Claim Offer

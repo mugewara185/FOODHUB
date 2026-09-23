@@ -52,7 +52,10 @@ const QUICK_ITEMS: QuickDeliveryItem[] = [
   },
 ];
 
+import { useNavigate } from 'react-router-dom';
+
 const QuickDeliverySection: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <Box sx={{ bgcolor: '#FFF8E7', py: 8 }}>
       <Container maxWidth="lg">
@@ -177,6 +180,7 @@ const QuickDeliverySection: React.FC = () => {
                         fontWeight: 700,
                         mt: 1,
                       }}
+                      onClick={() => navigate('/restaurants')}
                     >
                       Order Now
                     </Button>

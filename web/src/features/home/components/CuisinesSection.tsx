@@ -65,7 +65,10 @@ const CUISINES: Cuisine[] = [
   },
 ];
 
+import { useNavigate } from 'react-router-dom';
+
 const CuisinesSection: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <Box sx={{ bgcolor: 'grey.50', py: 8 }}>
       <Container maxWidth="lg">
@@ -143,6 +146,7 @@ const CuisinesSection: React.FC = () => {
             size="large"
             endIcon={<ArrowForward />}
             sx={{ textTransform: 'capitalize', px: 4, py: 1.5 }}
+            onClick={() => navigate('/restaurants')}
           >
             View All Cuisines
           </Button>
