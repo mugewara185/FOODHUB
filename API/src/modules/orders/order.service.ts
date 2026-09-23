@@ -21,6 +21,11 @@ export async function transitionOrderStatus(
     'confirmed': ['preparing'],
     'preparing': ['ready_for_pickup'],
     'ready_for_pickup': ['awaiting_partner'],
+    'awaiting_partner': ['partner_assigned'],
+    'partner_assigned': ['picked_up'],
+    'picked_up': ['out_for_delivery'],
+    'out_for_delivery': ['delivered'],
+    'delivered': ['reviewed'],
   };
 
   const allowedNext = validTransitions[order.status] || [];
@@ -30,7 +35,11 @@ export async function transitionOrderStatus(
 
   // 4. Validate authorization
   const restaurant = await Restaurant.findById(order.restaurantId);
-  if (actor.role === 'admin') {
+  if (actor.role === 'system') {
+    // System transitions are only called from internal services
+    // (delivery.service) that already validated the flow. Skip
+    // ownership check.
+  } else if (actor.role === 'admin') {
     // allow
   } else if (actor.role === 'owner') {
     if (!restaurant) {
@@ -38,6 +47,10 @@ export async function transitionOrderStatus(
     }
     if (restaurant.ownerId?.toString() !== actor.id) {
       throw new AppError('Not authorized to manage this restaurant', 403);
+    }
+  } else if (actor.role === 'user') {
+    if (order.userId.toString() !== actor.id) {
+      throw new AppError('Not authorized to modify this order', 403);
     }
   } else {
     throw new AppError('Not authorized', 403);

@@ -234,7 +234,7 @@ REVIEWED                ← terminal: review submitted
   - **Verification**: Customer tracking view updates in real-time as owner accepts, marks preparing, partner picks up
   - **Definition of done**: Tracking timeline shows all canonical states with timestamps; no hardcoded status strings; socket-driven updates only (no polling)
 
-- [ ] **DF-F1**: Customer review submission
+- [x] **DF-F1**: Customer review submission
   - **Files in scope**
     - `API/src/modules/reviews/` — add review endpoints for restaurant rating and partner rating (Decision 5)
     - `web/src/features/orders/` — add post-delivery review UI triggered when order reaches `COMPLETED`

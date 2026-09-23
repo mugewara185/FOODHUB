@@ -11,9 +11,9 @@
 
 ## Current Phase
 
-**Session 4 of 6 — Review Flow (DF-F1) — NEXT**
+**Session 5 of 6 — Profile Pages + Owner Dashboard Real Data — NEXT**
 
-## Completion: 50% (3 of 6 sessions)
+## Completion: 66% (4 of 6 sessions)
 
 *(Backend foundation: DF-A1 + DF-B1 + DF-C2 already verified. This plan picks up from there.)*
 
@@ -462,13 +462,13 @@ Files that can be deleted without breaking the completed flow:
 - `web/src/shared/layout/UserLayout.tsx` (or `MainLayout.tsx`) — mount `<NotificationBell />` + order notifications hook
 **Backend changes**: None
 **Frontend changes**: ~12 Coming-soon route registrations. Bell wiring.
-**Verification**: Log in as each role -> click every sidebar item -> no 404. Owner notification bell count increases on order events. Fixed: sidebar active-state logic (was prefix-matching). Fixed: ComingSoon routes now correctly nested in layout block. Runtime verified via manual test script (RTL/Vitest).
+**Verification**: Log in as each role -> click every sidebar item -> no 404. Owner notification bell count increases on order events. Fixed: sidebar active-state logic (was prefix-matching). Fixed: ComingSoon routes now correctly nested in layout block. NOT runtime-verified — RTL/Vitest and Puppeteer both failed in this environment (Windows EMFILE + Redux persist hydration). Manual browser check required.
 **Size**: M
 **Dependencies**: Session 1
 
 ---
 
-### Session 4: Review Flow (DF-F1)
+### Session 4: Review Flow (DF-F1) — COMPLETED
 **Goal**: Customer rates restaurant and delivery partner after delivery. Ratings persist.
 **Primary outcome**: Customer sees two-part review form after DELIVERED status → submits → both ratings updated → order transitions to REVIEWED.
 **Files in scope**:
@@ -567,7 +567,7 @@ All items must be true before Azure deployment.
 
 ## Next Exact Task
 
-**Session 4, Step 1**: Begin executing DF-F1 (Review Flow). Refer to `docs/domainFlowCompletion.md` for the details of Session 4.
+**Session 5, Step 1**: Add `GET /api/restaurants/mine` and begin profile wiring per the plan.
 
 ---
 
@@ -591,3 +591,15 @@ Do not touch files outside the session's declared scope.
 Use the editor tool for all file writes. Never use shell redirection or Out-File.
 Cite file:line for every finding and every change.
 ```
+
+## Manual Verification Queue
+
+Items that are structurally applied but NOT runtime-verified:
+
+- Session 3 sidebar fixes:
+  1. Log in as owner -> click "Dashboard" -> confirm ONLY Dashboard is highlighted, not Menu Management.
+  2. Click "Menu Management" -> confirm ComingSoon page renders.
+  3. Click any sub-item under Menu Management (Menu Items, Categories, Add Item) -> confirm ComingSoon page still renders, not a blank outlet.
+  4. Repeat 1-3 for PartnerLayout and AdminLayout sidebars.
+
+These are manual steps the human must run before host-ready status.

@@ -229,6 +229,23 @@ export const cancelOrderThunk = createAsyncThunk<Order, string, { state: RootSta
   },
 );
 
+export const submitReviewThunk = createAsyncThunk<void, { orderId: string, restaurantRating: number, partnerRating: number, comment?: string }, { state: RootState }>(
+  'orders/submitReview',
+  async (payload, { getState, rejectWithValue }) => {
+    try {
+      if (APP_CONFIG.DATA_SOURCE === 'api') {
+        const token = getToken(getState());
+        await orderApi.submitReview(payload, token);
+      } else {
+        // mock mode
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    } catch (err) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to submit review');
+    }
+  }
+);
+
 // ---------------------------------------------------------------------------
 // Slice
 // ---------------------------------------------------------------------------

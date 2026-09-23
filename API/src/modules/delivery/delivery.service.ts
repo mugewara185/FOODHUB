@@ -2,6 +2,7 @@ import { Delivery } from './delivery.model';
 import { DeliveryPartner } from './delivery-partner.model';
 import { startDeliverySimulation } from './delivery.simulator';
 import { Order } from '../orders/order.model';
+import { transitionOrderStatus } from '../orders/order.service';
 import { Types } from 'mongoose';
 import { getIO } from '../../socket';
 import { assertValidTransition, DeliveryStatus } from './delivery.state';
@@ -76,6 +77,14 @@ export async function updateDeliveryStatus(deliveryId: string, newStatus: Delive
   if (newStatus === 'delivered') delivery.timestamps.deliveredAt = new Date();
 
   await delivery.save();
+
+  if (['picked_up', 'out_for_delivery', 'delivered'].includes(newStatus)) {
+    await transitionOrderStatus(
+      delivery.orderId.toString(),
+      newStatus as any,
+      { id: 'system', role: 'system' }
+    );
+  }
 
   // Emit status change via type-safe emitter
   if (delivery.partnerId) {

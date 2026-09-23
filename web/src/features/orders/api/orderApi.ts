@@ -205,4 +205,11 @@ export const orderApi = {
     });
     return normalizeOrder(dto);
   },
+
+  async submitReview(payload: { orderId: string, restaurantRating: number, partnerRating: number, comment?: string }, token: string): Promise<void> {
+    await request<any>('/reviews', token, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
 };

@@ -179,6 +179,22 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                 })}
               </Grid>
             )}
+
+            {status === 'delivered' && (
+              <Box sx={{ mt: 4, p: 3, bgcolor: 'success.light', borderRadius: 2, textAlign: 'center' }}>
+                <CheckCircle sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
+                <Typography variant="h6" color="success.dark" gutterBottom>Enjoy your food!</Typography>
+                <Typography color="success.dark" mb={2}>How was your order?</Typography>
+                <Button variant="contained" color="success" href={`/orders/${orderId}/review`}>Rate your experience</Button>
+              </Box>
+            )}
+            
+            {status === 'reviewed' && (
+              <Box sx={{ mt: 4, p: 3, bgcolor: 'grey.100', borderRadius: 2, textAlign: 'center' }}>
+                <Star sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>Thank you for your feedback!</Typography>
+              </Box>
+            )}
           </Paper>
         </Grid>
       </Grid>

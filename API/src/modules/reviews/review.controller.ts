@@ -1,80 +1,90 @@
-import { Response, NextFunction } from 'express';
-import { z } from 'zod';
+import { Request, Response, NextFunction } from 'express';
 import { Review } from './review.model';
+import { Order } from '../orders/order.model';
 import { Restaurant } from '../restaurants/restaurant.model';
+import { DeliveryPartner } from '../delivery/delivery-partner.model';
+import { transitionOrderStatus } from '../orders/order.service';
 import { AppError } from '../../shared/middleware/errorHandler';
-import { sendSuccess } from '../../shared/utils/response';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
-import { Request } from 'express';
+import { sendSuccess } from '../../shared/utils/response';
 
-const createReviewSchema = z.object({
-  restaurantId: z.string().min(1),
-  rating: z.number().int().min(1).max(5),
-  comment: z.string().min(5).max(1000),
-});
+function getActorRole(req: AuthRequest): string {
+  if (req.user!.roles.includes('admin')) return 'admin';
+  if (req.user!.roles.includes('owner')) return 'owner';
+  return req.user!.roles[0];
+}
 
-export async function createReview(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+export const createReview = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const body = createReviewSchema.parse(req.body);
+    const { orderId, restaurantRating, partnerRating, comment } = req.body;
+    const userId = req.user!.id;
 
-    const restaurant = await Restaurant.findById(body.restaurantId);
-    if (!restaurant) throw new AppError('Restaurant not found', 404);
+    if (!orderId || !restaurantRating || !partnerRating) {
+      throw new AppError('Missing required fields', 400);
+    }
+
+    const order = await Order.findOne({ _id: orderId, userId });
+    if (!order) {
+      throw new AppError('Order not found or does not belong to user', 404);
+    }
+
+    if (order.status !== 'delivered') {
+      throw new AppError('Order must be delivered before it can be reviewed', 400);
+    }
+
+    const existingReview = await Review.findOne({ orderId });
+    if (existingReview) {
+      throw new AppError('Order has already been reviewed', 400);
+    }
+
+    // Assuming we can get the partnerId from the Delivery model... 
+    // Wait, Order does not have partnerId directly. It is in the Delivery model.
+    const { Delivery } = require('../delivery/delivery.model');
+    const delivery = await Delivery.findOne({ orderId: order._id });
+    const partnerId = delivery ? delivery.partnerId : null;
+
+    if (!partnerId) {
+      throw new AppError('No delivery partner found for this order', 400);
+    }
 
     const review = await Review.create({
-      userId: req.user!.id,
-      restaurantId: body.restaurantId,
-      rating: body.rating,
-      comment: body.comment,
-      userName: req.user!.name || req.user!.email.split('@')[0],
+      orderId,
+      userId,
+      restaurantId: order.restaurantId,
+      partnerId,
+      restaurantRating,
+      partnerRating,
+      comment
     });
 
-    // Recalculate restaurant rating
-    const allReviews = await Review.find({ restaurantId: body.restaurantId });
-    const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-
-    await Restaurant.findByIdAndUpdate(body.restaurantId, {
-      rating: Math.round(avgRating * 10) / 10,
-      totalRatings: allReviews.length,
-    });
-
-    sendSuccess({ res, statusCode: 201, message: 'Review submitted', data: review });
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function getReviewsByRestaurant(req: Request, res: Response, next: NextFunction): Promise<void> {
-  try {
-    const { restaurantId } = req.params;
-    const { page = '1', limit = '10' } = req.query;
-
-    const pageNum = parseInt(page as string, 10);
-    const limitNum = parseInt(limit as string, 10);
-    const skip = (pageNum - 1) * limitNum;
-
-    const [reviews, total] = await Promise.all([
-      Review.find({ restaurantId })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .populate('userId', 'name'),
-      Review.countDocuments({ restaurantId }),
+    // Aggregate restaurant rating
+    const restAgg = await Review.aggregate([
+      { $match: { restaurantId: order.restaurantId } },
+      { $group: { _id: null, avgRating: { $avg: '$restaurantRating' }, count: { $sum: 1 } } }
     ]);
+    if (restAgg.length > 0) {
+      await Restaurant.findByIdAndUpdate(order.restaurantId, {
+        rating: Math.round(restAgg[0].avgRating * 10) / 10,
+        totalRatings: restAgg[0].count
+      });
+    }
 
-    sendSuccess({
-      res,
-      message: 'Reviews fetched',
-      data: {
-        reviews,
-        pagination: {
-          total,
-          page: pageNum,
-          limit: limitNum,
-          pages: Math.ceil(total / limitNum),
-        },
-      },
-    });
-  } catch (err) {
-    next(err);
+    // Aggregate partner rating
+    const partAgg = await Review.aggregate([
+      { $match: { partnerId } },
+      { $group: { _id: null, avgRating: { $avg: '$partnerRating' } } }
+    ]);
+    if (partAgg.length > 0) {
+      await DeliveryPartner.findByIdAndUpdate(partnerId, {
+        rating: Math.round(partAgg[0].avgRating * 10) / 10
+      });
+    }
+
+    // Transition order to reviewed
+    const updatedOrder = await transitionOrderStatus(orderId, 'reviewed', { id: userId, role: getActorRole(req) });
+
+    sendSuccess({ res, message: 'Review created successfully', data: review, statusCode: 201 });
+  } catch (error) {
+    next(error);
   }
-}
+};
