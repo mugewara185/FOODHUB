@@ -47,14 +47,35 @@ export const useDeliveryTracking = (orderId: string, initialStatus: string, rest
     }
   });
 
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+
   useEffect(() => {
+    setIsConnected(socketService.isConnected);
+    const handleConnection = (status: "connected" | "reconnecting" | "disconnected") => {
+      setIsConnected(status === 'connected');
+    };
+    socketService.onConnectionChange(handleConnection);
+    return () => socketService.offConnectionChange(handleConnection);
+  }, []);
+
+  useEffect(() => {
+    if (!isConnected) return;
+
     socketService.joinOrderRoom(orderId);
+
+    const handleOrderStatusChanged = (payload: { orderId: string; status: string }) => {
+      if (payload.orderId === orderId) {
+        setStatus(payload.status);
+      }
+    };
+
+    socketService.onOrderStatusChanged(handleOrderStatusChanged);
+
     return () => {
-      // socketService.leaveOrderRoom(orderId) could be used if implemented
-      // Since it's an explicit leave, let's just use unsubscribeFromOrder without callbacks
+      socketService.offOrderStatusChanged(handleOrderStatusChanged);
       socketService.unsubscribeFromOrder(orderId);
     };
-  }, [orderId]);
+  }, [orderId, isConnected]);
 
   return { partner, location, status, etaSeconds, distance };
 };

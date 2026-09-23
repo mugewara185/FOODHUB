@@ -2,6 +2,8 @@ import { useAppDispatch } from '../../../app/store/hooks';
 import { addNotification } from '../notificationSlice';
 import { useDeliverySocket } from '../../../features/deliveryPartner/hooks/useDeliverySocket';
 import type { DeliveryAssignedPayload, DeliveryStatusPayload } from '../../../core/types/socket.events';
+import { useEffect } from 'react';
+import { socketService } from '@/services/socket';
 
 type NotificationRole = 'customer' | 'partner' | 'admin';
 
@@ -74,4 +76,51 @@ export const useDeliveryNotifications = (role: NotificationRole) => {
       }
     }
   });
+
+  useEffect(() => {
+    const handleOrderStatus = (payload: { orderId: string; status: string }) => {
+      if (role === 'customer') {
+        const relevantStatuses = ['confirmed', 'preparing', 'rejected', 'delivered'];
+        if (relevantStatuses.includes(payload.status)) {
+          let title = 'Order Update';
+          if (payload.status === 'confirmed') title = 'Order Confirmed';
+          if (payload.status === 'preparing') title = 'Being Prepared';
+          if (payload.status === 'delivered') title = 'Delivered!';
+          if (payload.status === 'rejected') title = 'Order Rejected';
+          
+          dispatch(addNotification({
+            title,
+            message: `Your order is now ${payload.status.replace('_', ' ')}.`,
+            type: payload.status === 'rejected' ? 'error' : 'info',
+            orderId: payload.orderId,
+            targetPath: `/orders/tracking/${payload.orderId}`
+          }));
+        }
+      } else if (role === 'owner') {
+        const relevantStatuses = ['pending_owner'];
+        if (relevantStatuses.includes(payload.status)) {
+          dispatch(addNotification({
+            title: 'New Order Received',
+            message: `You have a new order: ${payload.orderId.slice(-6).toUpperCase()}`,
+            type: 'info',
+            orderId: payload.orderId,
+            targetPath: `/owner/queue`
+          }));
+        }
+      }
+    };
+
+    const socket = (socketService as any).socket;
+    if (socket) {
+      socket.on('order:status_changed', handleOrderStatus);
+      socket.on('order:created', handleOrderStatus); // Order created triggers pending_owner
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('order:status_changed', handleOrderStatus);
+        socket.off('order:created', handleOrderStatus);
+      }
+    };
+  }, [role, dispatch]);
 };

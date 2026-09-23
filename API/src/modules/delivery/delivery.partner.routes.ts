@@ -3,6 +3,8 @@ import { Delivery } from './delivery.model';
 import { DeliveryPartner } from './delivery-partner.model';
 import { protect, authorize } from '../../shared/middleware/auth.middleware';
 import { toLatLng } from '../../utils/geo';
+import { Order } from '../orders/order.model';
+import { emitDeliveryAssigned } from './delivery.events';
 
 const router = Router();
 
@@ -91,6 +93,79 @@ router.patch(
       await partner.save();
 
       return res.json({ success: true, data: partner });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/:orderId/accept',
+  protect,
+  authorize('partner'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const partner = await DeliveryPartner.findOne({ userId: req.user!.id });
+      if (!partner) {
+        return res.status(404).json({ success: false, message: 'Partner profile not found' });
+      }
+
+      const { orderId } = req.params;
+
+      const updated = await Order.findOneAndUpdate(
+        { _id: orderId, status: 'awaiting_partner' },
+        { $set: { status: 'partner_assigned' } },
+        { new: true }
+      );
+
+      if (!updated) {
+        return res.status(409).json({ success: false, message: 'already_assigned' });
+      }
+
+      // Create a Delivery record
+      const delivery = new Delivery({
+        orderId: updated._id,
+        partnerId: partner._id,
+        status: 'partner_assigned',
+        pickupLocation: partner.currentLocation, // Simplified since order has string address
+        destinationLocation: partner.currentLocation // We don't have lat/lng in basic order
+      });
+      await delivery.save();
+
+      partner.status = 'assigned';
+      partner.currentAssignedDelivery = delivery._id as any;
+      await partner.save();
+
+      emitDeliveryAssigned({
+        deliveryId: delivery._id.toString(),
+        orderId: updated._id.toString(),
+        partnerId: partner._id.toString(),
+        partnerUserId: partner.userId.toString(),
+        customerUserId: updated.userId.toString(),
+        partnerName: partner.vehicleDetails?.plateNumber || 'Partner', // Fallback, could use req.user.name
+        partnerPhone: partner.rating.toString(), // We don't have phone in partner model directly, just mock it
+        status: 'partner_assigned'
+      });
+
+      return res.json({ success: true, data: delivery });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/:orderId/reject',
+  protect,
+  authorize('partner'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const partner = await DeliveryPartner.findOne({ userId: req.user!.id });
+      if (!partner) {
+        return res.status(404).json({ success: false, message: 'Partner profile not found' });
+      }
+
+      return res.json({ success: true, message: 'skipped' });
     } catch (error) {
       next(error);
     }

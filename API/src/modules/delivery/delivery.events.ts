@@ -41,7 +41,7 @@ export function emitDeliveryStatus(payload: DeliveryStatusPayload) {
   }
 }
 
-export function emitDeliveryAssigned(payload: DeliveryAssignedPayload) {
+export function emitDeliveryAssigned(payload: DeliveryAssignedPayload & { customerUserId?: string }) {
   if (!payload.deliveryId || !payload.orderId || !payload.partnerId) {
     throw new Error('Ambiguous payload: Missing required IDs in delivery:assigned');
   }
@@ -50,6 +50,9 @@ export function emitDeliveryAssigned(payload: DeliveryAssignedPayload) {
   io.to('admin_fleet').emit('delivery:assigned', payload);
   if (payload.partnerUserId) {
     io.to(payload.partnerUserId).emit('delivery:assigned', payload); // NEW
+  }
+  if (payload.customerUserId) {
+    io.to(payload.customerUserId).emit('delivery:assigned', payload);
   }
 }
 
@@ -68,4 +71,12 @@ export function emitDeliveryReleased(payload: {
   const io = getIO();
   io.to(payload.orderId).emit('delivery:released', payload);
   io.to('admin_fleet').emit('delivery:released', payload);
+}
+
+export function emitDeliveryAvailable(
+  partnerUserId: string,
+  payload: { orderId: string, restaurantName: string, deliveryAddress: any, totalAmount: number, items: any[], createdAt: Date }
+) {
+  const io = getIO();
+  io.to(partnerUserId).emit('delivery:available', payload);
 }

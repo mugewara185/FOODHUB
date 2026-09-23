@@ -1,5 +1,6 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ComingSoon from '../../shared/components/ComingSoon';
 import ProtectedRoute from '../../features/auth/protectedRoute';
 //user routes
 import MainLayout from '../../shared/layout/MainLayout';
@@ -128,6 +129,10 @@ const AppRoutes: React.FC = () => {
 
           {/* 404 */}
           {/* <Route path="*" element={<NotFound />} /> */}
+          
+          {/* Redirects and Coming Soon */}
+          <Route path="history" element={<Navigate to="/orders" replace />} />
+          <Route path="help" element={<ComingSoon title="Help & Support" />} />
         </Route>
 
         {/* admin routes */}
@@ -150,6 +155,14 @@ const AppRoutes: React.FC = () => {
           <Route path='ai' element={<AdminAIPage />} />
           <Route path='ai/investigations/:id' element={<InvestigationPage />} />
           <Route path='delivery' element={<AdminDeliveryDashboard />} />
+          
+          {/* Coming Soon Routes */}
+          <Route path='payments' element={<ComingSoon title="Payments" />} />
+          <Route path='orders/analytics' element={<ComingSoon title="Order Analytics" />} />
+          <Route path='restaurants/categories' element={<ComingSoon title="Restaurant Categories" />} />
+          <Route path='menu/categories' element={<ComingSoon title="Menu Categories" />} />
+          <Route path='menu/add' element={<ComingSoon title="Add Menu Item" />} />
+          <Route path='users/delivery' element={<ComingSoon title="Delivery Personnel" />} />
         </Route>
 
         {/* partner routes */}
@@ -178,6 +191,26 @@ const AppRoutes: React.FC = () => {
           <Route path='settings' element={<OwnerSettings />} />
           <Route path='queue' element={<Queue />} />
           <Route path='active' element={<Active />} />
+          
+          {/* Redirects and Coming Soon Routes */}
+          <Route path='orders' element={<Navigate to="/owner/queue" replace />} />
+          <Route path='orders/*' element={<Navigate to="/owner/queue" replace />} />
+          <Route path='menu' element={<ComingSoon title="Menu Management" />} />
+          <Route path='menu/*' element={<ComingSoon title="Menu Management" />} />
+          <Route path='analytics' element={<ComingSoon title="Analytics" />} />
+          <Route path='analytics/*' element={<ComingSoon title="Analytics" />} />
+          <Route path='promotions' element={<ComingSoon title="Promotions" />} />
+          <Route path='promotions/*' element={<ComingSoon title="Promotions" />} />
+          <Route path='reviews' element={<ComingSoon title="Reviews" />} />
+          <Route path='reviews/*' element={<ComingSoon title="Reviews" />} />
+          <Route path='staff' element={<ComingSoon title="Staff" />} />
+          <Route path='staff/*' element={<ComingSoon title="Staff" />} />
+          <Route path='finance' element={<ComingSoon title="Finance" />} />
+          <Route path='finance/*' element={<ComingSoon title="Finance" />} />
+          <Route path='support' element={<ComingSoon title="Support" />} />
+          <Route path='support/*' element={<ComingSoon title="Support" />} />
+          <Route path='profile' element={<ComingSoon title="Restaurant Profile" />} />
+          <Route path='profile/*' element={<ComingSoon title="Restaurant Profile" />} />
         </Route>
 
         {/* dev */}

@@ -189,8 +189,8 @@ const AvailableOrders: React.FC = () => {
       {orders.length === 0 && (
         <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 3 }}>
           <LocalShipping sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary">No available orders</Typography>
-          <Typography variant="body2" color="text.secondary">Check back in a few minutes</Typography>
+          <Typography variant="h6" color="text.secondary">No available orders right now</Typography>
+          <Typography variant="body2" color="text.secondary">Go online to receive assignments.</Typography>
         </Paper>
       )}
     </Box>

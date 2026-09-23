@@ -62,7 +62,6 @@ const menuItems = [
     text: 'Orders',
     icon: <ShoppingBag />,
     path: '/admin/orders',
-    badge: 24,
     children: [
       { text: 'All Orders', path: '/admin/orders' },
       { text: 'Order Analytics', path: '/admin/orders/analytics' },
@@ -139,9 +138,15 @@ const AdminLayout: React.FC = () => {
     setNotificationAnchor(null);
   };
 
-  const handleLogout = () => {
-    // Implement logout logic
-    navigate('/login');
+  const { logout } = useAuth();
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const drawer = (
@@ -219,9 +224,6 @@ const AdminLayout: React.FC = () => {
                   primary={item.text}
                   primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }}
                 />
-                {item.badge && (
-                  <Badge badgeContent={item.badge} color="error" max={99} />
-                )}
                 {item.children && (
                   <ChevronLeft
                     sx={{

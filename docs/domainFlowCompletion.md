@@ -5,9 +5,11 @@
 
 ## Current Phase
 
-**DF-C3 — Customer order tracking enhancement — NEXT**
+**DF-D1 — Owner dashboard wiring — NEXT**
 
-## Completion: 47%
+## Completion: 50%
+
+*(Phase A, B, and C completed)*
 
 ---
 
@@ -224,7 +226,7 @@ REVIEWED                ← terminal: review submitted
   - **Verification**: Customer adds items → checks out → order appears in order history with `PENDING_OWNER` status; cart clears
   - **Definition of done**: End-to-end placement flow works against real backend; no mock/fake transitions
 
-- [ ] **DF-C3**: Frontend: Customer order tracking (enhancement)
+- [x] **DF-C3**: Frontend: Customer order tracking (enhancement)
   - **Files in scope**
     - `web/src/pages/Orders/OrderTracking.tsx` (or equivalent) — display all canonical states, not just delivery states; show owner acceptance, preparation, partner assignment steps
     - `web/src/features/orders/useOrderTracking.ts` — subscribe to all `order:statusChanged` events for the order
@@ -246,7 +248,7 @@ REVIEWED                ← terminal: review submitted
 
 ### Phase-flow D — Assignment flow
 
-- [ ] **DF-D1**: Backend: Broadcast to available partners
+- [x] **DF-D1**: Backend: Broadcast to available partners
   - **Files in scope**
     - `API/src/modules/delivery/delivery.service.ts` — on `READY_FOR_PICKUP` event, query available partners in range; emit `delivery:available` broadcast to partner socket room
     - `API/src/modules/delivery/delivery.events.ts` — add `delivery:available` event type
@@ -255,7 +257,7 @@ REVIEWED                ← terminal: review submitted
   - **Verification**: Owner marks order ready → backend queries available partners → socket broadcast received by connected partner clients within simulated range
   - **Definition of done**: `delivery:available` event fired with order details; only available (online) partners receive it; order status is `AWAITING_PARTNER`
 
-- [ ] **DF-D2**: Backend: Partner accept endpoint
+- [x] **DF-D2**: Backend: Partner accept endpoint
   - **Files in scope**
     - `API/src/modules/delivery/delivery.controller.ts` — `POST /delivery/:orderId/accept` — first-accept-wins; creates `Delivery` record; transitions order to `PARTNER_ASSIGNED`
     - `API/src/modules/delivery/delivery.service.ts` — implement idempotent first-accept logic (race condition guard)
@@ -264,7 +266,7 @@ REVIEWED                ← terminal: review submitted
   - **Verification**: Two partners call accept simultaneously → exactly one wins → other receives `already_assigned` response; order transitions to `PARTNER_ASSIGNED`
   - **Definition of done**: Race condition handled (optimistic lock or atomic update); `Delivery` record created with correct partner; `delivery:assigned` socket event fires
 
-- [ ] **DF-D3**: Frontend: Partner receives and accepts assignment broadcast
+- [x] **DF-D3**: Frontend: Partner receives and accepts assignment broadcast
   - **Files in scope**
     - `web/src/features/deliveryPartner/deliveryPartnerSlice.ts` — add `delivery:available` socket listener; add `acceptDelivery` thunk via `api.ts` (not hardcoded URL)
     - `web/src/pages/_deliveryPartner/` — add incoming assignment notification/modal UI
@@ -328,7 +330,9 @@ REVIEWED                ← terminal: review submitted
 - S1–S5a: See `web/Docs/Delivery flow/delivery_status.md` — delivery partner flow, GPS simulation, customer tracking, admin fleet, notifications verified working end-to-end
 - **DF-A1**: Order + Delivery status enums canonicalized. Pre-save hook fixed to skip validation on new documents. All backend test scripts pass. tsc clean.
 - **DF-B1**: Owner endpoints /accept, /reject, /preparing, /ready functional. Legal transitions enforced, illegal rejected (400), role check enforced (403). Restaurant.ownerId link verified for the demo restaurant.
-- **DF-C2**: Customer checkout → POST /api/orders → order appears in owner's queue via order:new socket event — E2E verified 2026-09-23. Fixed: Checkout bug caused by trying to access nested item.foodItem instead of flattened item properties.
+- **DF-C2**: Customer checkout -> POST /api/orders -> order appears in owner's queue via order:new socket event — E2E verified 2026-09-23. Fixed: Checkout bug caused by trying to access nested item.foodItem instead of flattened item properties.
+- **DF-D (Session 2)**: Assignment flow verified. `delivery:available`, `partner_assigned`, and `delivery:assigned` sockets are confirmed firing. (Bug: Mongoose enum validation failure on 'assigned' status corrected to 'partner_assigned'. Note: `partnerPhone` bug logged as deferred debt.)
+- **Session 3**: Sidebars cleaned up. All dead links map to real routes or `<ComingSoon />`. Layouts purged of fake mock data. `NotificationBell` is mounted and customer hooked to `order:status_changed`.
 
 ## Capabilities Extracted
 
@@ -367,11 +371,8 @@ Carried from `web/Docs/Delivery flow/delivery_status.md`:
 
 ## Next Exact Task
 
-**DF-C3**: Customer order tracking page enhancement.
-1. Inspect web/src/pages/Orders/ tracking views.
-2. Ensure the tracking timeline shows all canonical states.
-3. Subscribe to order:status_changed for realtime updates.
-4. Do not hardcode status strings.
+**SEE docs/singleFlowCompletion.md**
+This doc is now kept as historical record. The single source of truth for execution is `docs/singleFlowCompletion.md`.
 
 ---
 

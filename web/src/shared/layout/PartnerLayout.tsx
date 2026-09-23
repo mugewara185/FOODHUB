@@ -43,11 +43,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeliveryNotifications';
 import { NotificationBell } from '../../core/notifications/components/NotificationBell';
 
+import { useDeliveryAvailable } from '../../features/deliveryPartner/hooks/useDeliveryAvailable';
+import { selectAvailableAssignments } from '../../features/deliveryPartner/deliveryPartnerSlice';
+
 const drawerWidth = 280;
 
 const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/partner' },
-  { text: 'Available Orders', icon: <LocalShipping />, path: '/partner/orders', badge: 3 },
+  { text: 'Available Orders', icon: <LocalShipping />, path: '/partner/orders' },
   { text: 'Active Delivery', icon: <TrendingUp />, path: '/partner/active' },
   { text: 'Delivery History', icon: <History />, path: '/partner/history' },
   { text: 'Earnings', icon: <AttachMoney />, path: '/partner/earnings' },
@@ -58,17 +61,29 @@ const menuItems = [
 
 const PartnerLayout: React.FC = () => {
   useDeliveryNotifications('partner');
+  useDeliveryAvailable();
+  
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { user, logout } = useAuth();
 
   const isOnline = useAppSelector(state => state.deliveryPartner.isOnline);
+  const availableAssignments = useAppSelector(selectAvailableAssignments);
 
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+    }
   };
 
   const drawer = (
@@ -103,25 +118,14 @@ const PartnerLayout: React.FC = () => {
           />
         </Badge>
         <Typography variant="h6" fontWeight={700}>
-          Rahul Sharma
+          {user?.name || 'Delivery Partner'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Delivery Partner • ID: DP001
+          Role: {user?.role || 'Partner'} • ID: {user?.id ? user.id.slice(-6).toUpperCase() : '---'}
         </Typography>
         
+        {/* Placeholder for future partner stats */}
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1 }}>
-          <Chip
-            size="small"
-            icon={<Star sx={{ fontSize: 16 }} />}
-            label="4.8"
-            color="warning"
-          />
-          <Chip
-            size="small"
-            icon={<LocalShipping sx={{ fontSize: 16 }} />}
-            label="1.2k deliveries"
-            color="info"
-          />
         </Box>
       </Box>
 
@@ -152,8 +156,10 @@ const PartnerLayout: React.FC = () => {
                 primary={item.text}
                 primaryTypographyProps={{ fontSize: '0.95rem', fontWeight: 500 }}
               />
-              {item.badge && (
-                <Badge badgeContent={item.badge} color="error" />
+              {item.path === '/partner/orders' && availableAssignments.length > 0 ? (
+                <Badge badgeContent={availableAssignments.length} color="error" />
+              ) : (item as any).badge && (
+                <Badge badgeContent={(item as any).badge} color="error" />
               )}
             </ListItemButton>
           </ListItem>
@@ -165,7 +171,7 @@ const PartnerLayout: React.FC = () => {
       {/* Logout */}
       <Box sx={{ p: 2 }}>
         <ListItemButton
-          onClick={() => navigate('/login')}
+          onClick={handleLogout}
           sx={{ borderRadius: 2, color: 'error.main' }}
         >
           <ListItemIcon sx={{ minWidth: 40, color: 'error.main' }}>

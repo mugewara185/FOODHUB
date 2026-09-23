@@ -239,6 +239,14 @@ class SocketService {
     this.socket?.off("order:new", callback);
   }
 
+  onDeliveryAvailable(callback: (data: any) => void) {
+    this.socket?.on("delivery:available", callback);
+  }
+
+  offDeliveryAvailable(callback?: (data: any) => void) {
+    this.socket?.off("delivery:available", callback);
+  }
+
   removeAllListeners() {
     this.socket?.removeAllListeners();
   }

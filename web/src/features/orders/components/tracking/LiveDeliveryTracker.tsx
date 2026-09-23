@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Paper, Typography, Avatar, Chip, LinearProgress, Grid, Divider, Button, Stack, IconButton } from '@mui/material';
-import { Phone, LocalShipping, LocationOn, AccessTime, CheckCircle, RadioButtonChecked, RadioButtonUnchecked, Person, Star, Minimize, OpenInFull } from '@mui/icons-material';
+import { Phone, LocalShipping, LocationOn, AccessTime, CheckCircle, RadioButtonChecked, RadioButtonUnchecked, Person, Star, Minimize, OpenInFull, Cancel } from '@mui/icons-material';
 import type { Coordinates } from '../../../../core/types';
 import { formatDuration } from '../../../../core/utils/location';
 import Map from '../../../../shared/components/maps/Map';
@@ -12,19 +12,36 @@ interface LiveDeliveryTrackerProps {
   orderStatus: string;
   restaurantLocation: Coordinates;
   customerLocation: Coordinates;
+  rejectionReason?: string;
 }
 
-const statusStepsList = ['preparing', 'ready', 'partner_assigned', 'picked_up', 'on_the_way', 'nearby', 'delivered'];
+const statusStepsList = [
+  'pending_owner',
+  'confirmed',
+  'preparing',
+  'ready_for_pickup',
+  'awaiting_partner',
+  'partner_assigned',
+  'picked_up',
+  'out_for_delivery',
+  'nearby',
+  'delivered',
+  'completed',
+  'reviewed',
+  'rejected',
+  'cancelled'
+];
+
 const statusSteps = [
-  { label: 'Preparing', description: 'Restaurant preparing', id: 'preparing' },
-  { label: 'Assigned', description: 'Partner assigned', id: 'partner_assigned' },
+  { label: 'Waiting', description: 'Waiting for restaurant', id: 'pending_owner' },
+  { label: 'Confirmed', description: 'Restaurant accepted', id: 'confirmed' },
+  { label: 'Preparing', description: 'Being prepared', id: 'preparing' },
   { label: 'Picked Up', description: 'Order picked up', id: 'picked_up' },
-  { label: 'On the Way', description: 'Partner on the way', id: 'on_the_way' },
-  { label: 'Nearby', description: 'Partner nearby', id: 'nearby' },
+  { label: 'On the Way', description: 'Partner on the way', id: 'out_for_delivery' },
   { label: 'Delivered', description: 'Order delivered', id: 'delivered' },
 ];
 
-const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, restaurantLocation, customerLocation }) => {
+const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, restaurantLocation, customerLocation, rejectionReason }) => {
   const [isFloating, setIsFloating] = useState(false);
   
   const { partner, location, status, etaSeconds, distance } = useDeliveryTracking(orderId, orderStatus, restaurantLocation, customerLocation);
@@ -39,9 +56,11 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
   };
 
   const getStatusColor = (s: string) => {
-    if (s === 'delivered') return 'success';
-    if (['on_the_way', 'nearby'].includes(s)) return 'primary';
-    if (['picked_up', 'partner_assigned'].includes(s)) return 'warning';
+    if (['delivered', 'completed', 'reviewed', 'nearby'].includes(s)) return 'success';
+    if (['out_for_delivery'].includes(s)) return 'primary';
+    if (['picked_up', 'partner_assigned', 'awaiting_partner', 'ready_for_pickup', 'preparing'].includes(s)) return 'warning';
+    if (['rejected'].includes(s)) return 'error';
+    if (['cancelled'].includes(s)) return 'default';
     return 'info';
   };
 
@@ -128,20 +147,38 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
         <Grid item xs={12}>
           <Paper sx={{ p: 3, borderRadius: 3 }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Order Status</Typography>
-            <Grid container spacing={2}>
-              {statusSteps.map((step, index) => {
-                const stepIdx = statusStepsList.indexOf(step.id);
-                const isPassed = stepIdx <= safeStep;
-                return (
-                  <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
-                    <Box sx={{ p: 2, borderRadius: 2, bgcolor: isPassed ? 'primary.light' : 'grey.50', position: 'relative' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>{getStatusIcon(stepIdx, safeStep)}<Typography variant="subtitle2" fontWeight={600} color={isPassed ? 'primary.dark' : 'text.secondary'}>{step.label}</Typography></Box>
-                      <Typography variant="caption" color="text.secondary">{step.description}</Typography>
-                    </Box>
-                  </Grid>
-                );
-              })}
-            </Grid>
+            {status === 'rejected' ? (
+              <Box sx={{ p: 3, bgcolor: 'error.light', borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'error.contrastText' }}>
+                <Cancel sx={{ fontSize: 48, mb: 2, color: 'error.main' }} />
+                <Typography variant="h6" color="error.main" gutterBottom>Order Rejected by Restaurant</Typography>
+                {rejectionReason && <Typography color="error.main" mb={2}>Reason: {rejectionReason}</Typography>}
+                <Button variant="contained" color="error" href="/restaurants" sx={{ mt: 2 }}>Order from another restaurant</Button>
+              </Box>
+            ) : status === 'cancelled' ? (
+              <Box sx={{ p: 3, bgcolor: 'grey.200', borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Cancel sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>Order Cancelled</Typography>
+                <Typography color="text.secondary">This order has been cancelled.</Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={2}>
+                {statusSteps.map((step, index) => {
+                  const stepIdx = statusStepsList.indexOf(step.id);
+                  const isPassed = stepIdx <= safeStep;
+                  return (
+                    <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
+                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: isPassed ? 'primary.light' : 'grey.50', position: 'relative' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          {getStatusIcon(stepIdx, safeStep)}
+                          <Typography variant="subtitle2" fontWeight={600} color={isPassed ? 'primary.dark' : 'text.secondary'}>{step.label}</Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">{step.description}</Typography>
+                      </Box>
+                    </Grid>
+                  );
+                })}
+              </Grid>
+            )}
           </Paper>
         </Grid>
       </Grid>

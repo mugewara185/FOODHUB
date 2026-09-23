@@ -26,38 +26,70 @@ const Orders: React.FC = () => {
 
   const filteredOrders = orders.filter(order => {
     if (activeTab === 0) return true;
-    if (activeTab === 1) return order.status === 'delivered';
-    if (activeTab === 2) return ['pending_owner', 'confirmed', 'preparing', 'out_for_delivery'].includes(order.status);
-    if (activeTab === 3) return order.status === 'cancelled';
+    if (activeTab === 1) return ['delivered', 'completed', 'reviewed'].includes(order.status);
+    if (activeTab === 2) return ['pending_owner', 'confirmed', 'preparing', 'ready_for_pickup', 'awaiting_partner', 'partner_assigned', 'picked_up', 'out_for_delivery', 'nearby'].includes(order.status);
+    if (activeTab === 3) return ['cancelled', 'rejected'].includes(order.status);
     return true;
   });
 
   const getStatusColor = (status: string) => {
     const colors: any = {
-      pending_owner: 'warning',
+      pending_owner: 'info',
       confirmed: 'info',
-      preparing: 'info',
+      preparing: 'warning',
+      ready_for_pickup: 'warning',
+      awaiting_partner: 'warning',
+      partner_assigned: 'info',
+      picked_up: 'info',
       out_for_delivery: 'primary',
+      nearby: 'success',
       delivered: 'success',
-      cancelled: 'error',
+      completed: 'success',
+      reviewed: 'success',
+      rejected: 'error',
+      cancelled: 'default',
     };
     return colors[status] || 'default';
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'delivered': return <CheckCircle />;
+      case 'delivered':
+      case 'completed':
+      case 'reviewed': return <CheckCircle />;
+      case 'rejected':
       case 'cancelled': return <Cancel />;
-      case 'out_for_delivery': return <LocalShipping />;
+      case 'out_for_delivery': 
+      case 'nearby': return <LocalShipping />;
       case 'pending_owner':
       case 'confirmed':
-      case 'preparing': return <AccessTime />;
+      case 'preparing':
+      case 'ready_for_pickup':
+      case 'awaiting_partner':
+      case 'partner_assigned':
+      case 'picked_up': return <AccessTime />;
       default: return <Restaurant />;
     }
   };
 
   const getStatusText = (status: string) => {
-    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    const labels: any = {
+      pending_owner: 'Waiting for restaurant',
+      confirmed: 'Restaurant accepted',
+      preparing: 'Being prepared',
+      ready_for_pickup: 'Ready for pickup',
+      awaiting_partner: 'Searching for partner',
+      partner_assigned: 'Partner assigned',
+      picked_up: 'Picked up',
+      out_for_delivery: 'On the way',
+      nearby: 'Almost there',
+      delivered: 'Delivered',
+      completed: 'Order complete',
+      reviewed: 'Reviewed',
+      rejected: 'Rejected by restaurant',
+      cancelled: 'Cancelled',
+    };
+    return labels[status] || status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, orderId: string) => {

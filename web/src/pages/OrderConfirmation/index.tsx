@@ -83,52 +83,17 @@ interface OrderDetails {
   specialRequests?: string;
 }
 
-const ORDER_DATA: OrderDetails = {
-  id: 'ORD-2024-001234',
-  orderDate: '2024-01-15T14:30:00',
-  estimatedDelivery: '2024-01-15T15:00:00',
-  status: 'confirmed',
-  restaurant: {
-    id: '1',
-    name: 'Spice Garden',
-    image: '/api/placeholder/100/100',
-    address: '123 Food Street, Mumbai',
-    phone: '+91 9876543210',
-  },
-  deliveryAddress: {
-    name: 'John Doe',
-    street: '123 Main Street, Andheri East',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    zipCode: '400001',
-    phone: '+91 9876543210',
-  },
-  paymentMethod: 'Cash on Delivery',
-  items: [
-    { id: '1', name: 'Butter Chicken', quantity: 2, price: 320 },
-    { id: '2', name: 'Garlic Naan', quantity: 3, price: 80 },
-    { id: '3', name: 'Extra Butter', quantity: 1, price: 30, specialInstructions: 'Extra butter on naan' },
-  ],
-  orderSummary: {
-    itemTotal: 1040,
-    deliveryFee: 29,
-    tax: 52,
-    discount: 104,
-    total: 1017,
-  },
-  specialRequests: 'Please deliver to the back gate',
-};
-
 // Status timeline steps
 const statusSteps = [
-  { label: 'Order Confirmed', icon: <CheckCircle />, time: '2:30 PM' },
-  { label: 'Preparing', icon: <Restaurant />, time: '2:35 PM' },
-  { label: 'Out for Delivery', icon: <DeliveryDining />, time: '2:50 PM' },
-  { label: 'Delivered', icon: <CheckCircle />, time: '3:15 PM' },
+  { label: 'Confirmed', id: 'confirmed', icon: <CheckCircle />, time: '' },
+  { label: 'Preparing', id: 'preparing', icon: <Restaurant />, time: '' },
+  { label: 'Out for Delivery', id: 'out_for_delivery', icon: <DeliveryDining />, time: '' },
+  { label: 'Delivered', id: 'delivered', icon: <CheckCircle />, time: '' },
 ];
 
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
 import { fetchOrderByIdThunk, selectCurrentOrder, selectOrdersLoading } from '../../features/orders/orderSlice';
+import { socketService } from '../../services/socket';
 
 // Map real order to mock-compatible details
 const mapOrderToDetails = (order: any): OrderDetails => ({
@@ -179,7 +144,6 @@ const OrderConfirmation: React.FC = () => {
   const isLoading = useAppSelector(selectOrdersLoading);
   
   const [order, setOrder] = useState<OrderDetails | null>(null);
-  const [currentStatusIndex, setCurrentStatusIndex] = useState(0);
   const [showSuccess, setShowSuccess] = useState(true);
 
   // In real app, fetch order data from API/Redux
@@ -203,15 +167,23 @@ const OrderConfirmation: React.FC = () => {
     }
   }, [location, currentOrder, dispatch]);
 
-  // Animate status progress
+  // Listen to socket for real-time status updates
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (currentStatusIndex < statusSteps.length - 1) {
-        setCurrentStatusIndex(prev => prev + 1);
+    if (!order) return;
+    socketService.joinOrderRoom(order.id);
+    const handleStatusChanged = (payload: any) => {
+      if (payload.orderId === order.id) {
+        setOrder(prev => prev ? { ...prev, status: payload.status } : null);
       }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [currentStatusIndex]);
+    };
+    socketService.onOrderStatusChanged(handleStatusChanged);
+    return () => {
+      socketService.offOrderStatusChanged(handleStatusChanged);
+      socketService.unsubscribeFromOrder(order.id);
+    };
+  }, [order?.id]);
+
+  const currentStatusIndex = Math.max(0, statusSteps.findIndex(s => s.id === order?.status));
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -234,7 +206,7 @@ const OrderConfirmation: React.FC = () => {
   };
 
   const handleTrackOrder = () => {
-    navigate(`/orders/track/${order.id}`);
+    navigate(`/orders/tracking/${order?.id}`);
   };
 
   const handleReorder = () => {
@@ -246,7 +218,7 @@ const OrderConfirmation: React.FC = () => {
   };
 
   const handleShareOrder = () => {
-    if (navigator.share) {
+    if (navigator.share && order) {
       navigator.share({
         title: `Order ${order.id}`,
         text: `My order from ${order.restaurant.name}`,
@@ -341,7 +313,7 @@ const OrderConfirmation: React.FC = () => {
           <Grid item xs={12} lg={8}>
             <Stack spacing={3}>
               {/* Order Status Card */}
-              <Grow in timeout={1200}>
+              <Grow in={true} timeout={1200}>
                 <Paper
                   sx={{
                     p: { xs: 2, md: 4 },
@@ -501,7 +473,7 @@ const OrderConfirmation: React.FC = () => {
                   </Typography>
                   
                   <List>
-                    {order.items.map((item, index) => (
+                    {order.items.map((item) => (
                       <ListItem key={item.id} sx={{ px: 0, py: 1.5 }}>
                         <ListItemAvatar>
                           <Avatar

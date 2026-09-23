@@ -123,7 +123,7 @@ export const acceptAssignmentThunk = createAsyncThunk(
     { dispatch, rejectWithValue }
   ) => {
     try {
-      const data = await api.post(`delivery/${orderId}/accept`);
+      const data = await api.post(`delivery/partner/${orderId}/accept`);
       if (data.success === false) {
         throw new Error(data.message || 'Failed to accept delivery');
       }
@@ -145,7 +145,7 @@ export const rejectAssignmentThunk = createAsyncThunk(
     { dispatch, rejectWithValue }
   ) => {
     try {
-      const data = await api.post(`delivery/${orderId}/reject`);
+      const data = await api.post(`delivery/partner/${orderId}/reject`);
       if (data.success === false) {
         throw new Error(data.message || 'Failed to decline delivery');
       }
@@ -179,6 +179,19 @@ const deliveryPartnerSlice = createSlice({
     },
 
     // ── Socket-projected events ──────────────────────────────────────────
+
+    assignmentBroadcastReceived: (state, action: PayloadAction<DeliveryAssignment>) => {
+      const exists = state.availableAssignments.some(a => a.orderId === action.payload.orderId);
+      if (!exists) {
+        state.availableAssignments.push(action.payload);
+      }
+    },
+
+    assignmentAccepted: (state, action: PayloadAction<DeliveryAssignment>) => {
+      state.activeAssignment = action.payload;
+      state.status = 'ON_DELIVERY';
+      state.availableAssignments = state.availableAssignments.filter(a => a.orderId !== action.payload.orderId);
+    },
 
     deliveryAssignedReceived: (state, action: PayloadAction<DeliveryAssignment>) => {
       state.activeAssignment = action.payload;
@@ -291,12 +304,11 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(acceptAssignmentThunk.fulfilled, (state, action) => {
       state.isLoading = false;
-      // Remove from available list
+      state.activeAssignment = action.payload;
+      state.status = 'ON_DELIVERY';
       state.availableAssignments = state.availableAssignments.filter(
         (a) => a.orderId !== action.meta.arg.orderId
       );
-      // Active assignment is set by the socket event (deliveryAssignedReceived).
-      // Do not set it here — the backend is authoritative.
     });
     builder.addCase(acceptAssignmentThunk.rejected, (state) => {
       state.isLoading = false;
@@ -321,6 +333,8 @@ const deliveryPartnerSlice = createSlice({
 export const {
   partnerStateUpdated,
   setActiveAssignment,
+  assignmentBroadcastReceived,
+  assignmentAccepted,
   deliveryAssignedReceived,
   deliveryStatusChangedReceived,
   partnerLocationReceived,

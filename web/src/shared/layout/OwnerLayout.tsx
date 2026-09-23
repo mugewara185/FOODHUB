@@ -36,13 +36,14 @@ import {
   Settings,
   Help,
   Logout,
-  Notifications,
   Store,
   AccessTime,
-  PhotoLibrary,
-  Assessment,
-  Receipt,
 } from '@mui/icons-material';
+
+import { useAuth } from '../../contexts/AuthContext';
+import { useAppSelector } from '../../app/store';
+import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeliveryNotifications';
+import { NotificationBell } from '../../core/notifications/components/NotificationBell';
 
 const drawerWidth = 280;
 
@@ -58,7 +59,7 @@ const menuItems = [
     text: 'Orders', 
     icon: <ShoppingBag />, 
     path: '/owner/orders',
-    badge: 5,
+    showBadge: true, // we will inject count dynamically
     children: ['Live Orders', 'Order History']
   },
   { 
@@ -77,7 +78,6 @@ const menuItems = [
     text: 'Reviews', 
     icon: <Star />, 
     path: '/owner/reviews',
-    badge: 3,
   },
   { 
     text: 'Staff', 
@@ -106,9 +106,11 @@ const OwnerLayout: React.FC = () => {
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  const { user, logout } = useAuth();
+  useDeliveryNotifications('owner');
+  const pendingCount = useAppSelector(state => state.ownerOrders?.pendingOrders?.length || 0);
 
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
@@ -120,6 +122,15 @@ const OwnerLayout: React.FC = () => {
         ? prev.filter(item => item !== menuText)
         : [...prev, menuText]
     );
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const drawer = (
@@ -138,43 +149,35 @@ const OwnerLayout: React.FC = () => {
           }}
         />
         <Typography variant="h6" fontWeight={700}>
-          Spice Garden
+          {user?.name || 'Restaurant Owner'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Indian • North Indian
+          Role: {user?.role || 'Owner'}
         </Typography>
         
+        {/* Placeholder for future restaurant status and rating chips */}
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1 }}>
-          <Chip
-            size="small"
-            label="4.8 ★"
-            color="warning"
-          />
-          <Chip
-            size="small"
-            label="Open Now"
-            color="success"
-          />
+          {/* TODO: Add real rating and status from restaurant state in Session 5 */}
         </Box>
       </Box>
 
       <Divider />
 
-      {/* Quick Stats */}
+      {/* Quick Stats - Hid pending real data */}
       <Box sx={{ p: 2 }}>
         <Paper variant="outlined" sx={{ p: 1.5 }}>
           <Grid container spacing={1}>
-            <Grid item xs={4} sx={{ textAlign: 'center' }}>
+            <Grid xs={4} sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">Today</Typography>
-              <Typography variant="h6" fontWeight={700}>₹8.5k</Typography>
+              <Typography variant="h6" fontWeight={700}>—</Typography>
             </Grid>
-            <Grid item xs={4} sx={{ textAlign: 'center' }}>
+            <Grid xs={4} sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">Orders</Typography>
-              <Typography variant="h6" fontWeight={700}>24</Typography>
+              <Typography variant="h6" fontWeight={700}>—</Typography>
             </Grid>
-            <Grid item xs={4} sx={{ textAlign: 'center' }}>
+            <Grid xs={4} sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">Pending</Typography>
-              <Typography variant="h6" fontWeight={700}>5</Typography>
+              <Typography variant="h6" fontWeight={700}>{pendingCount > 0 ? pendingCount : '—'}</Typography>
             </Grid>
           </Grid>
         </Paper>
@@ -188,12 +191,11 @@ const OwnerLayout: React.FC = () => {
           <React.Fragment key={item.text}>
             <ListItem disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
-                selected={location.pathname === item.path}
+                selected={item.path === '/owner' ? location.pathname === '/owner' : (location.pathname === item.path || location.pathname.startsWith(item.path + '/'))}
                 onClick={() => {
+                  navigate(item.path);
                   if (item.children) {
                     handleMenuToggle(item.text);
-                  } else {
-                    navigate(item.path);
                   }
                 }}
                 sx={{
@@ -214,8 +216,8 @@ const OwnerLayout: React.FC = () => {
                   primary={item.text}
                   primaryTypographyProps={{ fontSize: '0.95rem', fontWeight: 500 }}
                 />
-                {item.badge && (
-                  <Badge badgeContent={item.badge} color="error" />
+                {item.showBadge && pendingCount > 0 && (
+                  <Badge badgeContent={pendingCount} color="error" />
                 )}
               </ListItemButton>
             </ListItem>
@@ -246,7 +248,7 @@ const OwnerLayout: React.FC = () => {
       {/* Logout */}
       <Box sx={{ p: 2 }}>
         <ListItemButton
-          onClick={() => navigate('/login')}
+          onClick={handleLogout}
           sx={{ borderRadius: 2, color: 'error.main' }}
         >
           <ListItemIcon sx={{ minWidth: 40, color: 'error.main' }}>
@@ -284,23 +286,11 @@ const OwnerLayout: React.FC = () => {
             Restaurant Dashboard
           </Typography>
 
-          {/* Live Orders Badge */}
-          <Chip
-            icon={<AccessTime />}
-            label="5 Live Orders"
-            color="warning"
-            sx={{ mr: 2 }}
-          />
-
           {/* Notifications */}
-          <IconButton>
-            <Badge badgeContent={8} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
+          <NotificationBell />
 
           {/* Profile */}
-          <IconButton>
+          <IconButton sx={{ ml: 1 }}>
             <Avatar src="https://i.pravatar.cc/150?img=1" />
           </IconButton>
         </Toolbar>
