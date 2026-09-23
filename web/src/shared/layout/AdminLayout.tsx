@@ -138,7 +138,7 @@ const AdminLayout: React.FC = () => {
     setNotificationAnchor(null);
   };
 
-  const { logout } = useAuth();
+  const { user,logout } = useAuth();
   
   const handleLogout = async () => {
     try {
