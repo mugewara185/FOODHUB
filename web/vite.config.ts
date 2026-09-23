@@ -23,4 +23,9 @@ export default defineConfig({
       '@emotion/styled': path.resolve('./node_modules/@emotion/styled'),
     },
   },
+  server: {
+    proxy: {
+      '/api': 'http://localhost:5000'
+    }
+  }
 })
