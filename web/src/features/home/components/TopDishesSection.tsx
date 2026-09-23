@@ -32,7 +32,7 @@ interface Dish {
 // Map actual food items from the factory
 const ACTUAL_TOP_DISHES: Dish[] = foodItems
   .filter(item => item.isBestSeller)
-  .slice(0, 8) // Get 8 items for a 4-column layout
+  .slice(0, 9) // Get 9 items for a 3-column horizontal layout
   .map((item, index) => ({
     id: item.id,
     name: item.name,
@@ -55,96 +55,110 @@ const DishCard: React.FC<Dish & { onAdd: () => void }> = ({
   onAdd,
 }) => (
   <Card
+    elevation={0}
     sx={{
-      height: '100%',
-      transition: 'all 0.3s ease',
-      position: 'relative',
-      overflow: 'visible',
       display: 'flex',
-      flexDirection: 'column',
+      flexDirection: 'row',
+      height: 110, // Ultra compact height
       borderRadius: 3,
+      border: '1px solid',
+      borderColor: 'grey.200',
+      transition: 'all 0.2s ease',
+      cursor: 'pointer',
       '&:hover': {
-        boxShadow: '0 12px 24px rgba(0,0,0,0.08)',
-        transform: 'translateY(-6px)',
+        borderColor: 'primary.main',
+        bgcolor: 'rgba(255,107,107,0.02)',
+        transform: 'translateY(-2px)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
       },
     }}
   >
-    {/* Badge */}
-    {badge && (
-      <Chip
-        label={badge}
-        size="small"
-        color="primary"
-        sx={{
-          position: 'absolute',
-          top: 10,
-          right: 10,
-          zIndex: 10,
-          fontWeight: 800,
-          fontSize: '0.65rem',
-          height: 22,
+    {/* Left Side: Image */}
+    <Box sx={{ position: 'relative', width: 110, height: 110, flexShrink: 0, p: 1 }}>
+      <CardMedia 
+        component="img" 
+        image={image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop'} 
+        alt={name} 
+        sx={{ 
+          width: '100%', 
+          height: '100%', 
+          objectFit: 'cover',
+          borderRadius: 2,
+        }}
+        onError={(e: any) => {
+          e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop';
         }}
       />
-    )}
+      {badge && (
+        <Chip
+          label={badge}
+          size="small"
+          color="primary"
+          sx={{
+            position: 'absolute',
+            top: 4,
+            left: 4,
+            fontWeight: 800,
+            fontSize: '0.55rem',
+            height: 18,
+            px: 0.5,
+            boxShadow: 1
+          }}
+        />
+      )}
+    </Box>
 
-    <CardMedia 
-      component="img" 
-      height="140" 
-      image={image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop'} 
-      alt={name} 
-      sx={{ objectFit: 'cover' }}
-      onError={(e: any) => {
-        e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
-      }}
-    />
+    {/* Right Side: Content */}
+    <CardContent sx={{ 
+      flex: 1, 
+      p: 1.5, 
+      pl: 0.5, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      justifyContent: 'space-between',
+      '&:last-child': { pb: 1.5 } // Override MUI's default last-child padding
+    }}>
+      <Box>
+        <Typography variant="subtitle2" fontWeight={800} lineHeight={1.2} noWrap title={name} sx={{ fontSize: '0.9rem' }}>
+          {name}
+        </Typography>
+        <Typography variant="caption" color="textSecondary" noWrap title={restaurant} sx={{ display: 'block', mt: 0.25, fontSize: '0.7rem' }}>
+          {restaurant}
+        </Typography>
+      </Box>
 
-    <CardContent sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', '&:last-child': { pb: 2 } }}>
-      <Stack spacing={1}>
-        {/* Name & Restaurant */}
-        <Box>
-          <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2} noWrap title={name}>
-            {name}
-          </Typography>
-          <Typography variant="caption" color="textSecondary" noWrap title={restaurant} sx={{ display: 'block', mt: 0.5 }}>
-            {restaurant}
-          </Typography>
-        </Box>
-
-        {/* Rating & Orders */}
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
+        <Stack spacing={0.5}>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-            <Rating value={Math.floor(rating)} size="small" readOnly sx={{ fontSize: '0.9rem' }} />
-            <Typography variant="caption" fontWeight={700}>
+            <Rating value={Math.floor(rating)} size="small" readOnly sx={{ fontSize: '0.8rem' }} />
+            <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.7rem' }}>
               {rating}
             </Typography>
           </Stack>
-          <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem' }}>
-            {orders.toLocaleString()} orders
+          <Typography variant="subtitle2" fontWeight={800} color="primary.main" sx={{ fontSize: '0.85rem' }}>
+            ₹{price}
           </Typography>
         </Stack>
 
-        {/* Price & Button */}
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: 'center', justifyContent: 'space-between', mt: 'auto', pt: 1 }}
+        <Button
+          variant="contained"
+          size="small"
+          disableElevation
+          sx={{ 
+            minWidth: 0, 
+            width: 32, 
+            height: 32, 
+            borderRadius: '50%', 
+            p: 0,
+            color: 'white'
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd();
+          }}
         >
-          <Typography variant="subtitle1" fontWeight={800} color="primary.main">
-            ₹{price}
-          </Typography>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<ShoppingCart sx={{ fontSize: 16 }} />}
-            sx={{ textTransform: 'capitalize', px: 2, py: 0.5, borderRadius: 2 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd();
-            }}
-          >
-            Add
-          </Button>
-        </Stack>
+          <ShoppingCart sx={{ fontSize: 16 }} />
+        </Button>
       </Stack>
     </CardContent>
   </Card>
@@ -170,7 +184,7 @@ const TopDishesSection: React.FC = () => {
 
       <Grid container spacing={2.5}>
         {ACTUAL_TOP_DISHES.map((dish) => (
-          <Grid item xs={12} sm={6} md={3} key={dish.id}>
+          <Grid item xs={12} sm={6} md={4} key={dish.id}>
             <DishCard 
               {...dish} 
               onAdd={() => dispatch(showToast({ message: `${dish.name} added to cart!`, type: 'success' }))} 
