@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Tooltip, Popover, Typography, Chip, Badge } from '@mui/material';
 import {
   AdminPanelSettings,
@@ -38,6 +38,25 @@ export const RoleSwitcher: React.FC = () => {
   const [isLeverFlipped, setIsLeverFlipped] = useState(false);
   const [switchingRoleId, setSwitchingRoleId] = useState<string | null>(null);
 
+  const [isTransparent, setIsTransparent] = useState(false);
+  const transparencyTimeout = useRef<NodeJS.Timeout | null>(null);
+  const historyRef = useRef<string[]>([]);
+
+  const resetTransparency = useCallback(() => {
+    setIsTransparent(false);
+    if (transparencyTimeout.current) clearTimeout(transparencyTimeout.current);
+    transparencyTimeout.current = setTimeout(() => {
+      setIsTransparent(true);
+    }, 3000);
+  }, []);
+
+  useEffect(() => {
+    resetTransparency();
+    return () => {
+      if (transparencyTimeout.current) clearTimeout(transparencyTimeout.current);
+    };
+  }, [resetTransparency, location.pathname]);
+
   // Extract roles safely whether user.role is array or string
   const userRoles: string[] = React.useMemo(() => {
     if (!user) return [];
@@ -46,29 +65,6 @@ export const RoleSwitcher: React.FC = () => {
     if (typeof user.role === 'string') return [user.role];
     return [];
   }, [user]);
-
-  if (!user || userRoles.length <= 1) {
-    return null; // No need to switch if the user has 1 or fewer roles
-  }
-
-  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setIsLeverFlipped(true);
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setIsLeverFlipped(false);
-    setAnchorEl(null);
-  };
-
-  const handleSwitch = (roleId: string, path: string) => {
-    setSwitchingRoleId(roleId);
-    setTimeout(() => {
-      navigate(path);
-      setSwitchingRoleId(null);
-      handleClose();
-    }, 280);
-  };
 
   const roleDefinitions: RoleOption[] = [
     {
@@ -84,7 +80,8 @@ export const RoleSwitcher: React.FC = () => {
       isSelected: (pathname) =>
         !pathname.startsWith('/admin') &&
         !pathname.startsWith('/owner') &&
-        !pathname.startsWith('/partner'),
+        !pathname.startsWith('/partner') &&
+        !pathname.startsWith('/dev'),
     },
     {
       id: 'admin',
@@ -122,6 +119,18 @@ export const RoleSwitcher: React.FC = () => {
       gradient: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)',
       isSelected: (pathname) => pathname.startsWith('/partner'),
     },
+    {
+      id: 'dev',
+      label: 'Developer Console',
+      subtitle: 'System Internals & Debugging',
+      badgeText: 'DEV MODE',
+      path: '/dev',
+      icon: <Tune sx={{ fontSize: 22 }} />,
+      activeColor: '#a855f7',
+      glowColor: 'rgba(168, 85, 247, 0.5)',
+      gradient: 'linear-gradient(135deg, #4c1d95 0%, #7e22ce 100%)',
+      isSelected: (pathname) => pathname.startsWith('/dev'),
+    },
   ];
 
   const availableRoles = roleDefinitions.filter((role) => userRoles.includes(role.id));
@@ -129,6 +138,64 @@ export const RoleSwitcher: React.FC = () => {
   // Determine current active role config
   const currentActiveRole =
     availableRoles.find((role) => role.isSelected(location.pathname)) || availableRoles[0];
+
+  useEffect(() => {
+    if (currentActiveRole) {
+      const lastPath = historyRef.current[historyRef.current.length - 1];
+      if (lastPath !== currentActiveRole.path) {
+        historyRef.current.push(currentActiveRole.path);
+      }
+    }
+  }, [location.pathname, currentActiveRole]);
+
+  if (!user || userRoles.length <= 1) {
+    return null;
+  }
+
+  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setIsLeverFlipped(true);
+    setAnchorEl(document.getElementById('role-switcher-anchor'));
+  };
+
+  const handleClose = () => {
+    setIsLeverFlipped(false);
+    setAnchorEl(null);
+  };
+
+  const handleSwitch = (roleId: string, path: string) => {
+    setSwitchingRoleId(roleId);
+    setTimeout(() => {
+      navigate(path);
+      setSwitchingRoleId(null);
+      handleClose();
+    }, 280);
+  };
+
+  const handleDirectToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsLeverFlipped(true);
+    
+    setTimeout(() => {
+      let prevPath = null;
+      for (let i = historyRef.current.length - 1; i >= 0; i--) {
+        const p = historyRef.current[i];
+        const roleForP = availableRoles.find(r => r.isSelected(p));
+        if (roleForP && currentActiveRole && roleForP.id !== currentActiveRole.id) {
+          prevPath = p;
+          break;
+        }
+      }
+
+      if (prevPath) {
+        navigate(prevPath);
+      } else {
+        const currentIndex = availableRoles.findIndex((r) => r.id === currentActiveRole.id);
+        const nextRole = availableRoles[(currentIndex + 1) % availableRoles.length];
+        navigate(nextRole.path);
+      }
+      setIsLeverFlipped(false);
+    }, 150);
+  };
 
   return (
     <>
@@ -140,13 +207,6 @@ export const RoleSwitcher: React.FC = () => {
           x: 30, // Top left, clears sidebars in Admin/Dev layouts
           y: 820
         }}
-        onClick={() => {
-          // Trigger the popover on click instead of relying on the Box onClick
-          if (!anchorEl) {
-            const customEvent = { currentTarget: document.getElementById('role-switcher-anchor') } as unknown as React.MouseEvent<HTMLElement>;
-            handleOpen(customEvent);
-          }
-        }}
       >
         <Tooltip title="Tactile Master Access Switch Lever" arrow placement="bottom">
           <Box
@@ -154,6 +214,14 @@ export const RoleSwitcher: React.FC = () => {
             component={motion.div}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
+            onMouseEnter={() => {
+              if (transparencyTimeout.current) clearTimeout(transparencyTimeout.current);
+              setIsTransparent(false);
+            }}
+            onMouseLeave={() => {
+              if (transparencyTimeout.current) clearTimeout(transparencyTimeout.current);
+              transparencyTimeout.current = setTimeout(() => setIsTransparent(true), 3000);
+            }}
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -161,21 +229,26 @@ export const RoleSwitcher: React.FC = () => {
               px: 1.8,
               py: 0.75,
               ml: 1.5,
-              cursor: 'pointer',
               borderRadius: '14px',
-              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              background: isTransparent ? 'rgba(15, 23, 42, 0.05)' : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
               border: '1px solid',
-              borderColor: Boolean(anchorEl) ? currentActiveRole.activeColor : 'rgba(255, 255, 255, 0.15)',
-              boxShadow: Boolean(anchorEl)
+              borderColor: isTransparent ? 'transparent' : (Boolean(anchorEl) ? currentActiveRole.activeColor : 'rgba(255, 255, 255, 0.15)'),
+              boxShadow: isTransparent ? 'none' : (Boolean(anchorEl)
                 ? `0 0 20px ${currentActiveRole.glowColor}`
-                : '0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.1)',
+                : '0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.1)'),
               position: 'relative',
               userSelect: 'none',
-              transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+              transition: 'all 0.5s ease',
             }}
           >
-            {/* LED Signal Indicator Light */}
-            <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            {/* LED Signal Indicator Light - responsible for opening the modal */}
+            <Box
+              sx={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer', padding: 0.5 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpen(e);
+              }}
+            >
               <Box
                 component={motion.div}
                 animate={{
@@ -200,42 +273,17 @@ export const RoleSwitcher: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: currentActiveRole.activeColor,
+                opacity: isTransparent ? 0 : 1,
+                transition: 'opacity 0.5s ease',
+                pointerEvents: isTransparent ? 'none' : 'auto',
               }}
             >
               {currentActiveRole.icon}
             </Box>
 
-            {/* Text Info */}
-            {/* <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', textAlign: 'left' }}> */}
-            {/* <Typography
-              variant="caption"
-              sx={{
-                fontSize: '0.62rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                color: 'rgba(255, 255, 255, 0.5)',
-                textTransform: 'uppercase',
-                lineHeight: 1,
-              }}
-            >
-              Access Lever
-            </Typography> */}
-            {/* <Typography
-              variant="body2"
-              sx={{
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                color: '#f8fafc',
-                lineHeight: 1.2,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {currentActiveRole.label.split(' ')[0]}
-            </Typography>
-          </Box> */}
-
-            {/* 3D Physical Switch Lever Trigger representation */}
+            {/* 3D Physical Switch Lever Trigger representation - directly changes domain */}
             <Box
+              onClick={handleDirectToggle}
               sx={{
                 width: 38,
                 height: 22,
@@ -246,6 +294,10 @@ export const RoleSwitcher: React.FC = () => {
                 p: '2px',
                 display: 'flex',
                 alignItems: 'center',
+                cursor: 'pointer',
+                opacity: isTransparent ? 0 : 1,
+                transition: 'opacity 0.5s ease',
+                pointerEvents: isTransparent ? 'none' : 'auto',
               }}
             >
               <Box
