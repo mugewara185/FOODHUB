@@ -39,12 +39,10 @@ const AdminProfile: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
 
   const admin = {
-    name: user?.name || 'Admin User',
-    email: user?.email || 'admin@foodhub.com',
-    phone: user?.phone || '+91 00000 00000',
+    name: user?.name || '—',
+    email: user?.email || '—',
+    phone: user?.phone || '—',
     role: user?.role || 'Admin',
-    department: 'Platform Operations',
-    location: 'India',
     joinDate: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A',
     lastLogin: new Date().toLocaleString(),
     permissions: user?.permissions || [],
@@ -105,10 +103,6 @@ const AdminProfile: React.FC = () => {
                 <Typography variant="body2">{admin.phone}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <LocationOn fontSize="small" color="action" />
-                <Typography variant="body2">{admin.location}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <BadgeIcon fontSize="small" color="action" />
                 <Typography variant="body2">Joined {admin.joinDate}</Typography>
               </Box>
@@ -151,14 +145,6 @@ const AdminProfile: React.FC = () => {
                   fullWidth
                   label="Phone"
                   defaultValue={admin.phone}
-                  disabled={!editMode}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Department"
-                  defaultValue={admin.department}
                   disabled={!editMode}
                 />
               </Grid>

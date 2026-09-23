@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -41,9 +41,10 @@ import {
 } from '@mui/icons-material';
 
 import { useAuth } from '../../contexts/AuthContext';
-import { useAppSelector } from '../../app/store';
+import { useAppSelector, useAppDispatch } from '../../app/store';
 import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeliveryNotifications';
 import { NotificationBell } from '../../core/notifications/components/NotificationBell';
+import { fetchOwnerRestaurantThunk } from '../../features/owner/ownerRestaurantSlice';
 
 const drawerWidth = 280;
 
@@ -100,17 +101,23 @@ const menuItems = [
   { text: 'Support', icon: <Help />, path: '/owner/support' },
 ];
 
-const OwnerLayout: React.FC = () => {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [drawerOpen, setDrawerOpen] = useState(!isMobile);
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const OwnerLayout: React.FC = () => {
+    const theme = useTheme();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const dispatch = useAppDispatch();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const [drawerOpen, setDrawerOpen] = useState(!isMobile);
+    const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  
+    const { user, logout } = useAuth();
+    useDeliveryNotifications('owner');
+    const pendingCount = useAppSelector(state => state.ownerOrders?.pendingOrders?.length || 0);
+    const { data: restaurant } = useAppSelector((state: any) => state.ownerRestaurant);
 
-  const { user, logout } = useAuth();
-  useDeliveryNotifications('owner');
-  const pendingCount = useAppSelector(state => state.ownerOrders?.pendingOrders?.length || 0);
+    useEffect(() => {
+      dispatch(fetchOwnerRestaurantThunk());
+    }, [dispatch]);
 
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
@@ -149,15 +156,15 @@ const OwnerLayout: React.FC = () => {
           }}
         />
         <Typography variant="h6" fontWeight={700}>
-          {user?.name || 'Restaurant Owner'}
+          {restaurant?.name || user?.name || 'Restaurant Owner'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Role: {user?.role || 'Owner'}
         </Typography>
         
-        {/* Placeholder for future restaurant status and rating chips */}
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1 }}>
-          {/* TODO: Add real rating and status from restaurant state in Session 5 */}
+          <Chip size="small" icon={<Star fontSize="small" />} label={restaurant?.rating ? `${restaurant.rating} ★` : '— ★'} color="primary" variant="outlined" />
+          <Chip size="small" label={restaurant?.isOpen ? 'Open' : 'Closed'} color={restaurant?.isOpen ? 'success' : 'default'} />
         </Box>
       </Box>
 

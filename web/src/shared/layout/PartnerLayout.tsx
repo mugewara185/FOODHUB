@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
 import { useAppSelector, useAppDispatch } from '../../app/store';
-// import { updateAssignmentStatus } from '../../features/deliveryPartner/deliveryPartnerSlice';
+import { fetchPartnerStateThunk } from '../../features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
 import {
   Menu as MenuIcon,
@@ -66,12 +66,18 @@ const PartnerLayout: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
   const { user, logout } = useAuth();
-
-  const isOnline = useAppSelector(state => state.deliveryPartner.isOnline);
+  
+  const partnerState = useAppSelector(state => state.deliveryPartner);
+  const { isOnline, rating, completedDeliveries } = partnerState;
   const availableAssignments = useAppSelector(selectAvailableAssignments);
+
+  useEffect(() => {
+    dispatch(fetchPartnerStateThunk());
+  }, [dispatch]);
 
   const handleDrawerToggle = () => {
     setDrawerOpen(!drawerOpen);
@@ -118,14 +124,15 @@ const PartnerLayout: React.FC = () => {
           />
         </Badge>
         <Typography variant="h6" fontWeight={700}>
-          {user?.name || 'Delivery Partner'}
+          {partnerState.name || user?.name || 'Delivery Partner'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Role: {user?.role || 'Partner'} • ID: {user?.id ? user.id.slice(-6).toUpperCase() : '---'}
         </Typography>
         
-        {/* Placeholder for future partner stats */}
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1 }}>
+          <Chip size="small" icon={<Star fontSize="small" />} label={rating ? `${rating} ★` : '— ★'} color="primary" variant="outlined" />
+          <Chip size="small" label={`${completedDeliveries || 0} deliveries`} variant="outlined" />
         </Box>
       </Box>
 

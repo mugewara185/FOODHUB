@@ -32,6 +32,11 @@ router.get(
       res.json({
         success: true,
         data: {
+          name: partner.name,
+          phone: partner.phone,
+          vehicle: partner.vehicle,
+          rating: partner.rating,
+          completedDeliveries: (partner as any).completedDeliveries || 0,
           status: partner.status,
           isOnline: partner.status === 'available' || partner.status === 'on_delivery',
           currentLocation: partner.currentLocation ? toLatLng(partner.currentLocation) : null,

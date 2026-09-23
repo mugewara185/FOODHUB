@@ -11,9 +11,9 @@
 
 ## Current Phase
 
-**Session 5 of 6 — Profile Pages + Owner Dashboard Real Data — NEXT**
+**Session 6 of 6 — Host-Readiness Verification — NEXT**
 
-## Completion: 66% (4 of 6 sessions)
+## Completion: 83% (5 of 6 sessions)
 
 *(Backend foundation: DF-A1 + DF-B1 + DF-C2 already verified. This plan picks up from there.)*
 
@@ -489,7 +489,7 @@ Files that can be deleted without breaking the completed flow:
 
 ---
 
-### Session 5: Profile Pages + Owner Dashboard Real Data
+### Session 5: Profile Pages + Owner Dashboard Real Data — COMPLETED
 **Goal**: All profile pages show the authenticated user's real data. Owner sidebar reflects real restaurant.
 **Primary outcome**: Partner logs in → `/partner/profile` shows their real name, vehicle, delivery count.
 **Files in scope**:

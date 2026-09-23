@@ -50,3 +50,19 @@ export async function getRestaurantById(req: Request, res: Response, next: NextF
     next(err);
   }
 }
+
+import { AuthRequest } from '../../shared/middleware/auth.middleware';
+
+export async function getMineRestaurant(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const restaurant = await Restaurant.findOne({ ownerId: req.user!.id });
+    if (!restaurant) {
+      res.status(404).json({ success: false, message: 'No restaurant linked' });
+      return;
+    }
+    res.json({ success: true, data: restaurant });
+  } catch (err) {
+    next(err);
+  }
+}
+

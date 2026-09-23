@@ -331,8 +331,9 @@ REVIEWED                ← terminal: review submitted
 - **DF-A1**: Order + Delivery status enums canonicalized. Pre-save hook fixed to skip validation on new documents. All backend test scripts pass. tsc clean.
 - **DF-B1**: Owner endpoints /accept, /reject, /preparing, /ready functional. Legal transitions enforced, illegal rejected (400), role check enforced (403). Restaurant.ownerId link verified for the demo restaurant.
 - **DF-C2**: Customer checkout -> POST /api/orders -> order appears in owner's queue via order:new socket event — E2E verified 2026-09-23. Fixed: Checkout bug caused by trying to access nested item.foodItem instead of flattened item properties.
-- **DF-D (Session 2)**: Assignment flow verified. `delivery:available`, `partner_assigned`, and `delivery:assigned` sockets are confirmed firing. (Bug: Mongoose enum validation failure on 'assigned' status corrected to 'partner_assigned'. Note: `partnerPhone` bug logged as deferred debt.)
+- **DF-D (Session 2)**: Assignment flow verified. `delivery:available`, `partner_assigned`, and `delivery:assigned` sockets are confirmed firing. (Bug: Mongoose enum validation failure on 'assigned' status corrected to 'partner_assigned'.)
 - **Session 3**: Sidebars cleaned up. All dead links map to real routes or `<ComingSoon />`. Layouts purged of fake mock data. `NotificationBell` is mounted and customer hooked to `order:status_changed`.
+- **Session 5**: All profiles show real data. Owner sidebar reflects real restaurant. Partner sidebar reflects real partner fields. Admin profile has no hardcoded fallbacks. E2E verified 2026-09-23.
 
 ## Capabilities Extracted
 

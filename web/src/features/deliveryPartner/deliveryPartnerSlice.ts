@@ -7,6 +7,11 @@ import api from '../../core/utils/api';
 export type PartnerStatus = 'OFFLINE' | 'ONLINE' | 'ON_DELIVERY';
 
 export interface DeliveryPartnerState {
+  name: string;
+  phone: string;
+  vehicle: string;
+  rating: number;
+  completedDeliveries: number;
   status: PartnerStatus;
   isOnline: boolean;
   isLoading: boolean;
@@ -26,6 +31,11 @@ export interface DeliveryPartnerState {
 }
 
 const initialState: DeliveryPartnerState = {
+  name: '',
+  phone: '',
+  vehicle: '',
+  rating: 5.0,
+  completedDeliveries: 0,
   status: 'OFFLINE',
   isOnline: false,
   isLoading: false,               // no longer defaults to true; fetch is opt-in
@@ -239,6 +249,12 @@ const deliveryPartnerSlice = createSlice({
     builder.addCase(fetchPartnerStateThunk.fulfilled, (state, action) => {
       state.isLoading = false;
       const p = action.payload ?? {};
+      if (p.name) state.name = p.name;
+      if (p.phone) state.phone = p.phone;
+      if (p.vehicle) state.vehicle = p.vehicle;
+      if (typeof p.rating === 'number') state.rating = p.rating;
+      if (typeof p.completedDeliveries === 'number') state.completedDeliveries = p.completedDeliveries;
+      
       if (p.status) state.status = p.status === 'available' ? 'ONLINE' : p.status === 'on_delivery' ? 'ON_DELIVERY' : 'OFFLINE';
       if (typeof p.isOnline === 'boolean') state.isOnline = p.isOnline;
       if (p.currentLocation) state.currentLocation = p.currentLocation;
