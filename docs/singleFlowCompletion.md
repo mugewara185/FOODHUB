@@ -525,7 +525,7 @@ All items must be true before Azure deployment.
 
 ### Build
 - [x] `npx vite build` in `web/` exits code 0
-- [x] `grep -r "localhost" web/dist/assets/` returns zero hits
+- [ ] `grep -r "localhost" web/dist/assets/` returns zero hits (Failed: hits in faker data & api URL)
 - [x] `grep -l "FloatingDevConsole" web/dist/assets/*.js` returns zero files
 - [x] `web/staticwebapp.config.json` exists with SPA fallback for all routes
 
@@ -541,8 +541,8 @@ All items must be true before Azure deployment.
 - [x] Customer submits restaurant + partner review → ratings update in database
 
 ### UI cleanliness (per-role)
-- [x] **Customer**: No mock data visible anywhere. Tracking timeline shows all canonical states. Notification bell wired. No silent 404 sidebar links.
-- [x] **Owner**: Real restaurant name in sidebar. Badge counts from live data. No hardcoded "5 Live Orders". All sidebar links load a page. Notification bell wired and counts real events.
+- [ ] **Customer**: No mock data visible anywhere (Failed: Spice Garden still present in components)
+- [ ] **Owner**: Real restaurant name in sidebar (Failed: Spice Garden still present in reports.provider.ts)
 - [x] **Partner**: Real partner name in sidebar. Available Orders badge from real Redux state. Profile shows real data. Notification bell wired.
 - [x] **Admin**: Delivery dashboard functional (already done). No hardcoded `badge: 24`. All broken sidebar sub-links replaced with Coming-soon.
 
