@@ -190,7 +190,7 @@ const DeliveryHistory: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight={600}>
-                        {delivery.orderId}
+                        {delivery.id}
                       </Typography>
                     </TableCell>
                     <TableCell>{delivery.restaurant}</TableCell>
