@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useLogger, logComponent } from '@/core/dev/logger';
-import { users, orders } from "../../../data/dummyData";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../shared/components/zs/ui/Tabs';
 import { User, MapPin, ShoppingBag } from "lucide-react";
 import SettingsSection from "../../../features/profile/SettingsSection";
@@ -16,8 +15,14 @@ const KEY_USER = "miniZomUser";
 
 const ProfileV1: React.FC = () => {
   const { info } = useLogger();
+  const [mockData, setMockData] = React.useState<{users: any[], orders: any[]} | null>(null);
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      import("../../../data/dummyData").then((m) => {
+        setMockData({ users: m.users, orders: m.orders });
+      });
+    }
     logComponent.mount('ProfileV1');
     info('PAGE_VERSION', 'ProfileV1 version loaded', { version: 'V1', timestamp: new Date().toISOString() }, 'ProfileV1');
 
@@ -27,8 +32,8 @@ const ProfileV1: React.FC = () => {
   }, []);
 
   const stored = localStorage.getItem(KEY_USER);
-  const currentUser = stored ? JSON.parse(stored) : users[0];
-  const myOrders = orders.filter((o) => o.userId === currentUser.id);
+  const currentUser = stored ? JSON.parse(stored) : mockData?.users[0];
+  const myOrders = mockData?.orders.filter((o: any) => o.userId === currentUser?.id) || [];
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -97,4 +102,4 @@ const ProfileV1: React.FC = () => {
   );
 };
 
-export default ProfilePage;
+export default ProfileV1;

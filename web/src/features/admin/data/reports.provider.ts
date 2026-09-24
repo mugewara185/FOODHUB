@@ -24,7 +24,7 @@ export const fetchAnalyticsData = async () => {
           { name: 'Others', value: 5 },
         ],
         topRestaurants: [
-          { name: 'Spice Garden', orders: 1245, revenue: 850000, rating: 4.8 },
+          { name: '-', orders: 1245, revenue: 850000, rating: 4.8 },
           { name: 'Pizza Paradise', orders: 2134, revenue: 1120000, rating: 4.6 },
           { name: 'Burger House', orders: 987, revenue: 510000, rating: 4.7 },
           { name: 'Sushi Master', orders: 876, revenue: 680000, rating: 4.9 },

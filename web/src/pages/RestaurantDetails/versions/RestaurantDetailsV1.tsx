@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { restaurants, menus, reviews } from "@/data/dummyData";
-
 import { RestaurantHeader } from "@/features/restaurant/components/RestaurantHeader";
 import { MenuItemCard } from "@/features/restaurant/components/MenuItemCard";
 import type { MenuItem, CartItem } from "@/data/types";
@@ -25,9 +23,19 @@ function writeCart(cart: CartItem[]) {
 const RestaurantDetailsV1: React.FC = () => {
     // logger.log('!--------------------------------<RestuarantDetailsV1>--------------------------------!')
   const { id } = useParams<{ id: string }>();
-  const restaurant = restaurants.find((r) => r.id === id);
-  const items = menus.filter((m) => m.restaurantId === id);
-  const restaurantReviews = reviews.filter((rv) => rv.restaurantId === id);
+  const [mockData, setMockData] = useState<{ restaurants: any[], menus: any[], reviews: any[] } | null>(null);
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      import("@/data/dummyData").then((m) => {
+        setMockData({ restaurants: m.restaurants, menus: m.menus, reviews: m.reviews });
+      });
+    }
+  }, []);
+
+  const restaurant = mockData?.restaurants.find((r: any) => r.id === id);
+  const items = mockData?.menus.filter((m: any) => m.restaurantId === id) || [];
+  const restaurantReviews = mockData?.reviews.filter((rv: any) => rv.restaurantId === id) || [];
 
   const [cartPreview, setCartPreview] = useState<CartItem[]>(readCart());
 

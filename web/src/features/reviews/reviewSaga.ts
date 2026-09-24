@@ -4,14 +4,18 @@ import {
   fetchReviewsSuccess,
   fetchReviewsFailure,
 } from "./reviewSlice";
-import { reviews } from "@/data/dummyData";
 import { fakeFetch } from "@/api/fakeApi";
 
 function* handleFetchReviews(action: ReturnType<typeof fetchReviewsRequest>) {
   try {
+    let targetReviews = [];
+    if (import.meta.env.DEV) {
+      const { reviews } = yield call(() => import("@/data/dummyData"));
+      targetReviews = reviews;
+    }
     const data = yield call(
       fakeFetch,
-      reviews.filter((r) => r.restaurantId === action.payload)
+      targetReviews.filter((r: any) => r.restaurantId === action.payload)
     );
     yield put(fetchReviewsSuccess(data));
   } catch {

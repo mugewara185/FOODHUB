@@ -47,7 +47,6 @@ import OwnerDashboard from '../../pages/_ownerPages/DashBoard';
 import OwnerSettings from '../../pages/_ownerPages/Settings';
 import Queue from '../../pages/_owner/Queue';
 import Active from '../../pages/_owner/Active';
-import OwnerProfile from '../../pages/_owner/Profile';
 
 //admin routes
 import AdminLayout from '../../shared/layout/AdminLayout';
@@ -102,22 +101,22 @@ const AppRoutes: React.FC = () => {
           <Route path='orders/confirmation' element={<Orderconfirmation />} />
           {/* Protected Routes */}
           <Route path="profile" element={
-            <ProtectedRoute allowedRoles={['user', 'admin']}>
+            <ProtectedRoute allowedRoles={['user']}>
               <Profile />
             </ProtectedRoute>
           } />
           <Route path="cart" element={
-            <ProtectedRoute allowedRoles={['user', 'admin']}>
+            <ProtectedRoute allowedRoles={['user']}>
               <Cart />
             </ProtectedRoute>
           } />
           <Route path="checkout" element={
-            <ProtectedRoute allowedRoles={['user', 'admin']}>
+            <ProtectedRoute allowedRoles={['user']}>
               <Checkout />
             </ProtectedRoute>
           } />
           <Route path="orders" element={
-            <ProtectedRoute allowedRoles={['user', 'admin']}>
+            <ProtectedRoute allowedRoles={['user']}>
               <Orders />
             </ProtectedRoute>
           } />
@@ -210,8 +209,8 @@ const AppRoutes: React.FC = () => {
           <Route path='finance/*' element={<ComingSoon title="Finance" />} />
           <Route path='support' element={<ComingSoon title="Support" />} />
           <Route path='support/*' element={<ComingSoon title="Support" />} />
-          <Route path='profile' element={<OwnerProfile />} />
-          <Route path='profile/*' element={<OwnerProfile />} />
+          <Route path='profile' element={<ComingSoon title="Restaurant Profile" />} />
+          <Route path='profile/*' element={<ComingSoon title="Restaurant Profile" />} />
         </Route>
 
         {/* dev */}

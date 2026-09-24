@@ -20,7 +20,6 @@ import {
   mapPaymentMethod,
   type CreateOrderPayload,
 } from './api/orderApi';
-import { generateOrders } from '../../core/data/factories/orders';
 
 // ---------------------------------------------------------------------------
 // State shape
@@ -90,10 +89,13 @@ export const fetchOrdersThunk = createAsyncThunk<Order[], void, { state: RootSta
         logger.info('ORDER', 'Loaded order history', { event: 'ORDER.HISTORY.LOAD.SUCCESS' });
         return orders;
       }
-      // mock mode
-      await new Promise((r) => setTimeout(r, 600));
-      logger.info('ORDER', 'Loaded mock order history', { event: 'ORDER.HISTORY.LOAD.SUCCESS' });
-      return generateOrders(8) as unknown as Order[];
+      if (import.meta.env.DEV) {
+        const { generateOrders } = await import('../../core/data/factories/orders');
+        await new Promise((r) => setTimeout(r, 600));
+        logger.info('ORDER', 'Loaded mock order history', { event: 'ORDER.HISTORY.LOAD.SUCCESS' });
+        return generateOrders(8) as unknown as Order[];
+      }
+      return [];
     } catch (err) {
       logger.error('ORDER', 'Failed to load order history', { event: 'ORDER.HISTORY.LOAD.FAILURE', error: err });
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch orders');
@@ -117,13 +119,16 @@ export const fetchOrderByIdThunk = createAsyncThunk<Order, string, { state: Root
         logger.info('ORDER', 'Loaded order details', { event: 'ORDER.DETAIL.LOAD.SUCCESS' });
         return order;
       }
-      // mock mode
-      await new Promise((r) => setTimeout(r, 400));
-      const orders = generateOrders(8) as unknown as Order[];
-      const found = orders.find((o) => o.id === id);
-      if (!found) throw new Error('Order not found');
-      logger.info('ORDER', 'Loaded mock order details', { event: 'ORDER.DETAIL.LOAD.SUCCESS' });
-      return found;
+      if (import.meta.env.DEV) {
+        const { generateOrders } = await import('../../core/data/factories/orders');
+        await new Promise((r) => setTimeout(r, 400));
+        const orders = generateOrders(8) as unknown as Order[];
+        const found = orders.find((o) => o.id === id);
+        if (!found) throw new Error('Order not found');
+        logger.info('ORDER', 'Loaded mock order details', { event: 'ORDER.DETAIL.LOAD.SUCCESS' });
+        return found;
+      }
+      throw new Error('Order not found');
     } catch (err) {
       logger.error('ORDER', 'Failed to load order details', { event: 'ORDER.DETAIL.LOAD.FAILURE', error: err });
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch order');

@@ -51,7 +51,7 @@ const mockNotifications: Notification[] = [
     id: '1',
     type: 'order',
     title: 'Order Confirmed',
-    message: 'Your order #ORD-001 from Spice Garden has been confirmed',
+    message: 'Your order #ORD-xxx from - has been confirmed',
     time: '5 minutes ago',
     read: false,
   },

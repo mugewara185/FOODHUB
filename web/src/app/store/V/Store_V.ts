@@ -26,9 +26,6 @@ import adminAiReducer from "../../../features/admin/ai/adminAiSlice";
 import ownerOrderReducer from "../../../features/orders/ownerOrderSlice";
 import ownerRestaurantReducer from "../../../features/owner/ownerRestaurantSlice";
 
-// Import state initializers
-import { initializeAllStatesFromFactory } from "./stateInitializers";
-
 // Import Redux logger
 import { createReduxLoggerMiddleware } from "./reduxLogger.middleware";
 import { reduxLoggerControl, REDUX_LOGGER_CONFIG } from "../../config/reduxLogger.config";

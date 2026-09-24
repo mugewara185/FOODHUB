@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { restaurants, menus, reviews } from "@/data/dummyData";
 import type { MenuItem, CartItem } from "@/data/types";
 
 const LOCAL_CART_KEY = "miniZomCart";
@@ -27,11 +26,20 @@ export function useRestaurantDetails() {
   const { id } = useParams<{ id: string }>();
   const [cartPreview, setCartPreview] = useState<CartItem[]>(() => readCart());
   const [loading, setLoading] = useState<boolean>(false);
+  const [mockData, setMockData] = useState<{ restaurants: any[], menus: any[], reviews: any[] } | null>(null);
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      import("@/data/dummyData").then((m) => {
+        setMockData({ restaurants: m.restaurants, menus: m.menus, reviews: m.reviews });
+      });
+    }
+  }, []);
 
   // Derived domain data from dummyData (swap out with API later)
-  const restaurant = useMemo(() => restaurants.find((r) => r.id === id), [id]);
-  const items = useMemo(() => menus.filter((m) => m.restaurantId === id), [id]);
-  const restaurantReviews = useMemo(() => reviews.filter((rv) => rv.restaurantId === id), [id]);
+  const restaurant = useMemo(() => mockData?.restaurants.find((r) => r.id === id), [id, mockData]);
+  const items = useMemo(() => mockData?.menus.filter((m) => m.restaurantId === id) || [], [id, mockData]);
+  const restaurantReviews = useMemo(() => mockData?.reviews.filter((rv) => rv.restaurantId === id) || [], [id, mockData]);
 
  //notes: sets and removes cartUpdate functinalities effeciently i.e.., reduces memory usage, 
   useEffect(() => {

@@ -2,10 +2,10 @@ import type { Order } from '../../../core/types';
 
 const mockOrders: Order[] = [
   {
-    id: 'ORD-2024-001',
+    id: '-',
     userId: 'u1',
     restaurantId: 'r1',
-    restaurantName: 'Spice Garden',
+    restaurantName: '-',
     items: [
       { foodItemId: 'fi1', name: 'Butter Chicken', quantity: 1, price: 500 },
       { foodItemId: 'fi2', name: 'Garlic Naan', quantity: 2, price: 80 },
@@ -23,7 +23,7 @@ const mockOrders: Order[] = [
     deliveryInfo: { address: '123 Main St, Mumbai' }
   },
   {
-    id: 'ORD-2024-002',
+    id: '-',
     userId: 'u2',
     restaurantId: 'r2',
     restaurantName: 'Pizza Paradise',

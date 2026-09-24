@@ -1,57 +1,65 @@
 import type { Restaurant, FoodItem, Order, Review } from '../../../core/types/food';
-import { generateAllDummyData } from '../../../core/data/factories/unifiedFactory';
 import { logger } from '../../../core/dev/logger/Logger';
 
-// Generate a dataset specifically for our mocked owner
-const mockData = generateAllDummyData({
-  restaurants: { count: 1 },
-  foodItems: { count: 20 },
-  users: { count: 5 },
-  orders: { count: 15 },
-  reviews: { count: 10 }
-});
+let mockData: any = null;
+let myFoodItems: any[] = [];
+let myOrders: any[] = [];
+let myReviews: any[] = [];
+let myRestaurantState: any = null;
 
-const myRestaurant = mockData.restaurants[0];
-
-// Make sure all items belong to this restaurant
-let myFoodItems = mockData.foodItems.map(item => ({ ...item, restaurantId: myRestaurant.id, restaurantName: myRestaurant.name }));
-let myOrders = mockData.orders.map((order: any) => ({
-  ...order,
-  restaurantId: myRestaurant.id,
-  restaurantName: myRestaurant.name,
-  // We align with the actual FoodHub Order type defined in food.ts
-  status: order.status as Order['status'],
-  paymentMethod: order.paymentMethod as Order['paymentMethod'],
-  paymentStatus: order.paymentStatus as Order['paymentStatus'],
-}));
-let myReviews = mockData.reviews.map((review: any) => ({ ...review, restaurantId: myRestaurant.id }));
-let myRestaurantState = { ...myRestaurant };
+const initializeMocks = async () => {
+  if (mockData) return;
+  if (!import.meta.env.DEV) return;
+  const { generateAllDummyData } = await import('../../../core/data/factories/unifiedFactory');
+  mockData = generateAllDummyData({
+    restaurants: { count: 1 },
+    foodItems: { count: 20 },
+    users: { count: 5 },
+    orders: { count: 15 },
+    reviews: { count: 10 }
+  });
+  
+  const myRestaurant = mockData.restaurants[0];
+  myRestaurantState = { ...myRestaurant };
+  myFoodItems = mockData.foodItems.map((item: any) => ({ ...item, restaurantId: myRestaurant.id, restaurantName: myRestaurant.name }));
+  myOrders = mockData.orders.map((order: any) => ({
+    ...order,
+    restaurantId: myRestaurant.id,
+    restaurantName: myRestaurant.name,
+    status: order.status as Order['status'],
+    paymentMethod: order.paymentMethod as Order['paymentMethod'],
+    paymentStatus: order.paymentStatus as Order['paymentStatus'],
+  }));
+  myReviews = mockData.reviews.map((review: any) => ({ ...review, restaurantId: myRestaurant.id }));
+};
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const ownerMockApi = {
-  // Restaurant Operations
   getRestaurant: async (): Promise<Restaurant> => {
+    await initializeMocks();
     logger.info('MOCK API: getRestaurant');
     await delay(500);
     return { ...myRestaurantState };
   },
 
   updateRestaurantStatus: async (isOpen: boolean): Promise<Restaurant> => {
+    await initializeMocks();
     logger.info(`MOCK API: updateRestaurantStatus to ${isOpen}`);
     await delay(400);
     myRestaurantState = { ...myRestaurantState, isOpen };
     return { ...myRestaurantState };
   },
 
-  // Menu Operations
   getMenu: async (): Promise<FoodItem[]> => {
+    await initializeMocks();
     logger.info('MOCK API: getMenu');
     await delay(500);
     return [...myFoodItems];
   },
 
   updateMenuItemAvailability: async (itemId: string, isAvailable: boolean): Promise<FoodItem> => {
+    await initializeMocks();
     logger.info(`MOCK API: updateMenuItemAvailability itemId=${itemId} isAvailable=${isAvailable}`);
     await delay(300);
     const index = myFoodItems.findIndex(i => i.id === itemId);
@@ -61,6 +69,7 @@ export const ownerMockApi = {
   },
 
   updateMenuItem: async (item: FoodItem): Promise<FoodItem> => {
+    await initializeMocks();
     logger.info(`MOCK API: updateMenuItem itemId=${item.id}`);
     await delay(400);
     const index = myFoodItems.findIndex(i => i.id === item.id);
@@ -70,6 +79,7 @@ export const ownerMockApi = {
   },
 
   addMenuItem: async (item: Omit<FoodItem, 'id'>): Promise<FoodItem> => {
+    await initializeMocks();
     logger.info(`MOCK API: addMenuItem name=${item.name}`);
     await delay(400);
     const newItem: FoodItem = { ...item, id: `f_${Date.now()}`, restaurantId: myRestaurantState.id, restaurantName: myRestaurantState.name } as FoodItem;
@@ -78,21 +88,22 @@ export const ownerMockApi = {
   },
 
   deleteMenuItem: async (itemId: string): Promise<string> => {
+    await initializeMocks();
     logger.info(`MOCK API: deleteMenuItem itemId=${itemId}`);
     await delay(400);
     myFoodItems = myFoodItems.filter(i => i.id !== itemId);
     return itemId;
   },
 
-  // Order Operations
   getOrders: async (): Promise<Order[]> => {
+    await initializeMocks();
     logger.info('MOCK API: getOrders');
     await delay(500);
-    // Sort by recent first
     return [...myOrders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
   updateOrderStatus: async (orderId: string, status: Order['status']): Promise<Order> => {
+    await initializeMocks();
     logger.info(`MOCK API: updateOrderStatus orderId=${orderId} status=${status}`);
     await delay(400);
     const index = myOrders.findIndex(o => o.id === orderId);
@@ -101,15 +112,15 @@ export const ownerMockApi = {
     return { ...myOrders[index] };
   },
 
-  // Review Operations
   getReviews: async (): Promise<Review[]> => {
+    await initializeMocks();
     logger.info('MOCK API: getReviews');
     await delay(400);
     return [...myReviews].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
-  // Analytics Operations (derived dynamically)
   getAnalytics: async () => {
+    await initializeMocks();
     logger.info('MOCK API: getAnalytics');
     await delay(600);
 
@@ -124,19 +135,10 @@ export const ownerMockApi = {
 
     myOrders.forEach((o: any) => {
       totalRevenue += o.total;
-
       const orderDate = new Date(o.createdAt);
-      if (orderDate >= today) {
-        todayRevenue += o.total;
-      }
-
-      if (['pending_owner', 'confirmed', 'preparing'].includes(o.status)) {
-        pendingOrders++;
-      }
-
-      if (o.status === 'delivered') {
-        completedOrders++;
-      }
+      if (orderDate >= today) todayRevenue += o.total;
+      if (['pending_owner', 'confirmed', 'preparing'].includes(o.status)) pendingOrders++;
+      if (o.status === 'delivered') completedOrders++;
     });
 
     const averageRating = myReviews.length

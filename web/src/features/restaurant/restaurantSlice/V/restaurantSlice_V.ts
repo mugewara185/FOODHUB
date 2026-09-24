@@ -3,8 +3,6 @@ import { createSlice, createAsyncThunk, type PayloadAction, createSelector } fro
 // import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from '../../../../app/store';
 import type { Restaurant, FoodItem, Category } from '@core/types';
-import getRestaurants from '../../../../core/data/factories/restaurants';
-import mockFoodItems from '../../../../core/data/factories/foodItems';
 import { APP_CONFIG } from '../../../../core/config/app.config';
 import { restaurantApi } from '../../../../services/api/restaurantApi';
 import { logger } from '@/core/dev/logger';
@@ -38,8 +36,13 @@ export interface RestaurantState {
   favorites: string[]; // for serialization in localStorage, we can convert this to a Set when using it in the app logic
 }
 
-// Mock data
-const mockRestaurants: Restaurant[] = getRestaurants;
+let mockRestaurants: Restaurant[] = [];
+let mockFoodItems: FoodItem[] = [];
+
+if (import.meta.env.DEV) {
+  import('../../../../core/data/factories/restaurants').then(m => mockRestaurants = m.default);
+  import('../../../../core/data/factories/foodItems').then(m => mockFoodItems = m.default);
+}
 
 // Helper to group items by category
 const groupItemsByCategory = (items: FoodItem[]) => {

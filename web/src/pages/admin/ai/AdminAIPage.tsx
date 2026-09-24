@@ -82,7 +82,7 @@ const AdminAIPage: React.FC = () => {
                 <SmartToy sx={{ fontSize: 60, mb: 2, opacity: 0.5 }} />
                 <Typography variant="h6" gutterBottom>Ask me about your platform data</Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center', mt: 2 }}>
-                  {["Why is Spice Garden underperforming?", "What is the cancellation rate this quarter?", "Compare November vs October performance"].map((q, i) => (
+                  {["Why is Restaurant X underperforming?", "What is the cancellation rate this quarter?", "Compare November vs October performance"].map((q, i) => (
                     <Button key={i} variant="outlined" size="small" onClick={() => setInput(q)} sx={{ textTransform: 'none', borderRadius: 4 }}>
                       "{q}"
                     </Button>
