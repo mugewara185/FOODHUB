@@ -19,7 +19,7 @@ export const createReview = async (req: AuthRequest, res: Response, next: NextFu
     const { orderId, restaurantRating, partnerRating, comment } = req.body;
     const userId = req.user!.id;
 
-    if (!orderId || !restaurantRating || !partnerRating) {
+    if (!orderId || typeof restaurantRating !== 'number' || typeof partnerRating !== 'number') {
       throw new AppError('Missing required fields', 400);
     }
 

@@ -64,13 +64,15 @@ export async function register(req: Request, res: Response, next: NextFunction):
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = loginSchema.parse(req.body);
-
-    const user = await User.findOne({ email: body.email }).select('+password');
-    // console.log('User found:', user);
+    console.log("body", body);
+    const user = await User.findOne({ email: new RegExp(`^${body.email}$`) })
+      .select('+password');
+    console.log('User found:', user);
     // if (!user || !(await user.comparePassword(body.password))) {
     //   throw new AppError('Invalid email or password', 401);
     // }
     if (!user) {
+      console.log('user not found!!')
       throw new AppError('Invalid email', 401);
     }
     if (!(await user.comparePassword(body.password))) {

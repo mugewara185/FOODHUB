@@ -53,7 +53,7 @@ app.use('/api/dev', devRoutes);
 app.use('/api/admin/analytics', analyticsRoutes);
 app.use('/api/admin/ai', aiRoutes);
 app.use('/api/delivery/partner', deliveryPartnerRoutes);
-app.use('/api/admin/delivery', deliveryRoutes);
+app.use('/api/delivery', deliveryRoutes);
 
 // 404 handler
 app.use((_req, res) => {

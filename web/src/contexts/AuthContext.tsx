@@ -1,4 +1,5 @@
 import React, { type ReactNode, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { AuthContextType, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData, UpdateProfileData } from '../data/types/auth';
 import { useAppDispatch, useAppSelector } from '../app/store/hooks';
 import {
@@ -34,6 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 // Facade hook that translates the old context signature into Redux actions
 export const useAuth = (): AuthContextType => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { user, isAuthenticated, loading: isLoading, isInitialized, error } = useAppSelector((state) => state.auth);
   // console.log('useAuth:', { user, isAuthenticated });
 
@@ -67,7 +69,8 @@ export const useAuth = (): AuthContextType => {
 
   const logout = useCallback(() => {
     dispatch(logoutAction());
-  }, [dispatch]);
+    navigate('/login');
+  }, [dispatch, navigate]);
 
   const clearError = useCallback(() => {
     dispatch(clearErrorAction());
