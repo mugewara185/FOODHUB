@@ -48,7 +48,7 @@ import {
   Assignment,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { adminOrdersProvider } from '../../../features/admin/data/orders.provider';
+import { adminGetAllOrders } from '../../../features/orders/api/orderApi';
 import type { Order } from '../../../core/types';
 import { logComponent } from '../../../core/dev/logger';
 
@@ -97,7 +97,7 @@ const OrdersList: React.FC = () => {
       setLoading(true);
       setError(null);
       logComponent.render('OrdersList - Data Load Start');
-      const data = await adminOrdersProvider.getAll();
+      const data = await adminGetAllOrders();
       setOrders(data);
       logComponent.render('OrdersList - Data Load Success');
     } catch (err: any) {

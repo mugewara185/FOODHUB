@@ -16,6 +16,7 @@ import { useDevContext } from "@core/dev/contexts/DevContext";
 import { useLogger, logger } from "./core/dev/logger";
 import LogConsole from "./core/dev/logger";
 import { Toast } from "./shared/components/notifications";
+import { addNotification } from "./core/notifications/notificationSlice";
 import { socketService } from "./services/socket";
 import { showToast } from "./features/ui/uiSlice";
 import { updateOrderStatusLocally } from "./features/orders/orderSlice";
@@ -58,6 +59,12 @@ const App: React.FC = () => {
         const notifType = data.type || 'info';
         // Transient UI Toast
         dispatch(showToast({ message: data.message, type: notifType }));
+        dispatch(addNotification({
+          title: data.title,
+          message: data.message,
+          type: notifType,
+          targetPath: data.orderId ? `/orders/tracking/${data.orderId}` : undefined,
+        }));
         logger.info('APP', 'Notification received via socket', { event: 'NOTIFICATION.RECEIVED', data });
       };
 

@@ -144,7 +144,7 @@ Adapt `payload.restaurantName` and `payload.orderId` to the actual field names i
 
 5. Run:
    ```powershell
-   npx vite build --config web/vite.config.ts 2>&1 | Select-Object -Last 15
+   Push-Location web; npx vite build 2>&1 | Select-Object -Last 15; Pop-Location
    ```
    Record last 15 lines.
 

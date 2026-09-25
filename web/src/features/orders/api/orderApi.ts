@@ -213,3 +213,12 @@ export const orderApi = {
     });
   }
 };
+
+import { getAuthToken } from '../../../services/api/apiUtils';
+
+export async function adminGetAllOrders(): Promise<Order[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error('No auth token found');
+  const dtos = await request<OrderApiDTO[]>('/orders/owned', token);
+  return dtos.map(normalizeOrder);
+}
