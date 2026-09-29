@@ -5,7 +5,7 @@ import {
 import {
   Schedule, Restaurant, CheckCircle, Person, Receipt, Print, LocalShipping, LocationOn
 } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../../../core/hooks';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { fetchOwnerData, updateOrderStatus } from '../../../features/owner/store/ownerSlice';
 
 const OrderQueue: React.FC = () => {
@@ -57,15 +57,17 @@ const OrderQueue: React.FC = () => {
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="h6" fontWeight={700}>Order #{order.id.slice(0,6)}</Typography>
+            <Typography variant="h6" fontWeight={700}>Order #{order.id.slice(0, 6)}</Typography>
             <Chip size="small" icon={getStatusIcon(order.status) as any} label={order.status.replace('_', ' ')} color={getStatusColor(order.status) as any} />
           </Box>
-          <Typography variant="body2" color="text.secondary">{new Date(order.createdAt).toLocaleTimeString()}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {order.time}
+          </Typography>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <Avatar sx={{ width: 32, height: 32 }}><Person /></Avatar>
-          <Typography variant="subtitle1" fontWeight={600}>Customer {order.userId.slice(0,4)}</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>Customer {order.userId.slice(0, 4)}</Typography>
         </Box>
 
         {order.deliveryInfo && (
@@ -138,9 +140,9 @@ const OrderQueue: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <Schedule />
               <Typography variant="h6" fontWeight={700}>New Orders</Typography>
-              <Chip label={orders.filter((o:any) => o.status === 'pending_owner' || o.status === 'confirmed').length} color="warning" />
+              <Chip label={orders.filter((o: any) => o.status === 'pending_owner' || o.status === 'confirmed').length} color="warning" />
             </Box>
-            {orders.filter((o:any) => o.status === 'pending_owner' || o.status === 'confirmed').map(renderOrderCard)}
+            {orders.filter((o: any) => o.status === 'pending_owner' || o.status === 'confirmed').map(renderOrderCard)}
           </Paper>
         </Grid>
 
@@ -150,9 +152,9 @@ const OrderQueue: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <Restaurant />
               <Typography variant="h6" fontWeight={700}>Preparing</Typography>
-              <Chip label={orders.filter((o:any) => o.status === 'preparing').length} color="info" />
+              <Chip label={orders.filter((o: any) => o.status === 'preparing').length} color="info" />
             </Box>
-            {orders.filter((o:any) => o.status === 'preparing').map(renderOrderCard)}
+            {orders.filter((o: any) => o.status === 'preparing').map(renderOrderCard)}
           </Paper>
         </Grid>
 
@@ -162,9 +164,9 @@ const OrderQueue: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <CheckCircle />
               <Typography variant="h6" fontWeight={700}>Delivery</Typography>
-              <Chip label={orders.filter((o:any) => o.status === 'out_for_delivery' || o.status === 'delivered').length} color="success" />
+              <Chip label={orders.filter((o: any) => o.status === 'out_for_delivery' || o.status === 'delivered').length} color="success" />
             </Box>
-            {orders.filter((o:any) => o.status === 'out_for_delivery' || o.status === 'delivered').map(renderOrderCard)}
+            {orders.filter((o: any) => o.status === 'out_for_delivery' || o.status === 'delivered').map(renderOrderCard)}
           </Paper>
         </Grid>
       </Grid>

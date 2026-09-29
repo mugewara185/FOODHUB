@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../../config/env';
 import { AppError } from './errorHandler';
@@ -40,13 +40,17 @@ export async function protect(
   }
 }
 
-export function authorize(...allowedRoles: string[]) {
+export function authorize(...roles: string[]) {
   return (req: AuthRequest, _res: Response, next: NextFunction) => {
-    console.log('aut.middleware -> authorize -> req.user', req.user);
-    console.log("allowedRoles", allowedRoles);
-    if (!req.user || !req.user.roles.some(role => allowedRoles.includes(role))) {
-      return next(new AppError(`Not authorized, must be one of: ${allowedRoles.join(', ')}`, 403));
+    if (!req.user) {
+      return next(new AppError('Not authorized, user not found', 401));
     }
+
+    const hasRole = req.user.roles.some((role) => roles.includes(role));
+    if (!hasRole) {
+      return next(new AppError(`User role not authorized to access this route`, 403));
+    }
+    
     next();
   };
 }

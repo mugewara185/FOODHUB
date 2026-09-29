@@ -9,7 +9,7 @@ for (const key of requiredEnvVars) {
 }
 
 export const config = {
-  port: parseInt(process.env.PORT || '5000', 10),
+  port: parseInt(process.env.PORT || '6000', 10),
   mongoUri: process.env.MONGO_URI as string,
   jwt: {
     secret: process.env.JWT_SECRET as string,
@@ -29,3 +29,5 @@ export const config = {
     mcpServerPath: process.env.MCP_SERVER_PATH || '',
   },
 };
+
+console.dir(config, { depth: null });

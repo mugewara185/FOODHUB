@@ -29,7 +29,7 @@ const ProfileIndex: React.FC = () => {
   useEffect(() => {
     info('PAGE', 'Profile versions being loaded', { route: '/profile' }, 'ProfileIndex');
   }, []);
-
+  
   // Use Vite's import.meta.glob to dynamically load all versions from /V folder
   const versionImports = useMemo(
     () =>
