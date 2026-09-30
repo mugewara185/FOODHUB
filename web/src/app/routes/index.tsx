@@ -1,233 +1,24 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import ComingSoon from '../../shared/components/ComingSoon';
-import ProtectedRoute from '../../features/auth/protectedRoute';
-//user routes
-import MainLayout from '../../shared/layout/MainLayout';
-import Home from '../../pages/Home';
-import Login from '../../pages/Auth/Login';
-import Signup from '../../pages/Auth/Signup';
-import ForgotPassword from '../../pages/Auth/ForgotPassword';
-import ResetPassword from '../../pages/Auth/ResetPassword';
-import RestaurantDetail from '../../pages/RestaurantDetails';
-import Checkout from '../../pages/Checkout';
-import Cart from '../../pages/Cart';
-import Restaurants from '../../pages/restaurantListings';
-import Orderconfirmation from '../../pages/OrderConfirmation';
-// import orderTracking from '../../pages/Orders/OrderTracking';
-import Orders from '../../pages/Orders';
-// import Profile from '../../pages/zothers/Profile';
-import {
-  Favourites,
-  Profile,
-  Notifications,
-  SearchPage,
-  Settings
-  // Addresses,
-  // Checkout 
-} from '@pages/index'
-// import OrderDetail from '../pages/OrderDetail';
-// import Search from '../pages/Search';
-// import NotFound from '../pages/NotFound';
-
-// delivery partner routes
-import PartnerLayout from '../../shared/layout/PartnerLayout';
-import PartnerDashboard from '../../pages/_deliveryPartner/PartnerDashboard';
-import PartnerProfile from '../../pages/_deliveryPartner/Profile';
-import AvailableOrders from '../../pages/_deliveryPartner/AvailableOrdders';
-import ActiveDelivery from '../../pages/_deliveryPartner/ActiveDelivery';
-import DeliveryHistory from '../../pages/_deliveryPartner/DeliveryHistory';
-import Earnings from '../../pages/_deliveryPartner/Earnings';
-import Support from '../../pages/_deliveryPartner/PartnerSupport';
-import PartnerSettings from '../../pages/_deliveryPartner/Settings';
-
-// owner routes
-import OwnerLayout from '../../shared/layout/OwnerLayout';
-import OwnerDashboard from '../../pages/_ownerPages/DashBoard';
-import OwnerSettings from '../../pages/_ownerPages/Settings';
-import Queue from '../../pages/_owner/Queue';
-import Active from '../../pages/_owner/Active';
-
-//admin routes
-import AdminLayout from '../../shared/layout/AdminLayout';
-import AdminDashboard from '../../pages/admin/AdminDashboard';
-import OrdersList from '../../pages/admin/orders/OrdersList';
-import RestaurantsList from '../../pages/admin/restaurants/RestaurantsList';
-import AddRestaurant from '../../pages/admin/restaurants/AddRestaurants';
-import OrderTracking from '../../pages/Orders/OrderTracking';
-import AdminProfile from '../../pages/admin/Profile';
-import { Promotions, Reports, Settings as AdminSettings, Users } from '../../pages/admin';
-import { AdminMenu } from '../../pages/admin/menu';
-import AdminAIPage from '../../pages/admin/ai/AdminAIPage';
-import InvestigationPage from '../../pages/admin/ai/InvestigationPage';
-import AdminDeliveryDashboard from '../../pages/admin/delivery';
-
-
-import DevLayout from '@/core/dev/ui/layout/DevLayout';
-import DevDashboard from '@/core/dev/ui/Dashboard';
-import ComponentTreeExplorer from '@/core/dev/ui/pages/ComponentTree';
-import StateInspector from '@/core/dev/ui/pages/StateInspector';
-import PropsPanel from '@/core/dev/ui/pages/PropsPanel';
-import VersionSwitcher from '@/core/dev/ui/pages/VersionSwitcher';
-import NetworkInspector from '@/core/dev/ui/pages/NetworkInspector';
-import LogPanel from '@/core/dev/ui/pages/LogPanel';
-import PerformanceMetrics from '@/core/dev/ui/pages/PerformanceMetrics';
-import ComponentPlayground from '@/core/dev/ui/pages/ComponentPlayground';
-import DocumentationViewer from '@/core/dev/ui/pages/DocumentationViewer';
+import { Routes } from 'react-router-dom';
 import { RouteLogger } from './RouteLogger';
 
-import { IS_DEV } from '../../core/config/app.config';
+// Domain Routes
+import { UserRoutes } from './domain/UserRoutes';
+import { AdminRoutes } from './domain/AdminRoutes';
+import { PartnerRoutes } from './domain/PartnerRoutes';
+import { OwnerRoutes } from './domain/OwnerRoutes';
+import { DevRoutes } from './domain/DevRoutes';
 
 const AppRoutes: React.FC = () => {
   return (
     <>
       <RouteLogger />
       <Routes>
-        {/* user and public routes */}
-
-        <Route path="/" element={<MainLayout />}>
-          {/* Public Routes */}
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="signup" element={<Signup />} />
-          <Route path="forgot-password" element={<ForgotPassword />} />
-          <Route path="reset-password" element={<ResetPassword />} />
-          <Route path="restaurants" element={<Restaurants />} />
-          <Route path="restaurants/:id" element={<RestaurantDetail />} />
-          <Route path='favorites' element={<Favourites />} />
-          <Route path='notification' element={<Notifications />} />
-          <Route path='search' element={<SearchPage />} />
-          <Route path='settings' element={<Settings />} />
-          <Route path='orders/confirmation' element={<Orderconfirmation />} />
-          {/* Protected Routes */}
-          <Route path="profile" element={
-            <ProtectedRoute allowedRoles={['user']}>
-              <Profile />
-            </ProtectedRoute>
-          } />
-          <Route path="cart" element={
-            <ProtectedRoute allowedRoles={['user']}>
-              <Cart />
-            </ProtectedRoute>
-          } />
-          <Route path="checkout" element={
-            <ProtectedRoute allowedRoles={['user']}>
-              <Checkout />
-            </ProtectedRoute>
-          } />
-          <Route path="orders" element={
-            <ProtectedRoute allowedRoles={['user']}>
-              <Orders />
-            </ProtectedRoute>
-          } />
-          {/* <Route path='orders/:id/track' element={<OrderTracking />} /> */}
-          <Route path='orders/tracking/:id' element={<OrderTracking />} />
-          {/* ... other routes */}
-
-          {/* Public Routes */}
-          {/* <Route path="search" element={<Search />} /> */}
-
-          {/* 404 */}
-          {/* <Route path="*" element={<NotFound />} /> */}
-          
-          {/* Redirects and Coming Soon */}
-          <Route path="history" element={<Navigate to="/orders" replace />} />
-          <Route path="help" element={<ComingSoon title="Help & Support" />} />
-        </Route>
-
-        {/* admin routes */}
-        <Route path="/admin/*" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminLayout />
-          </ProtectedRoute>
-        } >
-          <Route index element={<AdminDashboard />} />
-          <Route path='orders' element={<OrdersList />} />
-          {/* <Route path='orders/:id/track' element={<OrderTracking />} (//user component) for now /> */}
-          <Route path='restaurants' element={<RestaurantsList />} />
-          <Route path='restaurants/add' element={<AddRestaurant />} />
-          <Route path='menu' element={<AdminMenu />} />
-          <Route path='promotions' element={<Promotions />} />
-          <Route path='reports' element={<Reports />} />
-          <Route path='settings' element={<AdminSettings />} />
-          <Route path='users' element={<Users />} />
-          <Route path='profile' element={<AdminProfile />} />
-          <Route path='ai' element={<AdminAIPage />} />
-          <Route path='ai/investigations/:id' element={<InvestigationPage />} />
-          <Route path='delivery' element={<AdminDeliveryDashboard />} />
-          
-          {/* Coming Soon Routes */}
-          <Route path='payments' element={<ComingSoon title="Payments" />} />
-          <Route path='orders/analytics' element={<ComingSoon title="Order Analytics" />} />
-          <Route path='restaurants/categories' element={<ComingSoon title="Restaurant Categories" />} />
-          <Route path='menu/categories' element={<ComingSoon title="Menu Categories" />} />
-          <Route path='menu/add' element={<ComingSoon title="Add Menu Item" />} />
-          <Route path='users/delivery' element={<ComingSoon title="Delivery Personnel" />} />
-        </Route>
-
-        {/* partner routes */}
-        <Route path="/partner/*" element={
-          <ProtectedRoute allowedRoles={['partner']}>
-            <PartnerLayout />
-          </ProtectedRoute>
-        } >
-          <Route index element={<PartnerDashboard />} />
-          <Route path='orders' element={<AvailableOrders />} />
-          <Route path='active' element={<ActiveDelivery />} />
-          <Route path='profile' element={<PartnerProfile />} />
-          <Route path='history' element={<DeliveryHistory />} />
-          <Route path='earnings' element={<Earnings />} />
-          <Route path='support' element={<Support />} />
-          <Route path='settings' element={<PartnerSettings />} />
-        </Route>
-
-        {/* owner routes  */}
-        <Route path="/owner/*" element={
-          <ProtectedRoute allowedRoles={['owner']}>
-            <OwnerLayout />
-          </ProtectedRoute>
-        } >
-          <Route index element={<OwnerDashboard />} />
-          <Route path='settings' element={<OwnerSettings />} />
-          <Route path='queue' element={<Queue />} />
-          <Route path='active' element={<Active />} />
-          
-          {/* Redirects and Coming Soon Routes */}
-          <Route path='orders' element={<Navigate to="/owner/queue" replace />} />
-          <Route path='orders/*' element={<Navigate to="/owner/queue" replace />} />
-          <Route path='menu' element={<ComingSoon title="Menu Management" />} />
-          <Route path='menu/*' element={<ComingSoon title="Menu Management" />} />
-          <Route path='analytics' element={<ComingSoon title="Analytics" />} />
-          <Route path='analytics/*' element={<ComingSoon title="Analytics" />} />
-          <Route path='promotions' element={<ComingSoon title="Promotions" />} />
-          <Route path='promotions/*' element={<ComingSoon title="Promotions" />} />
-          <Route path='reviews' element={<ComingSoon title="Reviews" />} />
-          <Route path='reviews/*' element={<ComingSoon title="Reviews" />} />
-          <Route path='staff' element={<ComingSoon title="Staff" />} />
-          <Route path='staff/*' element={<ComingSoon title="Staff" />} />
-          <Route path='finance' element={<ComingSoon title="Finance" />} />
-          <Route path='finance/*' element={<ComingSoon title="Finance" />} />
-          <Route path='support' element={<ComingSoon title="Support" />} />
-          <Route path='support/*' element={<ComingSoon title="Support" />} />
-          <Route path='profile' element={<ComingSoon title="Restaurant Profile" />} />
-          <Route path='profile/*' element={<ComingSoon title="Restaurant Profile" />} />
-        </Route>
-
-        {/* dev */}
-        {IS_DEV && (
-          <Route path="/dev" element={<DevLayout />} >
-            <Route index element={<DevDashboard />} />
-            <Route path='component-tree' element={<ComponentTreeExplorer />} />
-            <Route path='components' element={<ComponentPlayground />} />
-            <Route path='state' element={<StateInspector />} />
-            <Route path='props' element={<PropsPanel />} />
-            <Route path='versions' element={<VersionSwitcher />} />
-            <Route path='network' element={<NetworkInspector />} />
-            <Route path='logs' element={<LogPanel />} />
-            <Route path='performance' element={<PerformanceMetrics />} />
-            <Route path='docs' element={<DocumentationViewer />} />
-          </Route>
-        )}
+        {UserRoutes}
+        {AdminRoutes}
+        {PartnerRoutes}
+        {OwnerRoutes}
+        {DevRoutes}
       </Routes>
     </>
   );
