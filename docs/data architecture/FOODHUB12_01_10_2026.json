@@ -1,0 +1,922 @@
+{
+  "collections": {
+    "FOODHUB12.deliveries": {
+      "ns": "FOODHUB12.deliveries",
+      "jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "_id",
+          "__v",
+          "createdAt",
+          "destinationLocation",
+          "orderId",
+          "partnerId",
+          "pickupLocation",
+          "status",
+          "updatedAt"
+        ],
+        "properties": {
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "__v": {
+            "bsonType": "int"
+          },
+          "createdAt": {
+            "bsonType": "date"
+          },
+          "currentLocation": {
+            "bsonType": "object",
+            "properties": {
+              "coordinates": {
+                "bsonType": "array",
+                "items": {
+                  "bsonType": "double"
+                }
+              },
+              "type": {
+                "bsonType": "string"
+              }
+            },
+            "required": [
+              "coordinates",
+              "type"
+            ]
+          },
+          "destinationLocation": {
+            "bsonType": "object",
+            "properties": {
+              "_id": {
+                "bsonType": "objectId"
+              },
+              "coordinates": {
+                "bsonType": "array",
+                "items": {
+                  "bsonType": "double"
+                }
+              },
+              "type": {
+                "bsonType": "string"
+              }
+            },
+            "required": [
+              "coordinates",
+              "type"
+            ]
+          },
+          "distanceRemainingMeters": {
+            "bsonType": "int"
+          },
+          "etaSeconds": {
+            "bsonType": "int"
+          },
+          "orderId": {
+            "bsonType": "objectId"
+          },
+          "partnerId": {
+            "bsonType": "objectId"
+          },
+          "pickupLocation": {
+            "bsonType": "object",
+            "properties": {
+              "_id": {
+                "bsonType": "objectId"
+              },
+              "coordinates": {
+                "bsonType": "array",
+                "items": {
+                  "bsonType": "double"
+                }
+              },
+              "type": {
+                "bsonType": "string"
+              }
+            },
+            "required": [
+              "coordinates",
+              "type"
+            ]
+          },
+          "status": {
+            "bsonType": "string"
+          },
+          "timestamps": {
+            "bsonType": "object",
+            "properties": {
+              "assignedAt": {
+                "bsonType": "date"
+              },
+              "deliveredAt": {
+                "bsonType": "date"
+              },
+              "pickedUpAt": {
+                "bsonType": "date"
+              }
+            }
+          },
+          "updatedAt": {
+            "bsonType": "date"
+          }
+        }
+      }
+    },
+    "FOODHUB12.deliverypartners": {
+      "ns": "FOODHUB12.deliverypartners",
+      "jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "_id",
+          "__v",
+          "createdAt",
+          "currentLocation",
+          "name",
+          "phone",
+          "rating",
+          "status",
+          "updatedAt",
+          "vehicle"
+        ],
+        "properties": {
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "__v": {
+            "bsonType": "int"
+          },
+          "createdAt": {
+            "bsonType": "date"
+          },
+          "currentLocation": {
+            "bsonType": "object",
+            "properties": {
+              "coordinates": {
+                "bsonType": "array",
+                "items": {
+                  "bsonType": "double"
+                }
+              },
+              "type": {
+                "bsonType": "string"
+              }
+            },
+            "required": [
+              "coordinates",
+              "type"
+            ]
+          },
+          "name": {
+            "bsonType": "string"
+          },
+          "phone": {
+            "bsonType": "string"
+          },
+          "rating": {
+            "bsonType": "double"
+          },
+          "status": {
+            "bsonType": "string"
+          },
+          "updatedAt": {
+            "bsonType": "date"
+          },
+          "vehicle": {
+            "bsonType": "string"
+          }
+        }
+      }
+    },
+    "FOODHUB12.notifications": {
+      "ns": "FOODHUB12.notifications",
+      "jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "_id",
+          "__v",
+          "createdAt",
+          "isRead",
+          "message",
+          "title",
+          "type",
+          "updatedAt",
+          "userId"
+        ],
+        "properties": {
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "__v": {
+            "bsonType": "int"
+          },
+          "createdAt": {
+            "bsonType": "date"
+          },
+          "isRead": {
+            "bsonType": "bool"
+          },
+          "message": {
+            "bsonType": "string"
+          },
+          "title": {
+            "bsonType": "string"
+          },
+          "type": {
+            "bsonType": "string"
+          },
+          "updatedAt": {
+            "bsonType": "date"
+          },
+          "userId": {
+            "bsonType": "objectId"
+          }
+        }
+      }
+    },
+    "FOODHUB12.orders": {
+      "ns": "FOODHUB12.orders",
+      "jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "_id",
+          "__v",
+          "createdAt",
+          "deliveryAddress",
+          "items",
+          "paymentMethod",
+          "paymentStatus",
+          "restaurantId",
+          "restaurantName",
+          "status",
+          "totalAmount",
+          "updatedAt",
+          "userId"
+        ],
+        "properties": {
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "__v": {
+            "bsonType": "int"
+          },
+          "createdAt": {
+            "bsonType": "date"
+          },
+          "deliveryAddress": {
+            "bsonType": "string"
+          },
+          "items": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "object",
+              "properties": {
+                "_id": {
+                  "bsonType": "objectId"
+                },
+                "menuItemId": {
+                  "bsonType": "string"
+                },
+                "name": {
+                  "bsonType": "string"
+                },
+                "price": {
+                  "bsonType": "int"
+                },
+                "quantity": {
+                  "bsonType": "int"
+                }
+              },
+              "required": [
+                "_id",
+                "menuItemId",
+                "name",
+                "price",
+                "quantity"
+              ]
+            }
+          },
+          "note": {
+            "bsonType": "string"
+          },
+          "paymentMethod": {
+            "bsonType": "string"
+          },
+          "paymentStatus": {
+            "bsonType": "string"
+          },
+          "restaurantId": {
+            "bsonType": "objectId"
+          },
+          "restaurantName": {
+            "bsonType": "string"
+          },
+          "status": {
+            "bsonType": "string"
+          },
+          "totalAmount": {
+            "bsonType": "int"
+          },
+          "updatedAt": {
+            "bsonType": "date"
+          },
+          "userId": {
+            "bsonType": "objectId"
+          }
+        }
+      }
+    },
+    "FOODHUB12.restaurants": {
+      "ns": "FOODHUB12.restaurants",
+      "jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "_id",
+          "__v",
+          "address",
+          "bannerImage",
+          "city",
+          "contact",
+          "coverImageUrl",
+          "createdAt",
+          "cuisine",
+          "deliveryFee",
+          "deliveryTime",
+          "description",
+          "image",
+          "imageUrl",
+          "isFeatured",
+          "isOpen",
+          "location",
+          "menu",
+          "minOrder",
+          "name",
+          "openingHours",
+          "phone",
+          "priceRange",
+          "rating",
+          "tags",
+          "totalRatings",
+          "updatedAt"
+        ],
+        "properties": {
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "__v": {
+            "bsonType": "int"
+          },
+          "address": {
+            "bsonType": "string"
+          },
+          "bannerImage": {
+            "bsonType": "string"
+          },
+          "city": {
+            "bsonType": "string"
+          },
+          "contact": {
+            "bsonType": "object",
+            "properties": {
+              "email": {
+                "bsonType": "string"
+              },
+              "phone": {
+                "bsonType": "string"
+              }
+            },
+            "required": [
+              "email",
+              "phone"
+            ]
+          },
+          "coverImageUrl": {
+            "bsonType": "string"
+          },
+          "createdAt": {
+            "bsonType": "date"
+          },
+          "cuisine": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "string"
+            }
+          },
+          "deliveryFee": {
+            "bsonType": "int"
+          },
+          "deliveryTime": {
+            "bsonType": "int"
+          },
+          "description": {
+            "bsonType": "string"
+          },
+          "image": {
+            "bsonType": "string"
+          },
+          "imageUrl": {
+            "bsonType": "string"
+          },
+          "isFeatured": {
+            "bsonType": "bool"
+          },
+          "isOpen": {
+            "bsonType": "bool"
+          },
+          "location": {
+            "bsonType": "object",
+            "properties": {
+              "lat": {
+                "bsonType": "double"
+              },
+              "lng": {
+                "bsonType": "double"
+              }
+            },
+            "required": [
+              "lat",
+              "lng"
+            ]
+          },
+          "menu": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "object",
+              "properties": {
+                "_id": {
+                  "bsonType": "objectId"
+                },
+                "category": {
+                  "bsonType": "string"
+                },
+                "description": {
+                  "bsonType": "string"
+                },
+                "imageUrl": {
+                  "bsonType": "string"
+                },
+                "isAvailable": {
+                  "bsonType": "bool"
+                },
+                "name": {
+                  "bsonType": "string"
+                },
+                "price": {
+                  "bsonType": "int"
+                }
+              },
+              "required": [
+                "_id",
+                "category",
+                "description",
+                "imageUrl",
+                "isAvailable",
+                "name",
+                "price"
+              ]
+            }
+          },
+          "minOrder": {
+            "bsonType": "int"
+          },
+          "name": {
+            "bsonType": "string"
+          },
+          "openingHours": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "object",
+              "properties": {
+                "_id": {
+                  "bsonType": "objectId"
+                },
+                "close": {
+                  "bsonType": "string"
+                },
+                "day": {
+                  "bsonType": "string"
+                },
+                "open": {
+                  "bsonType": "string"
+                }
+              },
+              "required": [
+                "_id",
+                "close",
+                "day",
+                "open"
+              ]
+            }
+          },
+          "ownerId": {
+            "bsonType": "objectId"
+          },
+          "phone": {
+            "bsonType": "string"
+          },
+          "priceRange": {
+            "bsonType": "int"
+          },
+          "rating": {
+            "bsonType": "double"
+          },
+          "tags": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "string"
+            }
+          },
+          "totalRatings": {
+            "bsonType": "int"
+          },
+          "updatedAt": {
+            "bsonType": "date"
+          }
+        }
+      }
+    },
+    "FOODHUB12.reviews": {
+      "ns": "FOODHUB12.reviews",
+      "jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "_id",
+          "__v",
+          "comment",
+          "createdAt",
+          "orderId",
+          "partnerId",
+          "partnerRating",
+          "restaurantId",
+          "restaurantRating",
+          "updatedAt",
+          "userId"
+        ],
+        "properties": {
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "__v": {
+            "bsonType": "int"
+          },
+          "comment": {
+            "bsonType": "string"
+          },
+          "createdAt": {
+            "bsonType": "date"
+          },
+          "orderId": {
+            "bsonType": "objectId"
+          },
+          "partnerId": {
+            "bsonType": "objectId"
+          },
+          "partnerRating": {
+            "bsonType": [
+              "double",
+              "int"
+            ]
+          },
+          "restaurantId": {
+            "bsonType": "objectId"
+          },
+          "restaurantRating": {
+            "bsonType": [
+              "double",
+              "int"
+            ]
+          },
+          "updatedAt": {
+            "bsonType": "date"
+          },
+          "userId": {
+            "bsonType": "objectId"
+          }
+        }
+      }
+    },
+    "FOODHUB12.users": {
+      "ns": "FOODHUB12.users",
+      "jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "_id",
+          "__v",
+          "addresses",
+          "createdAt",
+          "email",
+          "favoriteFoodItems",
+          "favoriteRestaurants",
+          "name",
+          "password",
+          "phone",
+          "roles",
+          "status",
+          "updatedAt"
+        ],
+        "properties": {
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "__v": {
+            "bsonType": "int"
+          },
+          "addresses": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "object",
+              "properties": {
+                "_id": {
+                  "bsonType": "objectId"
+                },
+                "city": {
+                  "bsonType": "string"
+                },
+                "isDefault": {
+                  "bsonType": "bool"
+                },
+                "name": {
+                  "bsonType": "string"
+                },
+                "phone": {
+                  "bsonType": "string"
+                },
+                "state": {
+                  "bsonType": "string"
+                },
+                "street": {
+                  "bsonType": "string"
+                },
+                "type": {
+                  "bsonType": "string"
+                }
+              },
+              "required": [
+                "_id",
+                "city",
+                "isDefault",
+                "name",
+                "phone",
+                "state",
+                "street",
+                "type"
+              ]
+            }
+          },
+          "createdAt": {
+            "bsonType": "date"
+          },
+          "email": {
+            "bsonType": "string"
+          },
+          "favoriteFoodItems": {
+            "bsonType": "array"
+          },
+          "favoriteRestaurants": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "objectId"
+            }
+          },
+          "name": {
+            "bsonType": "string"
+          },
+          "password": {
+            "bsonType": "string"
+          },
+          "phone": {
+            "bsonType": "string"
+          },
+          "roles": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "string"
+            }
+          },
+          "status": {
+            "bsonType": "string"
+          },
+          "updatedAt": {
+            "bsonType": "date"
+          }
+        }
+      }
+    }
+  },
+  "relationships": [
+    {
+      "id": "c48b8af1-4146-47b3-83de-d696f38b037b",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.deliveries",
+          "fields": [
+            "partnerId"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.deliverypartners",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "7ee10701-ab11-4ee2-a4a0-549b179e0f1b",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.reviews",
+          "fields": [
+            "partnerId"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.deliverypartners",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "e228ee48-4e89-47be-9cbf-acf9d1b051d9",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.deliveries",
+          "fields": [
+            "orderId"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.orders",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "6a148791-556d-41e9-a0f3-861a5a1c6414",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.reviews",
+          "fields": [
+            "orderId"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.orders",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "076bbdf4-5acb-4a65-b7d3-b32114185f47",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.orders",
+          "fields": [
+            "restaurantId"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.restaurants",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "2237ed6f-7886-4d39-b013-fd7d1918e813",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.reviews",
+          "fields": [
+            "restaurantId"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.restaurants",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "d88992b6-6f46-4c3a-aa61-da1a69d77f5d",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.users",
+          "fields": [
+            "favoriteRestaurants"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.restaurants",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "4747903e-d8c5-4700-bb21-155a7db41d9e",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.orders",
+          "fields": [
+            "userId"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.users",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "7d9872cf-58ae-40e4-9933-d4a9f25f8753",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.reviews",
+          "fields": [
+            "userId"
+          ],
+          "cardinality": 1
+        },
+        {
+          "ns": "FOODHUB12.users",
+          "fields": [
+            "_id"
+          ],
+          "cardinality": 1
+        }
+      ],
+      "isInferred": true
+    },
+    {
+      "id": "88976e04-cfa7-45dd-b6d2-249ebc32ada1",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.notifications",
+          "cardinality": null,
+          "fields": [
+            "userId"
+          ]
+        },
+        {
+          "ns": "FOODHUB12.users",
+          "cardinality": 1,
+          "fields": [
+            "_id"
+          ]
+        }
+      ],
+      "isInferred": false,
+      "note": ""
+    },
+    {
+      "id": "303fa8dc-7daa-4569-865e-8b2f71065679",
+      "relationship": [
+        {
+          "ns": "FOODHUB12.notifications",
+          "cardinality": 1,
+          "fields": null
+        },
+        {
+          "ns": null,
+          "cardinality": 1,
+          "fields": null
+        }
+      ],
+      "isInferred": false
+    }
+  ]
+}
