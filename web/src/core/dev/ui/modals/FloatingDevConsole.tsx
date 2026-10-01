@@ -215,7 +215,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
           },
         }}
       >
-          <DialogTitle
+        <DialogTitle
           sx={{
             bgcolor: "warning.main",
             color: "white",
