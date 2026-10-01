@@ -1,132 +1,113 @@
-// NOTE: This is a pre-existing mock owner dashboard. DF-B2 replaces
-// it with the real owner flow. Do NOT extend this file.
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
-  Box, Grid, Paper, Typography, Card, CardContent, Avatar, Chip, Button,
-  LinearProgress, List, ListItem, ListItemText, ListItemAvatar, Divider,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress
+  Box, Grid, Paper, Typography, Card, CardContent, Avatar, Chip,
+  List, ListItem, ListItemText, ListItemAvatar, Divider,
+  Alert, CircularProgress
 } from '@mui/material';
 import {
-  TrendingUp, TrendingDown, AttachMoney, ShoppingBag, People, Restaurant,
-  AccessTime, Star, Visibility, CheckCircle, Schedule, Warning,
-  RestaurantMenu, LocalOffer, PhotoLibrary, Assessment
+  ShoppingBag, Restaurant, Star, CheckCircle, Schedule
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { fetchOwnerData, updateOrderStatus } from '../../features/owner/store/ownerSlice';
-import { type Order } from '../../core/types/food';
+import { useAppSelector } from '@app/store/hooks';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'pending_owner': return <Schedule color="warning" />;
     case 'preparing': return <Restaurant color="info" />;
+    case 'confirmed': return <CheckCircle color="info" />;
     case 'out_for_delivery': return <CheckCircle color="success" />;
     case 'delivered': return <CheckCircle color="success" />;
     default: return <CheckCircle />;
   }
 };
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending_owner': return 'warning.light';
+    case 'confirmed': return 'info.light';
+    case 'preparing': return 'info.light';
+    default: return 'grey.100';
+  }
+};
+
+const getStatusChipColor = (status: string) => {
+  switch (status) {
+    case 'pending_owner': return 'warning';
+    case 'confirmed': return 'info';
+    case 'preparing': return 'info';
+    default: return 'default';
+  }
+};
+
 const OwnerDashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { analytics, menu, orders, status, error, restaurant } = useAppSelector((state: any) => state.owner);
+  const { pendingOrders, activeOrders, isLoading } = useAppSelector((state: any) => state.ownerOrders);
+  const { data: restaurant } = useAppSelector((state: any) => state.ownerRestaurant);
 
-  useEffect(() => {
-    if (status === 'idle') {
-      dispatch(fetchOwnerData());
-    }
-  }, [status, dispatch]);
-
-  if (status === 'loading' || status === 'idle') {
+  const pendingCount = pendingOrders?.length || 0;
+  const activeCount = activeOrders?.length || 0;
+  
+  if (isLoading && pendingCount === 0 && activeCount === 0) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>;
   }
 
-  if (status === 'failed') {
-    return <Alert severity="error">Error: {error}</Alert>;
-  }
-
-  const liveOrders = orders.filter((o: any) => ['pending_owner', 'confirmed', 'preparing'].includes(o.status)).slice(0, 5);
-  const outOfStockItems = menu.filter((i: any) => !i.isAvailable);
-
-  const handleUpdateStatus = (orderId: string, currentStatus: string) => {
-    let nextStatus: any = 'preparing';
-    if (currentStatus === 'pending_owner') nextStatus = 'confirmed';
-    else if (currentStatus === 'confirmed') nextStatus = 'preparing';
-    else if (currentStatus === 'preparing') nextStatus = 'ready_for_pickup';
-    dispatch(updateOrderStatus({ orderId, status: nextStatus }));
-  };
+  const lastPending = pendingOrders ? pendingOrders.slice(0, 5) : [];
+  const lastActive = activeOrders ? activeOrders.slice(0, 5) : [];
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
-          <Typography variant="h4" fontWeight={800} color="text.primary">
-            {restaurant?.name || 'Restaurant'} Dashboard
+          <Typography variant="h4" fontWeight={800} color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {restaurant?.name || 'Restaurant Dashboard'}
+            {restaurant && (
+              <Chip 
+                label={restaurant.isOpen ? 'Open' : 'Closed'} 
+                color={restaurant.isOpen ? 'success' : 'error'} 
+                size="small" 
+              />
+            )}
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Here's what's happening at your restaurant today.
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button variant="contained" startIcon={<RestaurantMenu />} onClick={() => navigate('/owner/menu')}>
-            Menu
-          </Button>
-          <Button variant="outlined" startIcon={<Visibility />} onClick={() => navigate(`/restaurant/${restaurant?.id}`)}>
-            View Store
-          </Button>
-        </Box>
       </Box>
 
       {/* KPI Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6} lg={3}>
-          <Card sx={{ borderRadius: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Today's Revenue</Typography>
-                  <Typography variant="h4" fontWeight={700}>₹{analytics?.todayRevenue.toFixed(2)}</Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: 'success.light', color: 'success.main' }}><AttachMoney /></Avatar>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid item xs={12} md={4}>
           <Card sx={{ borderRadius: 3 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
                   <Typography variant="body2" color="text.secondary">Pending Orders</Typography>
-                  <Typography variant="h4" fontWeight={700}>{analytics?.pendingOrders}</Typography>
+                  <Typography variant="h4" fontWeight={700}>{pendingCount}</Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'warning.light', color: 'warning.main' }}><ShoppingBag /></Avatar>
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid item xs={12} md={4}>
           <Card sx={{ borderRadius: 3 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
-                  <Typography variant="body2" color="text.secondary">Completed Orders</Typography>
-                  <Typography variant="h4" fontWeight={700}>{analytics?.completedOrders}</Typography>
+                  <Typography variant="body2" color="text.secondary">Active Orders</Typography>
+                  <Typography variant="h4" fontWeight={700}>{activeCount}</Typography>
                 </Box>
-                <Avatar sx={{ bgcolor: 'info.light', color: 'info.main' }}><CheckCircle /></Avatar>
+                <Avatar sx={{ bgcolor: 'info.light', color: 'info.main' }}><Restaurant /></Avatar>
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid item xs={12} md={4}>
           <Card sx={{ borderRadius: 3 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
                   <Typography variant="body2" color="text.secondary">Customer Rating</Typography>
-                  <Typography variant="h4" fontWeight={700}>{analytics?.averageRating} ⭐</Typography>
-                  <Typography variant="body2" color="text.secondary">Based on {analytics?.reviewCount} reviews</Typography>
+                  <Typography variant="h4" fontWeight={700}>{restaurant?.rating || 0} ⭐</Typography>
                 </Box>
                 <Avatar sx={{ bgcolor: 'secondary.light', color: 'secondary.main' }}><Star /></Avatar>
               </Box>
@@ -135,62 +116,74 @@ const OwnerDashboard: React.FC = () => {
         </Grid>
       </Grid>
 
+      {/* Lists */}
       <Grid container spacing={3}>
-        {/* Live Orders Queue */}
         <Grid item xs={12} lg={6}>
           <Paper sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h6" fontWeight={700}>Live Orders Queue</Typography>
-              <Chip label={`${analytics?.pendingOrders} pending`} color="warning" size="small" />
-            </Box>
-            <List>
-              {liveOrders.map((order: any, index: number) => (
-                <React.Fragment key={order.id}>
-                  <ListItem sx={{ bgcolor: order.status === 'pending_owner' ? 'warning.light' : 'info.light', borderRadius: 2, mb: 1 }}>
-                    <ListItemAvatar><Avatar sx={{ bgcolor: 'white' }}>{getStatusIcon(order.status)}</Avatar></ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="subtitle2" fontWeight={600}>Order #{order.id.slice(0, 6)}</Typography>
-                          <Typography variant="body2" fontWeight={600}>₹{order.total.toFixed(2)}</Typography>
-                        </Box>
-                      }
-                      secondary={`${order.items.length} items • ${new Date(order.createdAt).toLocaleTimeString()}`}
-                    />
-                    <Button size="small" variant="contained" color={order.status === 'pending_owner' ? 'warning' : 'success'} sx={{ ml: 2 }} onClick={() => handleUpdateStatus(order.id, order.status)}>
-                      {order.status === 'pending_owner' ? 'Accept' : (order.status === 'confirmed' ? 'Start Prep' : 'Ready')}
-                    </Button>
-                  </ListItem>
-                  {index < liveOrders.length - 1 && <Divider sx={{ my: 1 }} />}
-                </React.Fragment>
-              ))}
-              {liveOrders.length === 0 && <Typography color="text.secondary">No active orders right now.</Typography>}
-            </List>
-            <Button fullWidth variant="outlined" sx={{ mt: 2 }} onClick={() => navigate('/owner/orders')}>View All Orders</Button>
+            <Typography variant="h6" fontWeight={700} mb={3}>Pending Orders (Last 5)</Typography>
+            {lastPending.length === 0 ? (
+              <Alert severity="info">No pending orders.</Alert>
+            ) : (
+              <List>
+                {lastPending.map((order: any, index: number) => (
+                  <React.Fragment key={order.id}>
+                    <ListItem sx={{ bgcolor: getStatusColor(order.status), borderRadius: 2, mb: 1 }}>
+                      <ListItemAvatar><Avatar sx={{ bgcolor: 'white' }}>{getStatusIcon(order.status)}</Avatar></ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="subtitle2" fontWeight={600}>Order #{order.id.slice(0, 6)}</Typography>
+                            <Chip label={order.status} size="small" color={getStatusChipColor(order.status) as any} />
+                          </Box>
+                        }
+                        secondary={`₹${order.total?.toFixed(2) || order.subtotal?.toFixed(2) || 0}`}
+                      />
+                    </ListItem>
+                    {index < lastPending.length - 1 && <Divider sx={{ my: 1 }} />}
+                  </React.Fragment>
+                ))}
+              </List>
+            )}
           </Paper>
         </Grid>
 
-        {/* Menu Alerts */}
         <Grid item xs={12} lg={6}>
-          <Paper sx={{ p: 3, borderRadius: 3 }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Menu Status</Typography>
-            <Box sx={{ mt: 3 }}>
-              {outOfStockItems.length > 0 ? (
-                <Alert severity="warning" icon={<Warning />}>
-                  {outOfStockItems.length} items are marked out of stock.
-                  <List dense>
-                    {outOfStockItems.slice(0, 3).map((i: any) => <ListItem key={i.id}><ListItemText primary={i.name} /></ListItem>)}
-                  </List>
-                </Alert>
-              ) : (
-                <Alert severity="success" icon={<CheckCircle />}>All items are in stock.</Alert>
-              )}
-            </Box>
-            <Button fullWidth variant="outlined" sx={{ mt: 3 }} onClick={() => navigate('/owner/menu')}>Manage Menu</Button>
+          <Paper sx={{ p: 3, borderRadius: 3, height: '100%' }}>
+            <Typography variant="h6" fontWeight={700} mb={3}>Active Orders (Last 5)</Typography>
+            {lastActive.length === 0 ? (
+              <Alert severity="info">No active orders.</Alert>
+            ) : (
+              <List>
+                {lastActive.map((order: any, index: number) => (
+                  <React.Fragment key={order.id}>
+                    <ListItem sx={{ bgcolor: getStatusColor(order.status), borderRadius: 2, mb: 1 }}>
+                      <ListItemAvatar><Avatar sx={{ bgcolor: 'white' }}>{getStatusIcon(order.status)}</Avatar></ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="subtitle2" fontWeight={600}>Order #{order.id.slice(0, 6)}</Typography>
+                            <Chip label={order.status} size="small" color={getStatusChipColor(order.status) as any} />
+                          </Box>
+                        }
+                        secondary={`₹${order.total?.toFixed(2) || order.subtotal?.toFixed(2) || 0}`}
+                      />
+                    </ListItem>
+                    {index < lastActive.length - 1 && <Divider sx={{ my: 1 }} />}
+                  </React.Fragment>
+                ))}
+              </List>
+            )}
           </Paper>
         </Grid>
       </Grid>
+      
+      {pendingCount === 0 && activeCount === 0 && !isLoading && (
+        <Box mt={4}>
+          <Alert severity="success" icon={<CheckCircle />}>All caught up! No active or pending orders.</Alert>
+        </Box>
+      )}
     </Box>
   );
 };
+
 export default OwnerDashboard;

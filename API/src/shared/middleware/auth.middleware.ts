@@ -20,6 +20,22 @@ export async function protect(
 ): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
+
+    // DEV BYPASS LOGIC
+    const isDev = config.nodeEnv === 'development' || process.env.NODE_ENV === 'development';
+    const isBypassAuth = process.env.DEV_BYPASS_AUTH === 'true' || req.headers['x-dev-bypass-auth'] === 'true';
+    
+    if (isDev && isBypassAuth && (!authHeader || !authHeader.startsWith('Bearer '))) {
+      console.log('⚠️ DEV_BYPASS_AUTH is active! Bypassing JWT validation.');
+      req.user = { 
+        id: '64e8e50f3c5f4a1b8c1a9999', // dummy ObjectId
+        email: 'dev@zom2.local', 
+        roles: ['user', 'admin', 'owner', 'partner'], 
+        name: 'Dev Bypasser' 
+      };
+      return next();
+    }
+
     if (!authHeader?.startsWith('Bearer ')) {
       throw new AppError('Not authorized, no token', 401);
     }

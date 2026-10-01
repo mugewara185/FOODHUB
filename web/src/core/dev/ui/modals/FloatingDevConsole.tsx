@@ -40,6 +40,7 @@ import type { Restaurant } from "@core/types";
 import { useLogger } from "../../logger";
 import { buildFactorySeedPayload, type FactorySeedTarget } from "../../utils/factorySeed";
 import { FloatingTrigger } from "../../../ui/buttons/FloatingTrigger";
+import { APP_CONFIG } from "../../../config/app.config";
 
 interface FloatingDevConsoleProps {
   allRestaurants: Record<string, unknown>[] | Restaurant[];
@@ -214,7 +215,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
           },
         }}
       >
-        <DialogTitle
+          <DialogTitle
           sx={{
             bgcolor: "warning.main",
             color: "white",
@@ -229,6 +230,22 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
             <span>DEV CONSOLE - Core/Dev Framework</span>
           </Stack>
           <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              variant="contained"
+              color={APP_CONFIG.DATA_SOURCE === 'api' ? 'success' : 'secondary'}
+              onClick={() => {
+                const newSource = APP_CONFIG.DATA_SOURCE === 'api' ? 'mock' : 'api';
+                localStorage.setItem('DEV_DATA_SOURCE', newSource);
+                window.location.reload();
+              }}
+              sx={{
+                boxShadow: 'none',
+                fontWeight: 600,
+              }}
+            >
+              {APP_CONFIG.DATA_SOURCE === 'api' ? 'API Mode' : 'Mock Mode'}
+            </Button>
             <Button
               size="small"
               variant="outlined"

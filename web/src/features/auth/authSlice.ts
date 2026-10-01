@@ -170,7 +170,19 @@ export const toggleFavoriteThunk = createAsyncThunk<string[], string, { rejectVa
     logger.info('AUTH', 'Toggling favorite', { event: 'FAVORITE.TOGGLE.START', data: { restaurantId } });
     try {
       const state = getState() as any;
-      const token = state.auth.user?.token;
+      const user = state.auth.user;
+      
+      if (APP_CONFIG.DATA_SOURCE === 'mock') {
+        const currentFavorites = user?.favoriteRestaurants || [];
+        const isFav = currentFavorites.includes(restaurantId);
+        const updatedFavorites = isFav 
+          ? currentFavorites.filter((id: string) => id !== restaurantId) 
+          : [...currentFavorites, restaurantId];
+        logger.info('AUTH', 'Toggled favorite (mock)', { event: 'FAVORITE.TOGGLE.SUCCESS' });
+        return updatedFavorites;
+      }
+
+      const token = user?.token;
       if (!token) {
         logger.warn('AUTH', 'Cannot toggle favorite: not authenticated', { event: 'FAVORITE.TOGGLE.UNAUTHENTICATED' });
         return rejectWithValue("Not authenticated");
@@ -191,7 +203,19 @@ export const toggleFoodFavoriteThunk = createAsyncThunk<string[], string, { reje
     logger.info('AUTH', 'Toggling food favorite', { event: 'FAVORITE.FOOD.TOGGLE.START', data: { foodItemId } });
     try {
       const state = getState() as any;
-      const token = state.auth.user?.token;
+      const user = state.auth.user;
+
+      if (APP_CONFIG.DATA_SOURCE === 'mock') {
+        const currentFavorites = user?.favoriteFoodItems || [];
+        const isFav = currentFavorites.includes(foodItemId);
+        const updatedFavorites = isFav 
+          ? currentFavorites.filter((id: string) => id !== foodItemId) 
+          : [...currentFavorites, foodItemId];
+        logger.info('AUTH', 'Toggled food favorite (mock)', { event: 'FAVORITE.FOOD.TOGGLE.SUCCESS' });
+        return updatedFavorites;
+      }
+
+      const token = user?.token;
       if (!token) {
         logger.warn('AUTH', 'Cannot toggle food favorite: not authenticated', { event: 'FAVORITE.FOOD.TOGGLE.UNAUTHENTICATED' });
         return rejectWithValue("Not authenticated");

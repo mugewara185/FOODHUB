@@ -1,9 +1,10 @@
 // scripts/check-password.js
 
+require('dotenv').config({ path: __dirname + '/../.env' });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/FOODHUB2';
+const MONGO_URI = process.env.MONGO_URI;
 
 const email = 'owner.GoldenSpoon@foodhub.dev';
 const passwordToCheck = 'ownerowner';

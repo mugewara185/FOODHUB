@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Card,
   CardContent,
-  CardMedia,
   Typography,
   Box,
   Chip,
@@ -22,22 +21,34 @@ import { useNavigate } from 'react-router-dom';
 import { type Restaurant } from '../../../../core/types';
 import { SafeImage } from '../../../../shared/components/ui/SafeImage';
 //features
-import { useRestaurantLogic } from '@/features/restaurant/hooks/useRestaurantLogic';
+import { useFavorites } from '@/features/auth/hooks/useFavorites';
 
 interface RestaurantsCardProps {
   restaurant: Restaurant;
-  isFavorite?: boolean;
+  isFavorite?: boolean; // Kept for backwards compatibility
   onToggleFavorite?: (id: string) => void;
 }
 
 export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<RestaurantsCardProps>(({ 
   restaurant,
-  isFavorite = false,
-  onToggleFavorite
+  isFavorite: propIsFavorite,
+  onToggleFavorite: propOnToggleFavorite
 }
 ) => {
-  const { id, name, image, address, cuisine, rating, deliveryTime, minOrder, deliveryFee } = restaurant;
+  const { id, name, image } = restaurant;
   const navigate = useNavigate();
+  const { isFavorite: checkFavorite, toggleFavorite } = useFavorites();
+
+  const isFavorite = propIsFavorite !== undefined ? propIsFavorite : checkFavorite({ kind: 'restaurant', id });
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (propOnToggleFavorite) {
+      propOnToggleFavorite(id);
+    } else {
+      toggleFavorite({ kind: 'restaurant', id });
+    }
+  };
 
   return (
     <Card 
@@ -59,10 +70,7 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
         <Button
           variant="contained"
           size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite?.(id);
-          }}
+          onClick={handleFavoriteClick}
           sx={{
             position: 'absolute',
             top: 12,

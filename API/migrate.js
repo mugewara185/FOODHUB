@@ -1,7 +1,8 @@
+require('dotenv').config({ path: __dirname + '/.env' });
 const mongoose = require('mongoose');
 
 async function migrate() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/FOODHUB');
+  await mongoose.connect(process.env.MONGO_URI);
   const db = mongoose.connection.db;
   const users = await db.collection('users').find({}).toArray();
   for (let user of users) {
