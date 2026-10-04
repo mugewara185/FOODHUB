@@ -8,7 +8,7 @@
  * All Backend→Frontend normalization is isolated here.
  */
 
-import { APP_CONFIG } from '../../core/config/app.config';
+import { appConfig } from '../../core/config/app.config';
 import type { Restaurant, FoodItem } from '../../core/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -151,7 +151,7 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
   const { headers: customHeaders, ...restInit } = init || {};
   const traceId = uuidv4().substring(0, 8);
   const method = init?.method || 'GET';
-  const url = `${APP_CONFIG.API_URL}${endpoint}`;
+  const url = `${appConfig.api.baseUrl}${endpoint}`;
 
   let parsedBody;
   try {

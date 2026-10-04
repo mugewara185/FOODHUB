@@ -10,11 +10,11 @@ import DeliveryHistory from '../../../pages/_deliveryPartner/DeliveryHistory';
 import Earnings from '../../../pages/_deliveryPartner/Earnings';
 import Support from '../../../pages/_deliveryPartner/PartnerSupport';
 import PartnerSettings from '../../../pages/_deliveryPartner/Settings';
-import { APP_CONFIG } from '../../../core/config/app.config';
+import { appConfig } from '../../../core/config/app.config';
 
 // Bypasses the route protection if DEV_BYPASS_AUTH is active
 const PartnerProtected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (APP_CONFIG.DEV_BYPASS_AUTH) return <>{children}</>;
+  if (appConfig.dev.bypassAuth) return <>{children}</>;
   return <ProtectedRoute allowedRoles={['partner']}>{children}</ProtectedRoute>;
 };
 

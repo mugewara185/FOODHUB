@@ -1,6 +1,7 @@
+import { appConfig } from '../../core/config/app.config';
 import type { ReviewItem } from '../../shared/components/ui/ReviewComponents/ReviewComponents';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = appConfig.api.baseUrl;
 
 interface ApiResponse<T> {
   success: boolean;
@@ -119,3 +120,4 @@ export const reviewApi = {
     return normalizeReview(payload);
   },
 };
+

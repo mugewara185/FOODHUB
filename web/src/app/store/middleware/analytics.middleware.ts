@@ -1,9 +1,9 @@
 // import { Middleware } from '@reduxjs/toolkit';
-// import { APP_CONFIG } from '../../core/config/app.config';
+// import { appConfig } from '../../core/config/app.config';
 
 // // Track user actions for analytics
 // export const analyticsMiddleware: Middleware = (store) => (next) => (action) => {
-//   if (!APP_CONFIG.enableAnalytics) {
+//   if (!appConfig.enableAnalytics) {
 //     return next(action);
 //   }
 

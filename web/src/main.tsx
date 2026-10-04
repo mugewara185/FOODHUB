@@ -59,19 +59,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // import { RouteConfig } from './app/routes/RouteConfig';
 // import { reportWebVitals } from './core/utils/webVitals';
 // import * as Sentry from '@sentry/react';
-// import { APP_CONFIG } from './core/config/app.config';
+// import { appConfig } from './core/config/app.config';
 
 // // Initialize Sentry for error tracking
-// if (APP_CONFIG.enableAnalytics) {
+// if (appConfig.enableAnalytics) {
 //   Sentry.init({
-//     dsn: APP_CONFIG.sentryDsn,
-//     environment: APP_CONFIG.environment,
+//     dsn: appConfig.sentryDsn,
+//     environment: appConfig.environment,
 //     tracesSampleRate: 1.0,
 //   });
 // }
 
 // // Register service worker for PWA
-// if ('serviceWorker' in navigator && APP_CONFIG.environment === 'production') {
+// if ('serviceWorker' in navigator && appConfig.environment === 'production') {
 //   window.addEventListener('load', () => {
 //     navigator.serviceWorker.register('/sw.js');
 //   });

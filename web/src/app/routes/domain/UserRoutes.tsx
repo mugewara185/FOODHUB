@@ -22,11 +22,11 @@ import {
   SearchPage,
   Settings
 } from '@pages/index';
-import { APP_CONFIG } from '../../../core/config/app.config';
+import { appConfig } from '../../../core/config/app.config';
 
 // Bypasses the route protection if DEV_BYPASS_AUTH is active
 const UserProtected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (APP_CONFIG.DEV_BYPASS_AUTH) return <>{children}</>;
+  if (appConfig.dev.bypassAuth) return <>{children}</>;
   return <ProtectedRoute allowedRoles={['user']}>{children}</ProtectedRoute>;
 };
 

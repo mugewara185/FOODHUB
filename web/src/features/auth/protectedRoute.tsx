@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
-import { APP_CONFIG } from '../../core/config/app.config';
+import { appConfig } from '../../core/config/app.config';
 import type { UserRole } from '../../data/types/auth';
 
 interface ProtectedRouteProps {
@@ -38,7 +38,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Developer mode bypass (or Dev God User bypass)
-  if (APP_CONFIG.DEV_BYPASS_AUTH || (user && user.roles?.includes('dev'))) {
+  if (appConfig.dev.bypassAuth || (user && user.roles?.includes('dev'))) {
     return <>{children}</>;
   }
 

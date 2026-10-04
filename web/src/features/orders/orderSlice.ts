@@ -13,7 +13,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { Order } from '../../core/types';
 import type { RootState } from '../../app/store';
-import { APP_CONFIG } from '../../core/config/app.config';
+import { appConfig } from '../../core/config/app.config';
 import {
   orderApi,
   mapCartItemToOrderItem,
@@ -83,7 +83,7 @@ export const fetchOrdersThunk = createAsyncThunk<Order[], void, { state: RootSta
   async (_, { getState, rejectWithValue }) => {
     logger.info('ORDER', 'Loading order history', { event: 'ORDER.HISTORY.LOAD.START' });
     try {
-      if (APP_CONFIG.DATA_SOURCE === 'api') {
+      if (appConfig.api.dataSource === 'api') {
         const token = getToken(getState());
         const orders = await orderApi.getUserOrders(token);
         logger.info('ORDER', 'Loaded order history', { event: 'ORDER.HISTORY.LOAD.SUCCESS' });
@@ -113,7 +113,7 @@ export const fetchOrderByIdThunk = createAsyncThunk<Order, string, { state: Root
   async (id, { getState, rejectWithValue }) => {
     logger.info('ORDER', 'Loading order details', { event: 'ORDER.DETAIL.LOAD.START', data: { orderId: id } });
     try {
-      if (APP_CONFIG.DATA_SOURCE === 'api') {
+      if (appConfig.api.dataSource === 'api') {
         const token = getToken(getState());
         const order = await orderApi.getById(id, token);
         logger.info('ORDER', 'Loaded order details', { event: 'ORDER.DETAIL.LOAD.SUCCESS' });
@@ -158,7 +158,7 @@ export const createOrderThunk = createAsyncThunk<Order, CheckoutPayload, { state
 
       const backendPaymentMethod = mapPaymentMethod(paymentMethod);
 
-      if (APP_CONFIG.DATA_SOURCE === 'api') {
+      if (appConfig.api.dataSource === 'api') {
         const token = getToken(state);
         const payload: CreateOrderPayload = {
           restaurantId: cart.restaurantId,
@@ -218,7 +218,7 @@ export const cancelOrderThunk = createAsyncThunk<Order, string, { state: RootSta
   'orders/cancel',
   async (orderId, { getState, rejectWithValue }) => {
     try {
-      if (APP_CONFIG.DATA_SOURCE === 'api') {
+      if (appConfig.api.dataSource === 'api') {
         const token = getToken(getState());
         return await orderApi.cancel(orderId, token);
       }
@@ -238,7 +238,7 @@ export const submitReviewThunk = createAsyncThunk<void, { orderId: string, resta
   'orders/submitReview',
   async (payload, { getState, rejectWithValue }) => {
     try {
-      if (APP_CONFIG.DATA_SOURCE === 'api') {
+      if (appConfig.api.dataSource === 'api') {
         const token = getToken(getState());
         await orderApi.submitReview(payload, token);
       } else {

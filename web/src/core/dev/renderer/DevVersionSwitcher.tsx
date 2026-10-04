@@ -6,7 +6,7 @@ import {
 import { DeveloperMode, Check } from '@mui/icons-material';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useDevContext } from '../contexts/DevContext';
-import { APP_CONFIG } from '@/core/config/app.config';
+import { appConfig } from '@/core/config/app.config';
 
 export const DevVersionSwitcher: React.FC = () => {
   const { user } = useAuth();
@@ -27,7 +27,7 @@ export const DevVersionSwitcher: React.FC = () => {
   // Strictly only Dev God user
   // if (!user || user.email !== 'dev@' ) {
   if (!user || !user.role?.includes('dev')) {
-    if (!APP_CONFIG.DEV_BYPASS_AUTH) return null;
+    if (!appConfig.dev.bypassAuth) return null;
   }
 
   const registeredKeys = Object.keys(availableVersions);

@@ -21,93 +21,118 @@ interface FactorySeedPayload {
   collections: SeedCollectionPayload[];
 }
 
-export async function seedFactoryData(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  const seedStart = Date.now();
-
+export async function seedFactoryData(req: Request, res: Response, next: NextFunction) {
   try {
-    if (config.nodeEnv === 'production') {
-      throw new AppError('Factory seeding is disabled in production.', 403);
+    if (config.nodeEnv === 'production' || process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ success: false, message: 'Dev endpoint disabled in production' });
     }
 
-    const payload = req.body as FactorySeedPayload;
+    const { collections, warnings: clientWarnings = [] } = req.body as {
+      collections: { modelName: string; documents: any[]; clearFirst?: boolean }[];
+      warnings?: string[];
+    };
 
-    if (!payload.collections || !Array.isArray(payload.collections)) {
-      throw new AppError(
-        'Invalid payload. Expected: { collections: [{ modelName, documents }] }',
-        400
-      );
+    if (!collections || !Array.isArray(collections)) {
+      return res.status(400).json({ success: false, message: 'Invalid payload. collections array required.' });
     }
 
-    console.log('[seed:start]', {
-      collections: payload.collections.map((c) => `${c.modelName}(${c.documents?.length ?? 0})`).join(', '),
-    });
-
-    const results: Record<string, number> = {};
+    const seedStart = Date.now();
+    const results: Record<string, any> = {};
     const errors: string[] = [];
 
-    for (const col of payload.collections) {
-      const { modelName, documents, clearFirst = true } = col;
+    for (const collection of collections) {
+      const { modelName, documents, clearFirst } = collection;
+      const Model = mongoose.models[modelName];
 
-      if (!modelName || !Array.isArray(documents)) {
-        errors.push(`Skipped invalid collection entry (missing modelName or documents array)`);
-        continue;
-      }
-
-      let Model: mongoose.Model<any>;
-      try {
-        Model = mongoose.model(modelName);
-      } catch (_err) {
-        const msg = `Model '${modelName}' is not registered. Ensure it is imported in app.ts.`;
-        errors.push(msg);
-        console.warn(`[seed:error] ${msg}`);
+      if (!Model) {
+        errors.push(`${modelName}: Unknown model`);
         continue;
       }
 
       const colStart = Date.now();
-      console.log(`[seed:${modelName}:start]`, { count: documents.length, clearFirst });
 
       if (clearFirst) {
         await Model.deleteMany({});
-        console.log(`[seed:${modelName}:cleared]`);
       }
+
+      let inserted = 0;
+      let failed = 0;
+      let skipped = 0;
+      let modelErrors: any[] = [];
 
       if (documents.length > 0) {
         try {
-          await Model.insertMany(documents, { ordered: false });
+          await Model.insertMany(documents, { ordered: false, rawResult: true });
+          inserted = documents.length;
         } catch (insertErr: any) {
-          const message =
-            insertErr?.message?.substring(0, 200) ?? 'Unknown insert error';
-          errors.push(`${modelName}: ${message}`);
-          console.error(`[seed:${modelName}:error]`, message);
+          if (insertErr.name === 'MongoBulkWriteError' || insertErr.code === 11000 || insertErr.writeErrors) {
+            inserted = insertErr.insertedCount ?? 0;
+            const writeErrors = insertErr.writeErrors || [];
+            
+            // Distinguish skipped vs failed
+            const genuineErrors = [];
+            for (const we of writeErrors) {
+              const doc = documents[we.index];
+              if (we.code === 11000 && doc && doc.__isFixed) {
+                // Fixed account already exists -> intentionally skipped
+                skipped++;
+              } else {
+                genuineErrors.push(we);
+              }
+            }
+            
+            failed = documents.length - inserted - skipped;
+            
+            if (genuineErrors.length > 0) {
+              modelErrors = genuineErrors.map((we: any) => ({
+                index: we.index,
+                code: we.code,
+                message: we.errmsg?.substring(0, 200)
+              })).slice(0, 10);
+            }
+          } else {
+            failed = documents.length;
+            modelErrors.push({ message: insertErr.message?.substring(0, 200) });
+          }
+          
+          if (failed > 0) {
+            const summaryMsg = `[${modelName}] Inserted ${inserted}, Skipped ${skipped}, Failed ${failed}`;
+            errors.push(summaryMsg);
+            console.error(`[seed:${modelName}:error]`, summaryMsg, modelErrors);
+          }
         }
       }
 
       const colDuration = Date.now() - colStart;
-      results[modelName] = documents.length;
-      console.log(`[seed:${modelName}:complete]`, { count: documents.length, durationMs: colDuration });
+      results[modelName] = {
+        requested: documents.length,
+        inserted,
+        skipped,
+        failed,
+        errors: modelErrors
+      };
+      console.log(`[seed:${modelName}:complete]`, { requested: documents.length, inserted, skipped, failed, durationMs: colDuration });
     }
 
     const totalDuration = Date.now() - seedStart;
     const seededCollections = Object.entries(results)
-      .map(([model, count]) => `${model}: ${count}`)
+      .map(([model, data]) => `${model}: ${data.inserted}/${data.requested}`)
       .join(', ');
 
-    console.log('[seed:complete]', { results, durationMs: totalDuration, errors });
+    const finalWarnings = [...clientWarnings, ...errors];
+
+    console.log('[seed:complete]', { results, durationMs: totalDuration, errors: finalWarnings });
 
     sendSuccess({
       res,
       statusCode: 201,
-      message: errors.length === 0
+      message: finalWarnings.length === 0
         ? `Seed completed. (${seededCollections})`
         : `Seed completed with warnings. (${seededCollections})`,
       data: {
         seeded: results,
         durationMs: totalDuration,
-        warnings: errors.length > 0 ? errors : undefined,
+        warnings: finalWarnings.length > 0 ? finalWarnings : undefined,
       },
     });
   } catch (error) {

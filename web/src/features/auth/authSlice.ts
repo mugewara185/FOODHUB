@@ -1,3 +1,4 @@
+import { appConfig } from '../../core/config/app.config';
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import type { AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData } from "../../data/types/auth";
 import { authApi } from "../../services/api/authApi";
@@ -172,7 +173,7 @@ export const toggleFavoriteThunk = createAsyncThunk<string[], string, { rejectVa
       const state = getState() as any;
       const user = state.auth.user;
       
-      if (APP_CONFIG.DATA_SOURCE === 'mock') {
+      if (appConfig.api.dataSource === 'mock') {
         const currentFavorites = user?.favoriteRestaurants || [];
         const isFav = currentFavorites.includes(restaurantId);
         const updatedFavorites = isFav 
@@ -205,7 +206,7 @@ export const toggleFoodFavoriteThunk = createAsyncThunk<string[], string, { reje
       const state = getState() as any;
       const user = state.auth.user;
 
-      if (APP_CONFIG.DATA_SOURCE === 'mock') {
+      if (appConfig.api.dataSource === 'mock') {
         const currentFavorites = user?.favoriteFoodItems || [];
         const isFav = currentFavorites.includes(foodItemId);
         const updatedFavorites = isFav 
@@ -433,3 +434,4 @@ const authSlice = createSlice({
 
 export const { logout, clearError, setAuthSession } = authSlice.actions;
 export default authSlice.reducer;
+

@@ -1,6 +1,7 @@
+import { appConfig } from '../../core/config/app.config';
 import type { AuthUser, LoginCredentials, SignupData, ForgotPasswordData, ResetPasswordData, UserRole, Permission } from '../../data/types/auth';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = appConfig.api.baseUrl;
 
 interface ApiResponse<T> {
   success: boolean;
@@ -120,6 +121,7 @@ export const authApi = {
           password: credentials.password,
         }),
       });
+      console.log('%cme:', "color: #ff0000", payload.user.email)
       logger.info('AUTH', 'Login successful', { event: 'AUTH.LOGIN.SUCCESS', data: payload });
       return buildAuthUser(payload);
     } catch (error) {
@@ -179,7 +181,7 @@ export const authApi = {
           Authorization: `Bearer ${token}`,
         },
       });
-
+      console.log('%cme:', `${!userPayload.email ? "color: #ff0000" : "color: green"}`, userPayload.email)
       return buildAuthUser({
         token,
         user: userPayload,
@@ -251,3 +253,4 @@ export const authApi = {
     }
   }
 };
+

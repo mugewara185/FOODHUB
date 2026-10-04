@@ -95,7 +95,6 @@ const store = configureStore({
 import { logger } from '../../../core/dev/logger';
 logger.info('APP', 'Redux store initialized with factory data', { event: 'APP.STORE.INIT' });
 // console.log("Redux store initialized with factory data:", store.getState());
-
 // Initialize Redux logger control with config
 if (IS_DEV) {
   // Make logger control available globally for debugging

@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useUI } from "../../../app/providers/UIProvider";
-import { navLinks } from "@/config/navigation"
+import { navLinks } from "../../../core/config/navigation"
 import { cn } from "../../../core/utils/cn";
 import {SidebarClose, PanelLeftOpen,} from "lucide-react"
 

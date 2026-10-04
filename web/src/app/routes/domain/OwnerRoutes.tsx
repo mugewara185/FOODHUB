@@ -7,11 +7,11 @@ import OwnerSettings from '../../../pages/_ownerPages/Settings';
 import Queue from '../../../pages/_owner/Queue';
 import Active from '../../../pages/_owner/Active';
 import ComingSoon from '../../../shared/components/ComingSoon';
-import { APP_CONFIG } from '../../../core/config/app.config';
+import { appConfig } from '../../../core/config/app.config';
 
 // Bypasses the route protection if DEV_BYPASS_AUTH is active
 const OwnerProtected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (APP_CONFIG.DEV_BYPASS_AUTH) return <>{children}</>;
+  if (appConfig.dev.bypassAuth) return <>{children}</>;
   return <ProtectedRoute allowedRoles={['owner']}>{children}</ProtectedRoute>;
 };
 

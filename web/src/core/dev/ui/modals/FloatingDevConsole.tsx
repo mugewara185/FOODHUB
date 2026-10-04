@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { ConfigurationInspector } from '../components/ConfigurationInspector';
+import React, { useState } from "react";
 import {
   Box,
   Paper,
@@ -25,6 +26,10 @@ import {
   DialogTitle,
   DialogContent,
   TextField,
+  Radio,
+  RadioGroup,
+  FormControl,
+  FormLabel,
 } from "@mui/material";
 import {
   Settings,
@@ -38,9 +43,9 @@ import {
 } from "@mui/icons-material";
 import type { Restaurant } from "@core/types";
 import { useLogger } from "../../logger";
-import { buildFactorySeedPayload, type FactorySeedTarget } from "../../utils/factorySeed";
+import { buildFactorySeedPayload, type FactorySeedTarget } from "@/core/dev/utils/factorySeed";
 import { FloatingTrigger } from "../../../ui/buttons/FloatingTrigger";
-import { APP_CONFIG } from "../../../config/app.config";
+import { appConfig } from "../../../config/app.config";
 
 interface FloatingDevConsoleProps {
   allRestaurants: Record<string, unknown>[] | Restaurant[];
@@ -51,31 +56,66 @@ interface FloatingDevConsoleProps {
   cuisineLength: number;
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
+function TabPanel(props: { children?: React.ReactNode; index: number; value: number }) {
   const { children, value, index, ...other } = props;
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`devpanel-${index}`}
-      aria-labelledby={`devtab-${index}`}
-      {...other}
-    >
+    <div role="tabpanel" hidden={value !== index} id={`devpanel-${index}`} {...other}>
       {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
     </div>
   );
 }
 
+const ALL_TARGETS: FactorySeedTarget[] = [
+  "users",
+  "deliveryPartners",
+  "restaurants",
+  "foodItems",
+  "orders",
+  "deliveries",
+  "reviews",
+  "notifications",
+];
+
+const PRESETS = {
+  minimal: {
+    users: 10,
+    deliveryPartners: 2,
+    restaurants: 3,
+    foodItems: 15,
+    orders: 10,
+    deliveries: 5,
+    reviews: 5,
+    notifications: 10,
+    roles: { admin: 1, owner: 3, partner: 2 }
+  },
+  development: {
+    users: 100,
+    deliveryPartners: 12,
+    restaurants: 8,
+    foodItems: 50,
+    orders: 150,
+    deliveries: 90,
+    reviews: 50,
+    notifications: 20,
+    roles: { admin: 2, owner: 8, partner: 12 }
+  },
+  stress: {
+    users: 1000,
+    deliveryPartners: 50,
+    restaurants: 20,
+    foodItems: 200,
+    orders: 1000,
+    deliveries: 800,
+    reviews: 500,
+    notifications: 200,
+    roles: { admin: 5, owner: 20, partner: 50 }
+  }
+};
+
 const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
   allRestaurants,
   featuredRestaurants,
-  loading,
+  loading: restLoading,
   availableVersions,
   selectedVersions,
   cuisineLength,
@@ -83,70 +123,60 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
   const { open: _logConsoleOpen, setOpen: _setLogConsoleOpen } = useLogger();
   const [isOpen, setIsOpen] = useState(false);
   const [tabValue, setTabValue] = useState(0);
+
+  const [mode, setMode] = useState<"append" | "replace">("append");
+  const [selectedTargets, setSelectedTargets] = useState<FactorySeedTarget[]>(ALL_TARGETS);
+  
+  const [counts, setCounts] = useState<Record<string, number>>(PRESETS.development);
+  const [roles, setRoles] = useState<Record<string, number>>(PRESETS.development.roles);
+
   const [seedStatus, setSeedStatus] = useState<{
     loading: boolean;
     message: string | null;
     error: string | null;
+    seeded?: Record<string, any>;
     warnings?: string[];
     durationMs?: number;
-  }>({
-    loading: false,
-    message: null,
-    error: null,
-  });
-  const [selectedSeedTargets, setSelectedSeedTargets] = useState<FactorySeedTarget[]>([
-    "restaurants",
-    "users",
-    "orders",
-    "reviews",
-    "notifications",
-  ]);
+  }>({ loading: false, message: null, error: null });
 
-  // Defaults are tuned for the AI/MCP-ready dataset.
-  // restaurants is fixed at 8 (template-driven), count here drives users/orders/reviews/notifications.
-  const [seedCounts, setSeedCounts] = useState<Record<FactorySeedTarget, number>>({
-    restaurants: 8,
-    foodItems: 50, // total embedded menu items
-    users: 10,
-    orders: 80,
-    reviews: 60,
-    notifications: 40,
-  });
-
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+  const applyPreset = (presetKey: keyof typeof PRESETS) => {
+    const p = PRESETS[presetKey];
+    setCounts({ ...p });
+    setRoles({ ...p.roles });
+    setSelectedTargets(ALL_TARGETS);
   };
 
-  const handleSeedTargetToggle = (target: FactorySeedTarget) => {
-    setSelectedSeedTargets((prev) =>
-      prev.includes(target) ? prev.filter((item) => item !== target) : [...prev, target]
-    );
-  };
+  const handleSeed = async () => {
+    // Validation
+    if (counts.users < (roles.admin + roles.owner + roles.partner)) {
+      setSeedStatus({ loading: false, message: null, error: "Total users must be >= sum of assigned roles." });
+      return;
+    }
 
-  const handleCountChange = (target: FactorySeedTarget, value: string) => {
-    const count = parseInt(value, 10);
-    setSeedCounts((prev) => ({
-      ...prev,
-      [target]: isNaN(count) ? 0 : count,
-    }));
-  };
-
-  const handleSeedFactoryData = async () => {
-    setSeedStatus({ loading: true, message: "Generating AI-ready dataset...", error: null });
-
+    setSeedStatus({ loading: true, message: "Generating Dataset Payload...", error: null });
+    
     try {
-      const payload = buildFactorySeedPayload(seedCounts.restaurants, {
-        targets: selectedSeedTargets,
+      // 1. Build Payload
+      const payload = buildFactorySeedPayload(counts.restaurants, {
+        targets: selectedTargets,
+        mode,
         config: {
-          users: { count: seedCounts.users },
-          foodItems: { count: seedCounts.foodItems },
-          orders: { count: seedCounts.orders },
-          reviews: { count: seedCounts.reviews },
-          notifications: { count: seedCounts.notifications },
+          users: { 
+            count: counts.users,
+            roleDistribution: { admin: roles.admin, owner: roles.owner, partner: roles.partner }
+          },
+          deliveryPartners: { count: counts.deliveryPartners },
+          restaurants: { count: counts.restaurants },
+          foodItems: { count: counts.foodItems },
+          orders: { count: counts.orders },
+          deliveries: { count: counts.deliveries },
+          reviews: { count: counts.reviews },
+          notifications: { count: counts.notifications },
         },
       });
 
-      const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
+      // 2. Execute
+      const apiBaseUrl = appConfig.api.baseUrl;
       const response = await fetch(`${apiBaseUrl}/dev/seed-factory-data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,19 +184,14 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
       });
 
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(result?.message || "The seed request failed.");
-      }
+      if (!response.ok) throw new Error(result?.message || "The seed request failed.");
 
-      const seeded: Record<string, number> = result.data?.seeded ?? result.data ?? {};
-      const summary = Object.entries(seeded)
-        .filter(([, count]) => (count as number) > 0)
-        .map(([model, count]) => `${count} ${model}s`);
-
+      // 3. Results
       setSeedStatus({
         loading: false,
         message: result?.message || "Seed completed.",
         error: null,
+        seeded: result.data?.seeded,
         warnings: result.data?.warnings,
         durationMs: result.data?.durationMs,
       });
@@ -174,21 +199,14 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
       setSeedStatus({
         loading: false,
         message: null,
-        error: error instanceof Error ? error.message : "Unable to seed factory data right now.",
+        error: error instanceof Error ? error.message : "Unable to seed factory data.",
       });
     }
   };
 
   const resetPosition = () => {
-    const defaultPosition = {
-      x: window.innerWidth - 56 - 20,
-      y: window.innerHeight - 56 - 20,
-    };
-    localStorage.setItem("devConsolePosition", JSON.stringify(defaultPosition));
-    // Provide a small visual cue or just force reload position by interacting with state if needed.
-    // FloatingTrigger handles its own internal position state based on local storage, 
-    // so forcing a re-render or letting the user drag again works.
-    window.location.reload(); // Simple solution for dev console reset
+    localStorage.setItem("devConsolePosition", JSON.stringify({ x: window.innerWidth - 76, y: window.innerHeight - 76 }));
+    window.location.reload();
   };
 
   return (
@@ -199,440 +217,184 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
         onClick={() => setIsOpen(true)}
         onDoubleClick={() => _setLogConsoleOpen(!_logConsoleOpen)}
         color="warning.main"
-        title="Click to open console | Drag freely | Double-click to reset"
+        title="Dev Console"
       />
 
-      <Dialog
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            border: "2px solid",
-            borderColor: "warning.main",
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            bgcolor: "warning.main",
-            color: "white",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontWeight: 700,
-          }}
-        >
+      <Dialog open={isOpen} onClose={() => setIsOpen(false)} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 2, border: "2px solid", borderColor: "warning.main" } }}>
+        <DialogTitle sx={{ bgcolor: "warning.main", color: "white", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Settings fontSize="small" />
-            <span>DEV CONSOLE - Core/Dev Framework</span>
+            <Settings fontSize="small" /><span>DEV CONSOLE</span>
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Button
-              size="small"
-              variant="contained"
-              color={APP_CONFIG.DATA_SOURCE === 'api' ? 'success' : 'secondary'}
-              onClick={() => {
-                const newSource = APP_CONFIG.DATA_SOURCE === 'api' ? 'mock' : 'api';
-                localStorage.setItem('DEV_DATA_SOURCE', newSource);
-                window.location.reload();
-              }}
-              sx={{
-                boxShadow: 'none',
-                fontWeight: 600,
-              }}
-            >
-              {APP_CONFIG.DATA_SOURCE === 'api' ? 'API Mode' : 'Mock Mode'}
+            <Button size="small" variant="contained" color={appConfig.api.dataSource === 'api' ? 'success' : 'secondary'} onClick={() => { localStorage.setItem('DEV_DATA_SOURCE', appConfig.api.dataSource === 'api' ? 'mock' : 'api'); window.location.reload(); }} sx={{ boxShadow: 'none' }}>
+              {appConfig.api.dataSource === 'api' ? 'API Mode' : 'Mock Mode'}
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<RestartAlt fontSize="small" />}
-              sx={{
-                color: "white",
-                borderColor: "rgba(255,255,255,0.5)",
-                fontSize: "0.75rem",
-              }}
-              onClick={resetPosition}
-            >
-              Reset Position
-            </Button>
-            <IconButton
-              onClick={() => setIsOpen(false)}
-              sx={{ color: "white" }}
-              size="small"
-            >
-              <Close />
-            </IconButton>
+            <IconButton onClick={() => setIsOpen(false)} sx={{ color: "white" }} size="small"><Close /></IconButton>
           </Stack>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 0 }}>
+        <DialogContent sx={{ p: 0, minHeight: '600px' }}>
           <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtons="auto"
-            >
-              <Tab label="📊 State Overview" id="devtab-0" />
-              <Tab label="🎨 Component Versions" id="devtab-1" />
-              <Tab label="⚙️ Redux Store" id="devtab-2" />
-              <Tab label="📱 Framework Info" id="devtab-3" />
+            <Tabs value={tabValue} onChange={(_e, v) => setTabValue(v)}>
+              <Tab label="🌱 Data Platform & Factory" id="devtab-0" />
+              <Tab label="📊 Store & Config" id="devtab-1" />
+              <Tab label="🎨 UI Versions" id="devtab-2" />
             </Tabs>
           </Box>
 
+          {/* TAB 0: Data Factory */}
           <TabPanel value={tabValue} index={0}>
-            <Box sx={{ p: 3 }}>
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: 2,
-                }}
-              >
-                <Card>
-                  <CardContent>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      alignItems="center"
-                      sx={{ mb: 1 }}
-                    >
-                      <DataObject color="primary" fontSize="small" />
-                      <Typography variant="caption" color="text.secondary">
-                        Restaurants
-                      </Typography>
-                    </Stack>
-                    <Typography variant="h4">
-                      {allRestaurants.length}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color={loading ? "warning.main" : "success.main"}
-                    >
-                      {loading ? "Loading..." : "Ready"}
-                    </Typography>
-                  </CardContent>
-                </Card>
+            <Box sx={{ p: 3, display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+              {/* Left Column: Configuration */}
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h6" fontWeight={700} gutterBottom>Dataset Configuration</Typography>
+                <Divider sx={{ mb: 2 }} />
+                
+                <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+                  <Button size="small" variant="outlined" onClick={() => applyPreset('minimal')}>Minimal</Button>
+                  <Button size="small" variant="outlined" onClick={() => applyPreset('development')}>Development</Button>
+                  <Button size="small" variant="outlined" color="error" onClick={() => applyPreset('stress')}>Stress</Button>
+                </Stack>
 
-                <Card>
-                  <CardContent>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      alignItems="center"
-                      sx={{ mb: 1 }}
-                    >
-                      <WidgetsOutlined color="primary" fontSize="small" />
-                      <Typography variant="caption" color="text.secondary">
-                        Featured
-                      </Typography>
-                    </Stack>
-                    <Typography variant="h4">
-                      {featuredRestaurants.length}
-                    </Typography>
-                    <Typography variant="caption" color="success.main">
-                      Ready
-                    </Typography>
-                  </CardContent>
-                </Card>
+                <FormControl component="fieldset" sx={{ mb: 3 }}>
+                  <FormLabel component="legend" sx={{ fontWeight: 'bold' }}>Seed Mode</FormLabel>
+                  <RadioGroup row value={mode} onChange={(e) => setMode(e.target.value as any)}>
+                    <FormControlLabel value="append" control={<Radio size="small" />} label="Append (Add to existing data)" />
+                    <FormControlLabel value="replace" control={<Radio size="small" color="error" />} label="Replace (Delete target collections first)" />
+                  </RadioGroup>
+                </FormControl>
 
-                <Card>
-                  <CardContent>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      alignItems="center"
-                      sx={{ mb: 1 }}
-                    >
-                      <Palette color="primary" fontSize="small" />
-                      <Typography variant="caption" color="text.secondary">
-                        Cuisines
-                      </Typography>
+                <Typography variant="subtitle2" fontWeight={700} gutterBottom>Targets & Counts</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 3 }}>
+                  {ALL_TARGETS.map(t => (
+                    <Stack direction="row" alignItems="center" key={t}>
+                      <FormControlLabel
+                        control={<Checkbox size="small" checked={selectedTargets.includes(t)} onChange={() => setSelectedTargets(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t])} />}
+                        label={t.replace(/([A-Z])/g, " $1").replace(/^./, (v) => v.toUpperCase())}
+                        sx={{ minWidth: 150 }}
+                      />
+                      <TextField 
+                        size="small" type="number" 
+                        value={counts[t] || 0} 
+                        onChange={(e) => setCounts({...counts, [t]: Math.max(0, parseInt(e.target.value)||0)})}
+                        disabled={!selectedTargets.includes(t)}
+                        sx={{ width: 80 }}
+                        InputProps={{ sx: { height: 32 } }}
+                      />
                     </Stack>
-                    <Typography variant="h4">{cuisineLength}</Typography>
-                    <Typography variant="caption" color="success.main">
-                      Loaded
-                    </Typography>
-                  </CardContent>
-                </Card>
+                  ))}
+                </Box>
 
-                <Card>
-                  <CardContent>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      alignItems="center"
-                      sx={{ mb: 1 }}
-                    >
-                      <Info color="primary" fontSize="small" />
-                      <Typography variant="caption" color="text.secondary">
-                        Version
-                      </Typography>
-                    </Stack>
-                    <Typography variant="h4">V2</Typography>
-                    <Typography variant="caption" color="info.main">
-                      Developer
+                <Typography variant="subtitle2" fontWeight={700} gutterBottom>User Role Distribution (Applies to Users)</Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                  Note: DeliveryPartners and Restaurants are separate domains that reference users with 'partner' and 'owner' roles. The factory will ensure relationships are strictly valid.
+                </Typography>
+                <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+                  {['admin', 'owner', 'partner'].map(r => (
+                     <TextField 
+                       key={r} size="small" type="number" label={r}
+                       value={roles[r] || 0}
+                       onChange={(e) => setRoles({...roles, [r]: Math.max(0, parseInt(e.target.value)||0)})}
+                       sx={{ width: 80 }}
+                       disabled={!selectedTargets.includes('users')}
+                       InputProps={{ sx: { height: 32 } }}
+                     />
+                  ))}
+                  <Box sx={{ display: 'flex', alignItems: 'center', pl: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Remaining ({Math.max(0, counts.users - roles.admin - roles.owner - roles.partner)}) → normal users
                     </Typography>
-                  </CardContent>
-                </Card>
+                  </Box>
+                </Stack>
               </Box>
 
-              <Card sx={{ mt: 2 }}>
-                <CardContent>
-                  <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                    Seed AI-Ready Dataset
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Generates a coherent, relational FoodHub dataset with intentional performance signals
-                    (strong performers, underperformers, popular-but-problematic) for MCP/AI reasoning.
-                    Restaurants are template-driven (8 fixed). Set counts for Users, Orders, and Reviews.
-                  </Typography>
-                  <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
-                    {(["restaurants", "foodItems", "users", "orders", "reviews", "notifications"] as FactorySeedTarget[]).map((target) => (
-                      <Stack direction="row" alignItems="center" spacing={1} key={target} sx={{ minWidth: 200, mb: 1 }}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={selectedSeedTargets.includes(target)}
-                              onChange={() => handleSeedTargetToggle(target)}
-                              size="small"
-                            />
-                          }
-                          label={target.replace(/([A-Z])/g, " $1").replace(/^./, (v) => v.toUpperCase())}
-                          sx={{ m: 0, minWidth: 120 }}
-                        />
-                        {
-                          // target !== "restaurants" && 
-                          // target !== "users" &&
-                          (
-                            <TextField
-                              type="number"
-                              size="small"
-                              label="Count"
-                              value={seedCounts[target]}
-                              onChange={(e) => handleCountChange(target, e.target.value)}
-                              disabled={!selectedSeedTargets.includes(target)}
-                              sx={{ width: 80 }}
-                              InputProps={{ inputProps: { min: 0, max: 10000 } }}
-                            />
-                          )}
-                      </Stack>
-                    ))}
-                  </Stack>
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "flex-start", sm: "center" }}>
-                    <Button
-                      variant="contained"
-                      color="warning"
-                      onClick={handleSeedFactoryData}
-                      disabled={seedStatus.loading || selectedSeedTargets.length === 0}
-                    >
-                      {seedStatus.loading ? "🌱Seeding..." : "Seed Dataset"}
+              {/* Right Column: Preview & Execution */}
+              <Box sx={{ width: { xs: '100%', md: '400px' } }}>
+                <Card variant="outlined" sx={{ bgcolor: 'grey.50', mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" fontWeight={700} color="primary" gutterBottom>Preview & Execution</Typography>
+                    <Divider sx={{ mb: 2 }} />
+                    <Stack spacing={0.5} sx={{ mb: 2 }}>
+                       {ALL_TARGETS.filter(t => selectedTargets.includes(t)).map(t => (
+                         <Box key={t} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                           <Typography variant="body2">{t}</Typography>
+                           <Typography variant="body2" fontWeight="bold">{counts[t]}</Typography>
+                         </Box>
+                       ))}
+                    </Stack>
+                    
+                    <Alert severity={mode === 'replace' ? 'error' : 'info'} sx={{ mb: 2, py: 0 }}>
+                      {mode === 'replace' ? 'DESTRUCTIVE: Selected collections will be wiped!' : 'Safe Append: Existing data is preserved.'}
+                    </Alert>
+
+                    <Button variant="contained" color={mode === 'replace' ? 'error' : 'primary'} fullWidth onClick={handleSeed} disabled={seedStatus.loading || selectedTargets.length === 0}>
+                      {seedStatus.loading ? "Executing Factory..." : `Execute ${mode === 'replace' ? 'Replace' : 'Append'} Seed`}
                     </Button>
-                    <Typography variant="caption" color="text.secondary">
-                      Clears existing data and seeds a fresh relational dataset. Dev only.
-                    </Typography>
-                  </Stack>
-                  {seedStatus.message && (
-                    <Alert
-                      severity={seedStatus.warnings?.length ? "warning" : "success"}
-                      sx={{ mt: 2 }}
-                    >
-                      {seedStatus.message}
-                      {seedStatus.durationMs !== undefined && (
-                        <Typography variant="caption" display="block" sx={{ mt: 0.5, opacity: 0.8 }}>
-                          Completed in {seedStatus.durationMs}ms
-                        </Typography>
+                  </CardContent>
+                </Card>
+
+                {seedStatus.message && (
+                  <Card variant="outlined" sx={{ borderColor: seedStatus.error ? 'error.main' : 'success.main' }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                        Seed Results
+                      </Typography>
+                      {seedStatus.error ? (
+                        <Typography variant="body2" color="error">{seedStatus.error}</Typography>
+                      ) : (
+                        <>
+                          {seedStatus.seeded && (
+                             <Table size="small" sx={{ mb: 2 }}>
+                               <TableHead>
+                                 <TableRow>
+                                   <TableCell sx={{ p: 0.5 }}>Collection</TableCell>
+                                   <TableCell align="right" sx={{ p: 0.5 }}>Req</TableCell>
+                                   <TableCell align="right" sx={{ p: 0.5 }}>Ins</TableCell>
+                                   <TableCell align="right" sx={{ p: 0.5 }}>Skip</TableCell>
+                                   <TableCell align="right" sx={{ p: 0.5 }}>Fail</TableCell>
+                                 </TableRow>
+                               </TableHead>
+                               <TableBody>
+                                 {Object.entries(seedStatus.seeded).map(([col, stats]: [string, any]) => (
+                                   <TableRow key={col}>
+                                     <TableCell sx={{ p: 0.5 }}><Typography variant="body2">{col}</Typography></TableCell>
+                                     <TableCell align="right" sx={{ p: 0.5 }}>{stats.requested}</TableCell>
+                                     <TableCell align="right" sx={{ p: 0.5 }}>
+                                       <Typography variant="body2" color={stats.inserted < stats.requested && stats.failed > 0 ? 'warning.main' : 'success.main'}>{stats.inserted}</Typography>
+                                     </TableCell>
+                                     <TableCell align="right" sx={{ p: 0.5 }}>
+                                       <Typography variant="body2" color={stats.skipped > 0 ? 'info.main' : 'text.secondary'}>{stats.skipped || 0}</Typography>
+                                     </TableCell>
+                                     <TableCell align="right" sx={{ p: 0.5 }}>
+                                        <Typography variant="body2" color={stats.failed > 0 ? 'error.main' : 'text.secondary'}>{stats.failed}</Typography>
+                                     </TableCell>
+                                   </TableRow>
+                                 ))}
+                               </TableBody>
+                             </Table>
+                          )}
+                          <Typography variant="caption" color="text.secondary">Completed in {seedStatus.durationMs}ms</Typography>
+                          {seedStatus.warnings?.map((w, i) => (
+                            <Typography key={i} variant="caption" display="block" color="warning.dark">⚠ {w}</Typography>
+                          ))}
+                        </>
                       )}
-                      {seedStatus.warnings?.map((w, i) => (
-                        <Typography key={i} variant="caption" display="block" sx={{ mt: 0.5, color: "warning.dark" }}>
-                          ⚠ {w}
-                        </Typography>
-                      ))}
-                    </Alert>
-                  )}
-                  {seedStatus.error && (
-                    <Alert severity="error" sx={{ mt: 2 }}>
-                      {seedStatus.error}
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                )}
+              </Box>
             </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <Box sx={{ p: 3 }}>
-              <Alert
-                icon={<Info fontSize="small" />}
-                severity="info"
-                sx={{ mb: 2 }}
-              >
-                Click the developer icon in the top toolbar to switch between
-                component versions dynamically.
-              </Alert>
-
-              {Object.keys(availableVersions).length > 0 ? (
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead sx={{ bgcolor: "action.hover" }}>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Page</strong>
-                        </TableCell>
-                        <TableCell>
-                          <strong>Available Versions</strong>
-                        </TableCell>
-                        <TableCell>
-                          <strong>Active</strong>
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {Object.entries(availableVersions).map(
-                        ([pageKey, versions]) => (
-                          <TableRow key={pageKey}>
-                            <TableCell>
-                              <Chip
-                                label={pageKey}
-                                size="small"
-                                variant="outlined"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Stack
-                                direction="row"
-                                spacing={0.5}
-                                flexWrap="wrap"
-                              >
-                                {versions.map((v) => (
-                                  <Chip
-                                    key={v}
-                                    label={v}
-                                    size="small"
-                                    color={
-                                      selectedVersions[pageKey] === v
-                                        ? "primary"
-                                        : "default"
-                                    }
-                                    variant={
-                                      selectedVersions[pageKey] === v
-                                        ? "filled"
-                                        : "outlined"
-                                    }
-                                  />
-                                ))}
-                              </Stack>
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={selectedVersions[pageKey] || versions[0]}
-                                size="small"
-                                color="success"
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ),
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Alert severity="info">
-                  No swappable components registered. Ensure DevVersionRenderer
-                  wraps your pages.
-                </Alert>
-              )}
-            </Box>
+             <Box sx={{ p: 3 }}>
+                <ConfigurationInspector />
+             </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
             <Box sx={{ p: 3 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                    Restaurant State
-                  </Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Box
-                    component="pre"
-                    sx={{
-                      bgcolor: "grey.100",
-                      p: 2,
-                      borderRadius: 1,
-                      overflow: "auto",
-                      fontSize: "0.75rem",
-                      maxHeight: 300,
-                    }}
-                  >
-                    {JSON.stringify(
-                      {
-                        allRestaurants: allRestaurants.length,
-                        featuredRestaurants: featuredRestaurants.length,
-                        loading: loading,
-                        sample: allRestaurants[0] || null,
-                      },
-                      null,
-                      2,
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={3}>
-            <Box sx={{ p: 3 }}>
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                  gap: 2,
-                }}
-              >
-                <Card>
-                  <CardContent>
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight={700}
-                      gutterBottom
-                    >
-                      ✨ Core/Dev Features
-                    </Typography>
-                    <Box component="ul" sx={{ pl: 2 }}>
-                      <li>DevVersionRenderer - Hot swap components</li>
-                      <li>DevContext - State management for versions</li>
-                      <li>DevVersionSwitcher - UI control menu</li>
-                      <li>DevErrorBoundary - Error recovery</li>
-                      <li>ComponentPlayground - Isolated testing</li>
-                      <li>LocalStorage persistence - Survives reloads</li>
-                    </Box>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent>
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight={700}
-                      gutterBottom
-                    >
-                      🎯 Use Cases
-                    </Typography>
-                    <Box component="ul" sx={{ pl: 2 }}>
-                      <li>A/B Testing variants</li>
-                      <li>Progressive feature rollout</li>
-                      <li>Design system exploration</li>
-                      <li>Performance comparisons</li>
-                      <li>User feedback testing</li>
-                      <li>Rapid iteration & prototyping</li>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Box>
+              <Typography>Component Variants (Placeholder)</Typography>
             </Box>
           </TabPanel>
         </DialogContent>
@@ -642,3 +404,4 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
 };
 
 export default FloatingDevConsole;
+

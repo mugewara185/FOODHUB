@@ -1,5 +1,5 @@
 // import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-// import { APP_CONFIG } from '../config/app.config';
+// import { appConfig } from '../config/app.config';
 // import { store } from '../../store';
 // import { logout, refreshToken } from '../../features/auth/store/auth.slice';
 
@@ -12,7 +12,7 @@
 
 // // Create axios instance
 // const axiosInstance = axios.create({
-//   baseURL: APP_CONFIG.apiUrl,
+//   baseURL: appConfig.apiUrl,
 //   timeout: 30000,
 //   headers: {
 //     'Content-Type': 'application/json',
@@ -81,7 +81,7 @@
 //         const refreshToken = localStorage.getItem('refresh_token');
 //         if (!refreshToken) throw new Error('No refresh token');
 
-//         const response = await axios.post(`${APP_CONFIG.apiUrl}/auth/refresh`, {
+//         const response = await axios.post(`${appConfig.apiUrl}/auth/refresh`, {
 //           refreshToken,
 //         });
 
@@ -106,7 +106,7 @@
 //     const errorMessage = error.response?.data || error.message;
     
 //     // Log to analytics in production
-//     if (APP_CONFIG.enableAnalytics) {
+//     if (appConfig.enableAnalytics) {
 //       // Send to Sentry or similar
 //     }
 

@@ -1,7 +1,7 @@
-import { APP_CONFIG } from '../config/app.config';
+import { appConfig } from '../config/app.config';
 import { getAuthToken } from '../../services/api/apiUtils';
 
-const BASE_URL = APP_CONFIG.API_URL || '/api';
+const BASE_URL = appConfig.api.baseUrl || '/api';
 
 async function request<T = any>(
   endpoint: string,

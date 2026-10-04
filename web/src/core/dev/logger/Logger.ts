@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { LogEntry, LogLevel, LoggerConfig, FilterOptions, LogStats } from './types';
-import { APP_CONFIG } from '@/core/config/app.config';
+import { appConfig } from '../../config/app.config';
 
-// const appConfig = {APP_CONFIG, ...APP_CONFIG.Logger_Config};
+// const appConfig = {appConfig, ...appConfig.dev.logger};
 const LOG_LEVELS: Record<LogLevel, number> = {
   DEBUG: 0,
   INFO: 1,
@@ -12,19 +12,19 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const DEFAULT_CONFIG: LoggerConfig = {
-  maxLogs: APP_CONFIG.Logger_Config.maxLogs || 1000,
-  persistLogs: APP_CONFIG.Logger_Config.persistLogs || false,
-  logLevel: (APP_CONFIG.Logger_Config.logLevel as LogLevel) || 'DEBUG',
-  enableStackTrace: APP_CONFIG.Logger_Config.enableStackTrace || false,
-  enableTimestamps: APP_CONFIG.Logger_Config.enableTimestamps || false,
-  consoleLoggingEnabled: APP_CONFIG.Logger_Config.consoleLoggingEnabled || false,
-  renderLoggingEnabled: APP_CONFIG.Logger_Config.renderLoggingEnabled || false,
-  routeTrackingEnabled: APP_CONFIG.Logger_Config.routeTrackingEnabled || false,
-  reduxLoggingEnabled: APP_CONFIG.Logger_Config.reduxLoggingEnabled || false,
-  apiLoggingEnabled: APP_CONFIG.Logger_Config.apiLoggingEnabled || false,
+  maxLogs: appConfig.dev.logger.maxLogs || 1000,
+  persistLogs: appConfig.dev.logger.persistLogs || false,
+  logLevel: (appConfig.dev.logger.logLevel as LogLevel) || 'DEBUG',
+  enableStackTrace: appConfig.dev.logger.enableStackTrace || false,
+  enableTimestamps: appConfig.dev.logger.enableTimestamps || false,
+  consoleLoggingEnabled: appConfig.dev.logger.consoleLoggingEnabled || false,
+  renderLoggingEnabled: appConfig.dev.logger.renderLoggingEnabled || false,
+  routeTrackingEnabled: appConfig.dev.logger.routeTrackingEnabled || false,
+  reduxLoggingEnabled: appConfig.dev.logger.reduxLoggingEnabled || false,
+  apiLoggingEnabled: appConfig.dev.logger.apiLoggingEnabled || false,
 };
-// console.log('Logger initialized with config:', DEFAULT_CONFIG, 'app-config:', APP_CONFIG);
-// console.log('APP_CONFIG.Logger_Config:', APP_CONFIG.Logger_Config.apiLoggingEnabled);
+// console.log('Logger initialized with config:', DEFAULT_CONFIG, 'app-config:', appConfig);
+// console.log('appConfig.dev.logger:', appConfig.dev.logger.apiLoggingEnabled);
 // Generate a session ID per browser tab session
 const generateSessionId = () => {
   if (typeof sessionStorage !== 'undefined') {

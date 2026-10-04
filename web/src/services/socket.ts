@@ -1,3 +1,4 @@
+import { appConfig } from '../core/config/app.config';
 import { io, Socket } from "socket.io-client";
 import { logger } from "../core/utils/logger";
 import type {
@@ -30,7 +31,7 @@ class SocketService {
     }
 
     this.socket = io(
-      import.meta.env.VITE_SOCKET_URL || "",
+      appConfig.api.socketUrl || "",
       {
         transports: ["websocket"],
       },
@@ -253,3 +254,4 @@ class SocketService {
 }
 
 export const socketService = new SocketService();
+

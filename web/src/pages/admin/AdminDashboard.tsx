@@ -1,3 +1,4 @@
+import { appConfig } from '../../core/config/app.config';
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -100,7 +101,7 @@ const Dashboard: React.FC = () => {
         setError(null);
         logger.info('ADMIN.ANALYTICS.LOAD.START', `Loading analytics for period: ${timeRange}`);
         
-        const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
+        const apiBaseUrl = appConfig.api.baseUrl;
         const token = getAuthToken();
 
         const response = await fetch(`${apiBaseUrl}/admin/analytics/dashboard?period=${timeRange}`, {
@@ -517,3 +518,4 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+

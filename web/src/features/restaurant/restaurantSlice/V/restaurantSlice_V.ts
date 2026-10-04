@@ -3,7 +3,7 @@ import { createSlice, createAsyncThunk, type PayloadAction, createSelector } fro
 // import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from '../../../../app/store';
 import type { Restaurant, FoodItem, Category } from '@core/types';
-import { APP_CONFIG } from '../../../../core/config/app.config';
+import { appConfig } from '../../../../core/config/app.config';
 import { restaurantApi } from '../../../../services/api/restaurantApi';
 import { logger } from '@/core/dev/logger';
 
@@ -67,7 +67,7 @@ export const fetchRestaurants = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     logger.info('RESTAURANT', 'Loading restaurants', { event: 'RESTAURANT.LOAD.START' });
     try {
-      if (APP_CONFIG.DATA_SOURCE === 'api') {
+      if (appConfig.api.dataSource === 'api') {
         const result = await restaurantApi.getAll();
         logger.info('RESTAURANT', 'Loaded restaurants', { event: 'RESTAURANT.LOAD.SUCCESS' });
         return result;
@@ -89,8 +89,8 @@ export const fetchRestaurantById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     logger.info('RESTAURANT', 'Loading restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.START', data: { restaurantId: id } });
     try {
-      if (APP_CONFIG.DATA_SOURCE === 'api') {
-        console.log('api mode restaurantApi', APP_CONFIG);
+      if (appConfig.api.dataSource === 'api') {
+        console.log('api mode restaurantApi', appConfig);
         const result = await restaurantApi.getById(id);
         logger.info('RESTAURANT', 'Loaded restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.SUCCESS' });
         return result;

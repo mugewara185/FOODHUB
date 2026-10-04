@@ -13,11 +13,11 @@ import AdminAIPage from '../../../pages/admin/ai/AdminAIPage';
 import InvestigationPage from '../../../pages/admin/ai/InvestigationPage';
 import AdminDeliveryDashboard from '../../../pages/admin/delivery';
 import ComingSoon from '../../../shared/components/ComingSoon';
-import { APP_CONFIG } from '../../../core/config/app.config';
+import { appConfig } from '../../../core/config/app.config';
 
 // Bypasses the route protection if DEV_BYPASS_AUTH is active
 const AdminProtected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (APP_CONFIG.DEV_BYPASS_AUTH) return <>{children}</>;
+  if (appConfig.dev.bypassAuth) return <>{children}</>;
   return <ProtectedRoute allowedRoles={['admin']}>{children}</ProtectedRoute>;
 };
 

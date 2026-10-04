@@ -1,3 +1,4 @@
+import { appConfig } from '../../../core/config/app.config';
 export interface AIMetric {
   name: string;
   value: string | number;
@@ -37,7 +38,7 @@ export interface AIResponse {
 
 import { type AIMessage } from './adminAiSlice';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = appConfig.api.baseUrl;
 
 export async function sendAIMessage(messages: AIMessage[], conversationId?: string): Promise<AIResponse> {
   const token = localStorage.getItem('token');
@@ -58,3 +59,4 @@ export async function sendAIMessage(messages: AIMessage[], conversationId?: stri
   const data = await response.json();
   return data.data as AIResponse;
 }
+

@@ -8,7 +8,7 @@
  * All Backend<->Frontend normalization is isolated here.
  */
 
-import { APP_CONFIG } from '../../../core/config/app.config';
+import { appConfig } from '../../../core/config/app.config';
 import type { Order, CartItem, PaymentMethod } from '../../../core/types';
 
 // Raw Backend DTO shapes
@@ -135,7 +135,7 @@ const request = async <T>(
 ): Promise<T> => {
   const traceId = uuidv4().substring(0, 8);
   const method = init?.method || 'GET';
-  const url = `${APP_CONFIG.API_URL}${endpoint}`;
+  const url = `${appConfig.api.baseUrl}${endpoint}`;
 
   let parsedBody;
   try {

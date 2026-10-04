@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
       data: { componentStack: errorInfo.componentStack },
       source: 'GlobalErrorBoundary'
     });
-    
+
     this.setState({
       error,
       errorInfo,
@@ -87,10 +87,11 @@ export class ErrorBoundary extends Component<Props, State> {
               😕
             </Typography>
             <Typography variant="h5" fontWeight={700} gutterBottom>
-              Something went wrong
+              Something went wrong!
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              We're sorry, but something unexpected happened. Our team has been notified.
+              We're sorry, but something unexpected happened!
+              Ooops!
             </Typography>
 
             <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
