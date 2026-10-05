@@ -126,7 +126,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
 
   const [mode, setMode] = useState<"append" | "replace">("append");
   const [selectedTargets, setSelectedTargets] = useState<FactorySeedTarget[]>(ALL_TARGETS);
-  
+
   const [counts, setCounts] = useState<Record<string, number>>(PRESETS.development);
   const [roles, setRoles] = useState<Record<string, number>>(PRESETS.development.roles);
 
@@ -154,14 +154,14 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
     }
 
     setSeedStatus({ loading: true, message: "Generating Dataset Payload...", error: null });
-    
+
     try {
       // 1. Build Payload
       const payload = buildFactorySeedPayload(counts.restaurants, {
         targets: selectedTargets,
         mode,
         config: {
-          users: { 
+          users: {
             count: counts.users,
             roleDistribution: { admin: roles.admin, owner: roles.owner, partner: roles.partner }
           },
@@ -249,7 +249,7 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
               <Box sx={{ flex: 1 }}>
                 <Typography variant="h6" fontWeight={700} gutterBottom>Dataset Configuration</Typography>
                 <Divider sx={{ mb: 2 }} />
-                
+
                 <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
                   <Button size="small" variant="outlined" onClick={() => applyPreset('minimal')}>Minimal</Button>
                   <Button size="small" variant="outlined" onClick={() => applyPreset('development')}>Development</Button>
@@ -273,10 +273,10 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                         label={t.replace(/([A-Z])/g, " $1").replace(/^./, (v) => v.toUpperCase())}
                         sx={{ minWidth: 150 }}
                       />
-                      <TextField 
-                        size="small" type="number" 
-                        value={counts[t] || 0} 
-                        onChange={(e) => setCounts({...counts, [t]: Math.max(0, parseInt(e.target.value)||0)})}
+                      <TextField
+                        size="small" type="number"
+                        value={counts[t] || 0}
+                        onChange={(e) => setCounts({ ...counts, [t]: Math.max(0, parseInt(e.target.value) || 0) })}
                         disabled={!selectedTargets.includes(t)}
                         sx={{ width: 80 }}
                         InputProps={{ sx: { height: 32 } }}
@@ -291,14 +291,14 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                 </Typography>
                 <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
                   {['admin', 'owner', 'partner'].map(r => (
-                     <TextField 
-                       key={r} size="small" type="number" label={r}
-                       value={roles[r] || 0}
-                       onChange={(e) => setRoles({...roles, [r]: Math.max(0, parseInt(e.target.value)||0)})}
-                       sx={{ width: 80 }}
-                       disabled={!selectedTargets.includes('users')}
-                       InputProps={{ sx: { height: 32 } }}
-                     />
+                    <TextField
+                      key={r} size="small" type="number" label={r}
+                      value={roles[r] || 0}
+                      onChange={(e) => setRoles({ ...roles, [r]: Math.max(0, parseInt(e.target.value) || 0) })}
+                      sx={{ width: 80 }}
+                      disabled={!selectedTargets.includes('users')}
+                      InputProps={{ sx: { height: 32 } }}
+                    />
                   ))}
                   <Box sx={{ display: 'flex', alignItems: 'center', pl: 1 }}>
                     <Typography variant="body2" color="text.secondary">
@@ -315,14 +315,14 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                     <Typography variant="subtitle2" fontWeight={700} color="primary" gutterBottom>Preview & Execution</Typography>
                     <Divider sx={{ mb: 2 }} />
                     <Stack spacing={0.5} sx={{ mb: 2 }}>
-                       {ALL_TARGETS.filter(t => selectedTargets.includes(t)).map(t => (
-                         <Box key={t} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                           <Typography variant="body2">{t}</Typography>
-                           <Typography variant="body2" fontWeight="bold">{counts[t]}</Typography>
-                         </Box>
-                       ))}
+                      {ALL_TARGETS.filter(t => selectedTargets.includes(t)).map(t => (
+                        <Box key={t} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2">{t}</Typography>
+                          <Typography variant="body2" fontWeight="bold">{counts[t]}</Typography>
+                        </Box>
+                      ))}
                     </Stack>
-                    
+
                     <Alert severity={mode === 'replace' ? 'error' : 'info'} sx={{ mb: 2, py: 0 }}>
                       {mode === 'replace' ? 'DESTRUCTIVE: Selected collections will be wiped!' : 'Safe Append: Existing data is preserved.'}
                     </Alert>
@@ -344,34 +344,34 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
                       ) : (
                         <>
                           {seedStatus.seeded && (
-                             <Table size="small" sx={{ mb: 2 }}>
-                               <TableHead>
-                                 <TableRow>
-                                   <TableCell sx={{ p: 0.5 }}>Collection</TableCell>
-                                   <TableCell align="right" sx={{ p: 0.5 }}>Req</TableCell>
-                                   <TableCell align="right" sx={{ p: 0.5 }}>Ins</TableCell>
-                                   <TableCell align="right" sx={{ p: 0.5 }}>Skip</TableCell>
-                                   <TableCell align="right" sx={{ p: 0.5 }}>Fail</TableCell>
-                                 </TableRow>
-                               </TableHead>
-                               <TableBody>
-                                 {Object.entries(seedStatus.seeded).map(([col, stats]: [string, any]) => (
-                                   <TableRow key={col}>
-                                     <TableCell sx={{ p: 0.5 }}><Typography variant="body2">{col}</Typography></TableCell>
-                                     <TableCell align="right" sx={{ p: 0.5 }}>{stats.requested}</TableCell>
-                                     <TableCell align="right" sx={{ p: 0.5 }}>
-                                       <Typography variant="body2" color={stats.inserted < stats.requested && stats.failed > 0 ? 'warning.main' : 'success.main'}>{stats.inserted}</Typography>
-                                     </TableCell>
-                                     <TableCell align="right" sx={{ p: 0.5 }}>
-                                       <Typography variant="body2" color={stats.skipped > 0 ? 'info.main' : 'text.secondary'}>{stats.skipped || 0}</Typography>
-                                     </TableCell>
-                                     <TableCell align="right" sx={{ p: 0.5 }}>
-                                        <Typography variant="body2" color={stats.failed > 0 ? 'error.main' : 'text.secondary'}>{stats.failed}</Typography>
-                                     </TableCell>
-                                   </TableRow>
-                                 ))}
-                               </TableBody>
-                             </Table>
+                            <Table size="small" sx={{ mb: 2 }}>
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell sx={{ p: 0.5 }}>Collection</TableCell>
+                                  <TableCell align="right" sx={{ p: 0.5 }}>Req</TableCell>
+                                  <TableCell align="right" sx={{ p: 0.5 }}>Ins</TableCell>
+                                  <TableCell align="right" sx={{ p: 0.5 }}>Skip</TableCell>
+                                  <TableCell align="right" sx={{ p: 0.5 }}>Fail</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {Object.entries(seedStatus.seeded).map(([col, stats]: [string, any]) => (
+                                  <TableRow key={col}>
+                                    <TableCell sx={{ p: 0.5 }}><Typography variant="body2">{col}</Typography></TableCell>
+                                    <TableCell align="right" sx={{ p: 0.5 }}>{stats.requested}</TableCell>
+                                    <TableCell align="right" sx={{ p: 0.5 }}>
+                                      <Typography variant="body2" color={stats.inserted < stats.requested && stats.failed > 0 ? 'warning.main' : 'success.main'}>{stats.inserted}</Typography>
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ p: 0.5 }}>
+                                      <Typography variant="body2" color={stats.skipped > 0 ? 'info.main' : 'text.secondary'}>{stats.skipped || 0}</Typography>
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ p: 0.5 }}>
+                                      <Typography variant="body2" color={stats.failed > 0 ? 'error.main' : 'text.secondary'}>{stats.failed}</Typography>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
                           )}
                           <Typography variant="caption" color="text.secondary">Completed in {seedStatus.durationMs}ms</Typography>
                           {seedStatus.warnings?.map((w, i) => (
@@ -387,9 +387,9 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-             <Box sx={{ p: 3 }}>
-                <ConfigurationInspector />
-             </Box>
+            <Box sx={{ p: 3 }}>
+              <ConfigurationInspector />
+            </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>

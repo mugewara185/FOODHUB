@@ -593,14 +593,22 @@ export const buildFactorySeedPayload = (
       const ownerUsers = userDocs.filter(u => u.roles.includes('owner'));
       let ownerIdx = 0;
   
-      let restIdx = 0;
-      for (const template of RESTAURANT_TEMPLATES) {
+      let targetRestCount = config.restaurants?.count ?? RESTAURANT_TEMPLATES.length;
+      if (!targets.includes('restaurants')) {
+        targetRestCount = Math.min(targetRestCount, RESTAURANT_TEMPLATES.length);
+      }
+  
+      for (let restIdx = 0; restIdx < targetRestCount; restIdx++) {
+        const template = RESTAURANT_TEMPLATES[restIdx % RESTAURANT_TEMPLATES.length];
+        const nameSuffix = restIdx >= RESTAURANT_TEMPLATES.length ? ` #${Math.floor(restIdx / RESTAURANT_TEMPLATES.length) + 1}` : '';
+        const finalName = `${template.name}${nameSuffix}`;
+
         const rid = generateObjectId();
         restaurantIds.push(rid);
         restaurantScenarios.push(template.scenario);
   
         const totalFoodItems = config.foodItems?.count ?? 50;
-        const targetItemsPerRestaurant = Math.ceil(totalFoodItems / RESTAURANT_TEMPLATES.length);
+        const targetItemsPerRestaurant = Math.max(1, Math.ceil(totalFoodItems / targetRestCount));
   
         const menuTemplates = MENU_TEMPLATES_BY_CUISINE[template.cuisine[0]] ?? MENU_TEMPLATES_BY_CUISINE['American'];
         const items = [];
@@ -642,8 +650,8 @@ export const buildFactorySeedPayload = (
         restaurantDocs.push({
           _id: rid,
           ownerId: ownerUser._id,
-          name: template.name,
-          description: `${template.name} - serving the finest ${template.cuisine.join(' & ')} cuisine in ${city}.`,
+          name: finalName,
+          description: `${finalName} - serving the finest ${template.cuisine.join(' & ')} cuisine in ${city}.`,
           cuisine: template.cuisine,
           address: randomStreetAddress(city),
           city,
@@ -659,8 +667,6 @@ export const buildFactorySeedPayload = (
           deliveryTimeMin: template.deliveryTimeMin,
           phone: randomPhone(),
         });
-  
-        restIdx++;
       }
   
       logger.info('FactorySeed', 'seed:restaurants:complete', {

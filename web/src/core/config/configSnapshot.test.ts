@@ -5,7 +5,8 @@ import { appConfig } from './app.config';
 describe('DevConfigSnapshot', () => {
   it('explicitly allowlists fields and does not expose secrets', () => {
     // 1. We mock adding a secret to the raw appConfig to simulate a developer accidentally leaking one
-    // @ts-ignore`n    const maliciousAppConfig = {
+    // @ts-ignore
+    const maliciousAppConfig = {
       ...appConfig,
       security: {
         ...appConfig.security,
