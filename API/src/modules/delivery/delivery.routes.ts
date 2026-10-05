@@ -3,7 +3,7 @@ import { Delivery } from './delivery.model';
 import { DeliveryPartner } from './delivery-partner.model';
 import { getActiveRisks } from './risk.engine';
 import { askDeliveryCopilot } from './delivery.ai';
-import { protect, authorize } from '../../shared/middleware/auth.middleware';
+import { protect, authorize, AuthRequest } from '../../shared/middleware/auth.middleware';
 import { toLatLng, toGeoJSON } from '../../utils/geo';
 
 import { setPartnerStatus, updateDeliveryStatus } from './delivery.service';
@@ -12,13 +12,13 @@ const router = Router();
 
 // ─────────────────────────────────────────────────────────────────────────
 // DELIVERY STATUS — kept for the partner "start/pickup/delivered" flow
-// (currently reachable without auth per the existing convention;
-//  TODO: re-enable protect + authorize once the frontend sends the token)
+// This route is used by partners during delivery lifecycle.
 // ─────────────────────────────────────────────────────────────────────────
 
-router.patch('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+router.patch('/:id/status', protect, authorize('partner', 'admin'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const delivery = await updateDeliveryStatus(req.params.id, req.body.status);
+    const actorUserId = req.user?.roles.includes('admin') ? undefined : req.user?.id;
+    const delivery = await updateDeliveryStatus(req.params.id, req.body.status, actorUserId);
     res.json({ success: true, data: delivery });
   } catch (error) {
     res.status(400).json({ success: false, error: (error as Error).message });
@@ -29,7 +29,7 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
 // ADMIN ROUTES — everything below requires the 'admin' role
 // ─────────────────────────────────────────────────────────────────────────
 
-router.use(authorize('admin'));
+router.use(protect, authorize('admin'));
 
 /**
  * Fleet snapshot for the admin dashboard.

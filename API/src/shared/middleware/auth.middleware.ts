@@ -51,8 +51,12 @@ export async function protect(
 
     req.user = { id: user._id.toString(), email: user.email, roles: user.roles, name: user.name };
     next();
-  } catch (err) {
-    next(err);
+    } catch (err: any) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      next(new AppError('Not authorized, token failed', 401));
+    } else {
+      next(err);
+    }
   }
 }
 

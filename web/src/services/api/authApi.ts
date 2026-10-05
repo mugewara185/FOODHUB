@@ -38,45 +38,8 @@ const getErrorMessage = (error: unknown): string => {
   return 'Something went wrong. Please try again.';
 };
 
-import { logAPI, logger } from '../../core/dev/logger';
-import { v4 as uuidv4 } from 'uuid';
-
-const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
-  const { headers: customHeaders, ...restInit } = init || {};
-  const traceId = uuidv4().substring(0, 8);
-  const method = init?.method || 'GET';
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  logAPI.request(method, url, restInit.body ? JSON.parse(restInit.body as string) : undefined, traceId);
-  const startTime = performance.now();
-
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...customHeaders,
-    },
-    ...restInit,
-  });
-
-  const durationMs = performance.now() - startTime;
-  const payload = (await response.json().catch(() => ({}))) as ApiResponse<T> | T;
-
-  if (!response.ok) {
-    const message = typeof payload === 'object' && payload && 'message' in payload && payload.message
-      ? String(payload.message)
-      : 'Request failed';
-    logAPI.error(method, url, new Error(message), traceId);
-    throw new Error(message);
-  }
-
-  logAPI.response(method, url, response.status, durationMs, payload, traceId);
-
-  if (typeof payload === 'object' && payload && 'data' in payload) {
-    return (payload as ApiResponse<T>).data as T;
-  }
-
-  return payload as T;
-};
+import { logger } from '../../core/dev/logger';
+import api from '../../core/utils/api';
 
 const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
   // console.log('buildAuthUser -> ', payload)
@@ -114,7 +77,7 @@ const buildAuthUser = (payload: AuthApiPayload): AuthUser => {
 export const authApi = {
   async login(credentials: LoginCredentials): Promise<AuthUser> {
     try {
-      const payload = await request<AuthApiPayload>('/auth/login', {
+      const payload = await api.request<AuthApiPayload>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({
           email: credentials.email,
@@ -131,7 +94,7 @@ export const authApi = {
 
   async signup(data: SignupData): Promise<AuthUser> {
     try {
-      const payload = await request<AuthApiPayload>('/auth/register', {
+      const payload = await api.request<AuthApiPayload>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
           name: data.name,
@@ -149,7 +112,7 @@ export const authApi = {
 
   async forgotPassword(data: ForgotPasswordData): Promise<void> {
     try {
-      await request('/auth/forgot-password', {
+      await api.request('/auth/forgot-password', {
         method: 'POST',
         body: JSON.stringify({ email: data.email }),
       });
@@ -160,7 +123,7 @@ export const authApi = {
 
   async resetPassword(data: ResetPasswordData): Promise<void> {
     try {
-      await request('/auth/reset-password', {
+      await api.request('/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({
           password: data.password,
@@ -175,7 +138,7 @@ export const authApi = {
 
   async getMe(token: string): Promise<AuthUser> {
     try {
-      const userPayload = await request<AuthApiUserPayload>('/auth/me', {
+      const userPayload = await api.request<AuthApiUserPayload>('/auth/me', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -193,7 +156,7 @@ export const authApi = {
 
   async toggleFavorite(restaurantId: string, token: string): Promise<string[]> {
     try {
-      const payload = await request<{ favoriteRestaurants: string[] }>(`/users/favorites/${restaurantId}`, {
+      const payload = await api.request<{ favoriteRestaurants: string[] }>(`/users/favorites/${restaurantId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -205,7 +168,7 @@ export const authApi = {
 
   async toggleFoodFavorite(foodItemId: string, token: string): Promise<string[]> {
     try {
-      const payload = await request<{ favoriteFoodItems: string[] }>(`/users/favorites/food/${foodItemId}`, {
+      const payload = await api.request<{ favoriteFoodItems: string[] }>(`/users/favorites/food/${foodItemId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -217,7 +180,7 @@ export const authApi = {
 
   async addAddress(addressData: any, token: string): Promise<any[]> {
     try {
-      const payload = await request<{ addresses: any[] }>('/users/addresses', {
+      const payload = await api.request<{ addresses: any[] }>('/users/addresses', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(addressData)
@@ -230,7 +193,7 @@ export const authApi = {
 
   async removeAddress(addressId: string, token: string): Promise<any[]> {
     try {
-      const payload = await request<{ addresses: any[] }>(`/users/addresses/${addressId}`, {
+      const payload = await api.request<{ addresses: any[] }>(`/users/addresses/${addressId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -242,7 +205,7 @@ export const authApi = {
 
   async updateProfile(data: any, token: string): Promise<AuthUser> {
     try {
-      const payload = await request<{ user: AuthApiUserPayload }>('/users/profile', {
+      const payload = await api.request<{ user: AuthApiUserPayload }>('/users/profile', {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(data)

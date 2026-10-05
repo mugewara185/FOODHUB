@@ -49,6 +49,7 @@ const RestaurantDetail: React.FC = () => {
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [eligibility, setEligibility] = useState<{ eligible: boolean; orderId?: string } | null>(null);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
 
   const {
@@ -103,6 +104,10 @@ const RestaurantDetail: React.FC = () => {
 
     void loadReviews();
 
+    if (id && authUser?.token) {
+      reviewApi.checkEligibility(id, authUser.token).then(setEligibility).catch(() => setEligibility(null));
+    }
+
     return () => {
       active = false;
     };
@@ -116,8 +121,8 @@ const RestaurantDetail: React.FC = () => {
   const handleSubmitReview = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!id) {
-      setReviewError('Restaurant information is missing.');
+    if (!id || !eligibility?.orderId) {
+      setReviewError('You must have a delivered order to review this restaurant.');
       return;
     }
 
@@ -137,7 +142,7 @@ const RestaurantDetail: React.FC = () => {
 
     try {
       const newReview = await reviewApi.createReview(
-        id,
+        eligibility.orderId,
         {
           rating: reviewForm.rating,
           comment: reviewForm.comment.trim(),
@@ -148,13 +153,13 @@ const RestaurantDetail: React.FC = () => {
       setReviews((current) => [newReview, ...current]);
       setReviewForm({ rating: 5, comment: '' });
       setReviewSuccess('Thanks! Your review has been posted.');
+      setEligibility(null); // Prevents second review on same order
     } catch (error) {
       setReviewError(error instanceof Error ? error.message : 'Unable to submit your review right now.');
     } finally {
       setSubmittingReview(false);
     }
   };
-
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -206,16 +211,16 @@ const RestaurantDetail: React.FC = () => {
               <Box sx={{ mt: 3 }}>
                 <Stack spacing={2}>
                   {!authUser ? (
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      Sign in to leave a review for this restaurant.
-                      <Button size="small" sx={{ ml: 1 }} onClick={() => navigate('/login')}>
-                        Log in
-                      </Button>
-                    </Alert>
-                  ) : (
-                    <Box
-                      component="form"
-                      onSubmit={handleSubmitReview}
+                      <Alert severity="info" sx={{ borderRadius: 2 }}>
+                        Sign in to leave a review for this restaurant.
+                        <Button size="small" sx={{ ml: 1 }} onClick={() => navigate('/login')}>
+                          Log in
+                        </Button>
+                      </Alert>
+                    ) : eligibility?.eligible ? (
+                      <Box
+                        component="form"
+                        onSubmit={handleSubmitReview}
                       sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.paper' }}
                     >
                       <Typography variant="h6" fontWeight={700} gutterBottom>
@@ -251,9 +256,13 @@ const RestaurantDetail: React.FC = () => {
                         </Box>
                       </Stack>
                     </Box>
-                  )}
+                    ) : (
+                      <Alert severity="info" sx={{ borderRadius: 2 }}>
+                        You can review this restaurant after you receive an order.
+                      </Alert>
+                    )}
 
-                  {reviewLoading ? (
+                    {reviewLoading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                       <CircularProgress size={24} />
                     </Box>

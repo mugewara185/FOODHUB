@@ -146,6 +146,7 @@ export const normalizeMenuItems = (
 
 import { logAPI } from '../../core/dev/logger';
 import { v4 as uuidv4 } from 'uuid';
+import api from '@/core/utils/api';
 
 const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
   const { headers: customHeaders, ...restInit } = init || {};
@@ -156,7 +157,7 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
   let parsedBody;
   try {
     parsedBody = restInit?.body ? JSON.parse(restInit.body as string) : undefined;
-  } catch(e) {}
+  } catch (e) { }
 
   logAPI.request(method, url, parsedBody, traceId);
   const startTime = performance.now();
@@ -172,9 +173,9 @@ const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
   if (!response.ok) {
     const msg =
       typeof payload === 'object' &&
-      payload !== null &&
-      'message' in payload &&
-      (payload as { message?: string }).message
+        payload !== null &&
+        'message' in payload &&
+        (payload as { message?: string }).message
         ? String((payload as { message?: string }).message)
         : `Request failed (${response.status})`;
     logAPI.error(method, url, new Error(msg), traceId);
@@ -202,7 +203,7 @@ export const restaurantApi = {
    * Uses a large limit so client-side Redux filters/pagination work as normal.
    */
   async getAll(): Promise<Restaurant[]> {
-    const data = await request<RestaurantListData>('/restaurants?limit=200');
+    const data = await api.request<RestaurantListData>('/restaurants?limit=200');
     return data.restaurants.map(normalizeRestaurant);
   },
 
@@ -211,7 +212,7 @@ export const restaurantApi = {
    * Returns the restaurant + its embedded menu items, both normalized.
    */
   async getById(id: string): Promise<{ restaurant: Restaurant; items: FoodItem[] }> {
-    const dto = await request<RestaurantApiDTO>(`/restaurants/${id}`);
+    const dto = await api.request<RestaurantApiDTO>(`/restaurants/${id}`);
     const restaurant = normalizeRestaurant(dto);
     const items = normalizeMenuItems(dto.menu ?? [], restaurant.id, restaurant.name);
     return { restaurant, items };

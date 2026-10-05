@@ -34,51 +34,7 @@ interface ReviewListPayload {
   };
 }
 
-import { logAPI } from '../../core/dev/logger';
-import { v4 as uuidv4 } from 'uuid';
-
-const request = async <T>(endpoint: string, init?: RequestInit): Promise<T> => {
-  const { headers: customHeaders, ...restInit } = init || {};
-  const traceId = uuidv4().substring(0, 8);
-  const method = init?.method || 'GET';
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  let parsedBody;
-  try {
-    parsedBody = restInit?.body ? JSON.parse(restInit.body as string) : undefined;
-  } catch(e) {}
-
-  logAPI.request(method, url, parsedBody, traceId);
-  const startTime = performance.now();
-
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...customHeaders,
-    },
-    ...restInit,
-  });
-
-  const durationMs = performance.now() - startTime;
-  const payload = (await response.json().catch(() => ({}))) as ApiResponse<T> | T;
-
-  if (!response.ok) {
-    const message =
-      typeof payload === 'object' && payload && 'message' in payload && payload.message
-        ? String(payload.message)
-        : 'Request failed';
-    logAPI.error(method, url, new Error(message), traceId);
-    throw new Error(message);
-  }
-
-  logAPI.response(method, url, response.status, durationMs, payload, traceId);
-
-  if (typeof payload === 'object' && payload && 'data' in payload) {
-    return (payload as ApiResponse<T>).data as T;
-  }
-
-  return payload as T;
-};
+import api from '../../core/utils/api';
 
 export const normalizeReview = (payload: ReviewPayload): ReviewItem => {
   const author = payload.userId || undefined;
@@ -96,23 +52,32 @@ export const normalizeReview = (payload: ReviewPayload): ReviewItem => {
 
 export const reviewApi = {
   async listRestaurantReviews(restaurantId: string): Promise<ReviewItem[]> {
-    const payload = await request<ReviewListPayload>(`/reviews/restaurant/${restaurantId}`);
+    const payload = await api.request<ReviewListPayload>('/reviews/restaurant/' + restaurantId);
     return payload.reviews.map(normalizeReview);
   },
 
+  async checkEligibility(restaurantId: string, token: string): Promise<{ eligible: boolean; orderId?: string }> {
+    return api.request<{ eligible: boolean; orderId?: string }>('/reviews/eligibility/' + restaurantId, {
+      headers: {
+        Authorization: 'Bearer ' + token,
+      },
+    });
+  },
+
   async createReview(
-    restaurantId: string,
-    data: { rating: number; comment: string },
+    orderId: string,
+    data: { rating: number; comment: string; partnerRating?: number },
     token: string
   ): Promise<ReviewItem> {
-    const payload = await request<ReviewPayload>('/reviews', {
+    const payload = await api.request<ReviewPayload>('/reviews', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: 'Bearer ' + token,
       },
       body: JSON.stringify({
-        restaurantId,
-        rating: data.rating,
+        orderId,
+        restaurantRating: data.rating,
+        partnerRating: data.partnerRating ?? 5,
         comment: data.comment,
       }),
     });
@@ -120,4 +85,3 @@ export const reviewApi = {
     return normalizeReview(payload);
   },
 };
-

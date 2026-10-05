@@ -27,6 +27,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logger.info('AUTH', 'AuthProvider mounted, starting auth restoration', { event: 'MOUNT', source: 'AuthProvider' });
     });
     void dispatch(restoreAuthThunk());
+
+    const handleUnauthorized = () => {
+      dispatch(logoutAction());
+    };
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
   }, [dispatch]);
 
   return <>{children}</>;

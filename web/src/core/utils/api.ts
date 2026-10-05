@@ -1,63 +1,208 @@
 import { appConfig } from '../config/app.config';
 import { getAuthToken } from '../../services/api/apiUtils';
+import { logAPI } from '../dev/logger';
+import { v4 as uuidv4 } from 'uuid';
 
-const BASE_URL = appConfig.api.baseUrl || '/api';
-
-async function request<T = any>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = getAuthToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...((options.headers as Record<string, string>) || {}),
-  };
-
-  const url = endpoint.startsWith('http')
-    ? endpoint
-    : `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      return {
-        success: false,
-        message: data.message || `Request failed with status ${response.status}`,
-        ...data,
-      } as T;
-    }
-
-    return data as T;
-  } catch (error: any) {
-    return {
-      success: false,
-      message: error.message || 'Network error',
-    } as T;
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    public status?: number,
+    public data?: any,
+    public traceId?: string
+  ) {
+    super(message);
+    this.name = 'ApiClientError';
   }
 }
 
-export const api = {
-  get: <T = any>(endpoint: string, headers?: Record<string, string>) =>
-    request<T>(endpoint, { method: 'GET', headers }),
+export interface ApiRequestConfig extends RequestInit {
+  url: string;
+  traceId: string;
+  queryParams?: Record<string, string | number | boolean>;
+}
 
-  post: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    request<T>(endpoint, { method: 'POST', body: JSON.stringify(body), headers }),
+export interface ApiResponseContext {
+  response: Response;
+  config: ApiRequestConfig;
+  data: any;
+  durationMs: number;
+}
 
-  put: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    request<T>(endpoint, { method: 'PUT', body: JSON.stringify(body), headers }),
+type RequestInterceptor = (config: ApiRequestConfig) => ApiRequestConfig | Promise<ApiRequestConfig>;
+type ResponseInterceptor = (context: ApiResponseContext) => ApiResponseContext | Promise<ApiResponseContext>;
+type ErrorInterceptor = (error: ApiClientError, config: ApiRequestConfig) => ApiClientError | Promise<ApiClientError>;
 
-  patch: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body), headers }),
+export class ApiClient {
+  private baseUrl: string;
 
-  delete: <T = any>(endpoint: string, headers?: Record<string, string>) =>
-    request<T>(endpoint, { method: 'DELETE', headers }),
-};
+  public interceptors = {
+    request: [] as RequestInterceptor[],
+    response: [] as ResponseInterceptor[],
+    error: [] as ErrorInterceptor[],
+  };
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private buildUrl(endpoint: string, queryParams?: Record<string, string | number | boolean>): string {
+    let url = endpoint.startsWith('http')
+      ? endpoint
+      : `${this.baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+
+    if (queryParams) {
+      const searchParams = new URLSearchParams();
+      Object.entries(queryParams).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value));
+        }
+      });
+      const qs = searchParams.toString();
+      if (qs) {
+        url += (url.includes('?') ? '&' : '?') + qs;
+      }
+    }
+    return url;
+  }
+
+  async request<T = any>(endpoint: string, options: Omit<ApiRequestConfig, 'url' | 'traceId'> = {}): Promise<T> {
+    let config: ApiRequestConfig = {
+      ...options,
+      url: this.buildUrl(endpoint, options.queryParams),
+      traceId: uuidv4().substring(0, 8),
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      }
+    };
+
+    // Auto-serialize JSON bodies if it's an object and not FormData
+    if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
+      config.body = JSON.stringify(config.body);
+    }
+
+    // 1. Request Interceptors
+    for (const interceptor of this.interceptors.request) {
+      config = await interceptor(config);
+    }
+
+    const { url, traceId, queryParams, ...fetchOptions } = config;
+    const startTime = performance.now();
+    let data: any;
+
+    try {
+      const response = await fetch(url, fetchOptions);
+      const durationMs = performance.now() - startTime;
+
+      data = await response.json().catch(() => ({}));
+
+      let context: ApiResponseContext = { response, config, data, durationMs };
+
+      // 2. Response Interceptors
+      for (const interceptor of this.interceptors.response) {
+        context = await interceptor(context);
+      }
+
+      data = context.data;
+
+      if (!response.ok) {
+        const message = data?.message || `Request failed with status ${response.status}`;
+        throw new ApiClientError(message, response.status, data, traceId);
+      }
+
+    } catch (error: any) {
+      let clientError = error instanceof ApiClientError
+        ? error
+        : new ApiClientError(error.message || 'Network error', undefined, undefined, traceId);
+
+      // 3. Error Interceptors
+      for (const interceptor of this.interceptors.error) {
+        clientError = await interceptor(clientError, config);
+      }
+      throw clientError;
+    }
+
+    // Default Payload Normalization
+    if (typeof data === 'object' && data !== null && 'data' in data) {
+      return data.data as T;
+    }
+    return data as T;
+  }
+
+  get<T = any>(endpoint: string, options?: Omit<ApiRequestConfig, 'url' | 'traceId'>) {
+    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  }
+
+  post<T = any>(endpoint: string, body?: any, options?: Omit<ApiRequestConfig, 'url' | 'traceId'>) {
+    return this.request<T>(endpoint, { ...options, method: 'POST', body });
+  }
+
+  put<T = any>(endpoint: string, body?: any, options?: Omit<ApiRequestConfig, 'url' | 'traceId'>) {
+    return this.request<T>(endpoint, { ...options, method: 'PUT', body });
+  }
+
+  patch<T = any>(endpoint: string, body?: any, options?: Omit<ApiRequestConfig, 'url' | 'traceId'>) {
+    return this.request<T>(endpoint, { ...options, method: 'PATCH', body });
+  }
+
+  delete<T = any>(endpoint: string, options?: Omit<ApiRequestConfig, 'url' | 'traceId'>) {
+    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+  }
+}
+
+export const api = new ApiClient(appConfig.api.baseUrl || '/api');
+
+// --- Standard Interceptors ---
+
+// 1. Mock Data Source Extension Point
+api.interceptors.request.push((config) => {
+  if (appConfig.api.dataSource === 'mock') {
+    // Hooks for future ApiSimulator
+  }
+  return config;
+});
+
+// 2. Auth Header Injection
+api.interceptors.request.push((config) => {
+  const token = getAuthToken();
+  if (token && !((config.headers as Record<string, string>)?.Authorization)) {
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`
+    };
+  }
+  return config;
+});
+
+// 3. DevConsole Request Logging
+api.interceptors.request.push((config) => {
+  let parsedBody;
+  try { parsedBody = typeof config.body === 'string' ? JSON.parse(config.body) : config.body; } catch(e) {}
+  logAPI.request(config.method || 'GET', config.url, parsedBody, config.traceId);
+  return config;
+});
+
+// 4. DevConsole Response Logging & 401 Handling
+api.interceptors.response.push((context) => {
+  const { response, config, data, durationMs } = context;
+  logAPI.response(config.method || 'GET', config.url, response.status, durationMs, data, config.traceId);
+
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+  }
+
+  return context;
+});
+
+// 5. DevConsole Error Logging
+api.interceptors.error.push((error, config) => {
+  logAPI.error(config.method || 'GET', config.url, error, config.traceId);
+
+  if (error.status === 401) {
+    window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+  }
+
+  return error;
+});
 
 export default api;

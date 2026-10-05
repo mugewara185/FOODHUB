@@ -66,9 +66,22 @@ export async function setPartnerStatus(partnerId: string, status: 'offline' | 'a
   return partner;
 }
 
-export async function updateDeliveryStatus(deliveryId: string, newStatus: DeliveryStatus) {
-  const delivery = await Delivery.findById(deliveryId);
+export async function updateDeliveryStatus(
+  deliveryId: string,
+  newStatus: DeliveryStatus,
+  actorUserId?: string
+) {
+  const delivery = await Delivery.findById(deliveryId).populate('partnerId');
   if (!delivery) throw new Error('Delivery not found');
+
+  if (actorUserId) {
+    // If an actor is provided, verify they own the delivery (or are admin)
+    const partner = await DeliveryPartner.findOne({ userId: actorUserId });
+    if (!partner || partner._id.toString() !== (delivery.partnerId as any)?._id.toString()) {
+       // Note: In a real system, an admin might bypass this. For now we strictly enforce partner ownership if actorUserId is passed.
+       throw new Error('Not authorized to modify this delivery');
+    }
+  }
 
   assertValidTransition(delivery.status, newStatus);
   delivery.status = newStatus;

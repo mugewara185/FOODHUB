@@ -9,7 +9,7 @@ const envSchema = z.object({
   VITE_DEV_BYPASS_AUTH: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
   VITE_SENTRY_DSN: z.string().optional().default(''),
   VITE_SOCKET_URL: z.string().url().or(z.string().length(0).transform(() => undefined)).optional(),
-  
+
   VITE_LOGGER_MAX_LOGS: z.string().regex(/^\d+$/).transform(Number).optional(),
   VITE_LOGGER_PERSIST_LOGS: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
   VITE_LOGGER_LEVEL: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL']).optional(),
@@ -85,7 +85,7 @@ export const appConfig = {
   dev: {
     // SECURITY WARNING: MUST BE FALSE IN PRODUCTION
     bypassAuth: IS_DEV && env.VITE_DEV_BYPASS_AUTH,
-    
+
     logger: {
       maxLogs: env.VITE_LOGGER_MAX_LOGS ?? 1000,
       persistLogs: env.VITE_LOGGER_PERSIST_LOGS ?? false,

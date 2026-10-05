@@ -88,3 +88,69 @@ export const createReview = async (req: AuthRequest, res: Response, next: NextFu
     next(error);
   }
 };
+
+export const getRestaurantReviews = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { restaurantId } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const [reviews, total] = await Promise.all([
+      Review.find({ restaurantId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'name avatar')
+        .lean(),
+      Review.countDocuments({ restaurantId })
+    ]);
+
+    const mappedReviews = reviews.map(r => ({
+      _id: r._id,
+      rating: r.restaurantRating,
+      comment: r.comment,
+      createdAt: r.createdAt,
+      userId: r.userId
+    }));
+
+    sendSuccess({
+      res,
+      message: 'Reviews fetched',
+      data: {
+        reviews: mappedReviews,
+        pagination: { total, page, limit, pages: Math.ceil(total / limit) }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getReviewEligibility = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { restaurantId } = req.params;
+    const userId = req.user!.id;
+
+    const eligibleOrder = await Order.findOne({
+      userId,
+      restaurantId,
+      status: 'delivered'
+    }).sort({ createdAt: -1 });
+
+    if (!eligibleOrder) {
+      sendSuccess({ res, message: 'No eligible order', data: { eligible: false } });
+      return;
+    }
+
+    const existingReview = await Review.findOne({ orderId: eligibleOrder._id });
+    if (existingReview) {
+      sendSuccess({ res, message: 'Already reviewed', data: { eligible: false } });
+      return;
+    }
+
+    sendSuccess({ res, message: 'Eligible', data: { eligible: true, orderId: eligibleOrder._id } });
+  } catch (error) {
+    next(error);
+  }
+};
