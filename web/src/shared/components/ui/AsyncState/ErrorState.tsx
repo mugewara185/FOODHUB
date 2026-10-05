@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, type SxProps, type Theme, Paper, useTheme } from '@mui/material';
+import {  Typography, Button, type SxProps, type Theme, Paper, useTheme } from '@mui/material';
 import { ErrorOutline, Refresh } from '@mui/icons-material';
 import { getErrorMessage, type NormalizedApiError } from '@/core/utils/asyncState';
 

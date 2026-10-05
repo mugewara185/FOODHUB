@@ -1,10 +1,9 @@
-import { test } from 'node:test';
-import * as assert from 'node:assert';
+import { expect, describe, it } from 'vitest';
 import { normalizeError, getErrorMessage } from '../asyncState';
 import { ApiClientError } from '../api';
 
-test('normalizeError', async (t) => {
-  await t.test('handles ApiClientError with standard data', () => {
+describe('normalizeError', () => {
+  it('handles ApiClientError with standard data', () => {
     const error = new ApiClientError('Validation failed', 400, {
       success: false,
       message: 'Validation failed',
@@ -16,13 +15,13 @@ test('normalizeError', async (t) => {
     }, 'trace-123');
 
     const normalized = normalizeError(error);
-    assert.strictEqual(normalized.message, 'Validation failed');
-    assert.strictEqual(normalized.status, 400);
-    assert.strictEqual(normalized.traceId, 'trace-123');
-    assert.deepStrictEqual(normalized.details, [{ path: 'email', message: 'Invalid email' }]);
+    expect(normalized.message).toBe('Validation failed');
+    expect(normalized.status).toBe(400);
+    expect(normalized.traceId).toBe('trace-123');
+    expect(normalized.details).toEqual([{ path: 'email', message: 'Invalid email' }]);
   });
 
-  await t.test('handles ApiClientError with direct details array', () => {
+  it('handles ApiClientError with direct details array', () => {
     const error = new ApiClientError('Validation failed', 400, {
       details: [
         { path: 'password', message: 'Too short' }
@@ -30,34 +29,34 @@ test('normalizeError', async (t) => {
     });
 
     const normalized = normalizeError(error);
-    assert.deepStrictEqual(normalized.details, [{ path: 'password', message: 'Too short' }]);
+    expect(normalized.details).toEqual([{ path: 'password', message: 'Too short' }]);
   });
 
-  await t.test('handles standard Error', () => {
+  it('handles standard Error', () => {
     const error = new Error('Network failure');
     const normalized = normalizeError(error);
-    assert.strictEqual(normalized.message, 'Network failure');
-    assert.strictEqual(normalized.status, undefined);
+    expect(normalized.message).toBe('Network failure');
+    expect(normalized.status).toBeUndefined();
   });
 
-  await t.test('handles string error', () => {
+  it('handles string error', () => {
     const normalized = normalizeError('Something went wrong');
-    assert.strictEqual(normalized.message, 'Something went wrong');
+    expect(normalized.message).toBe('Something went wrong');
   });
 
-  await t.test('handles unknown error type', () => {
+  it('handles unknown error type', () => {
     const normalized = normalizeError({ foo: 'bar' });
-    assert.strictEqual(normalized.message, 'An unknown error occurred');
+    expect(normalized.message).toBe('An unknown error occurred');
   });
 });
 
-test('getErrorMessage', async (t) => {
-  await t.test('extracts basic message', () => {
+describe('getErrorMessage', () => {
+  it('extracts basic message', () => {
     const msg = getErrorMessage({ message: 'Not found', status: 404 });
-    assert.strictEqual(msg, 'Not found');
+    expect(msg).toBe('Not found');
   });
 
-  await t.test('combines validation details if present', () => {
+  it('combines validation details if present', () => {
     const msg = getErrorMessage({
       message: 'Validation Error',
       details: [
@@ -65,15 +64,15 @@ test('getErrorMessage', async (t) => {
         { path: 'age', message: 'Must be a number' }
       ]
     });
-    assert.strictEqual(msg, 'Validation Error: name Required, age Must be a number');
+    expect(msg).toBe('Validation Error: name Required, age Must be a number');
   });
 
-  await t.test('handles null/undefined safely', () => {
-    assert.strictEqual(getErrorMessage(null), 'An unknown error occurred');
-    assert.strictEqual(getErrorMessage(undefined), 'An unknown error occurred');
+  it('handles null/undefined safely', () => {
+    expect(getErrorMessage(null)).toBe('An unknown error occurred');
+    expect(getErrorMessage(undefined)).toBe('An unknown error occurred');
   });
 
-  await t.test('handles string safely', () => {
-    assert.strictEqual(getErrorMessage('Raw string error'), 'Raw string error');
+  it('handles string safely', () => {
+    expect(getErrorMessage('Raw string error')).toBe('Raw string error');
   });
 });

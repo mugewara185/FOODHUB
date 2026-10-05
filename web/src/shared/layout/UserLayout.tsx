@@ -7,10 +7,10 @@ import {
   IconButton,
   Typography,
   Badge,
-  Container,
-  Drawer,
+  
+  
   List,
-  ListItem,
+  
   ListItemIcon,
   ListItemText,
   Divider,
@@ -18,14 +18,14 @@ import {
   Avatar,
   InputBase,
   Paper,
-  CircularProgress,
+  
   ListItemButton,
   Tooltip,
-  Fade,
-  Zoom,
+  
+  
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
+  
   Search as SearchIcon,
   ShoppingCart,
   Person,
@@ -41,10 +41,10 @@ import {
   Logout,
   ChevronLeft,
   ChevronRight,
-  Dashboard,
+  
   Fastfood,
-  Star,
-  SupportAgent,
+  
+  
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_NAME } from '../../core/constants/food';

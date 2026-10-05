@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Box, TextField, Paper, List, ListItem, ListItemIcon, ListItemText, CircularProgress, IconButton, InputAdornment } from '@mui/material';
+import { Box, TextField, Paper, List, ListItem, ListItemIcon, ListItemText,  IconButton, InputAdornment } from '@mui/material';
 import { LocationOn, Search, Clear, MyLocation } from '@mui/icons-material';
 import type { Coordinates, Location } from '../../../data/types/location';
 import Map from './Map';

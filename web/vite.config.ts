@@ -1,4 +1,5 @@
-import { defineConfig } from 'vite'
+/// <reference types="vitest" />
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
@@ -20,7 +21,14 @@ export default defineConfig({
 
       '@emotion/react': path.resolve('./node_modules/@emotion/react'),
       '@emotion/styled': path.resolve('./node_modules/@emotion/styled'),
+      ...(process.env.NODE_ENV === 'test' ? { '@mui/icons-material': path.resolve(__dirname, './src/test/mocks/mui-icons.ts') } : {}),
     },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    
+    globals: true,
   },
   server: {
     proxy: {

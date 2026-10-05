@@ -69,7 +69,7 @@ const getIconForType = (type: string) => {
 
 const Map: React.FC<MapProps> = ({
   markers = [], center = { lat: 19.0760, lng: 72.8777 }, zoom = 12, height = '400px',
-  showUserLocation = false, onMarkerClick, polyline, polylines, routeCoordinates,
+  showUserLocation = false, onMarkerClick, polyline,  routeCoordinates,
   recenterTrigger
 }) => {
   const [userLocation, setUserLocation] = React.useState<Coordinates | null>(null);

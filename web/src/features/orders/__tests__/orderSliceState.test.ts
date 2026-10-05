@@ -1,14 +1,7 @@
 import { expect, describe, it, vi, beforeAll } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
 
-beforeAll(() => {
-  (global as any).localStorage = {
-    getItem: vi.fn(),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-  } as any;
-});
+
 
 import orderReducer, { fetchOrdersThunk } from '../orderSlice';
 import { orderApi } from '../api/orderApi';
