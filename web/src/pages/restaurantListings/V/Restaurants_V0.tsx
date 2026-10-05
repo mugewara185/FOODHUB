@@ -1,0 +1,224 @@
+import React, { useEffect, useState } from 'react';
+import {
+  Container,
+  Grid,
+  Typography,
+  Box,
+  Pagination,
+  useMediaQuery,
+  useTheme,
+  Alert,
+} from '@mui/material';
+//redux
+import { useAppDispatch, useAppSelector } from '../../../app/store';
+import {
+  fetchRestaurants,
+  setSearchQuery,
+  setSortBy,
+  clearFilters,
+  setCurrentPage,
+  selectPaginatedRestaurants,
+  selectTotalPages,
+  selectActiveFiltersCount,
+  selectRestaurantLoading,
+  selectRestaurantError,
+  selectFilteredRestaurants,
+  toggleCuisine, // import actions if needed for removing filter chips
+  setVegFilter,
+  setOpenNowFilter,
+  setDeliveryTime
+} from '../../../features/restaurant/restaurantSlice';
+//feature component
+import { RestaurantCard, RestaurantFilters } from '../../../features/restaurant/components';
+import { Restaurants_Card, RestaurantsCard } from '@features/restaurant/components/RestaurantCard';
+import { AsyncBoundary } from '@/shared/components/ui/AsyncState';
+// import { AsyncBoundary } from '@/shared/components/ui/AsyncState';
+//feature ui-component
+import {
+  ListToolbar,
+  ActiveFiltersRow,
+  FilterPanel,
+  SkeletonGrid,
+  EmptyState,
+  PageHeader
+} from '../../../features/ui/components';
+//feature hooks
+import { useRestaurantLogic } from '@/features/restaurant/hooks/useRestaurantLogic';
+
+import type { ActiveFilterChip } from '../../../features/ui/components';
+import { Restaurant as RestaurantIcon } from '@mui/icons-material';
+
+import { useHideGlobalSearch } from '../../../features/ui/hooks/useHideGlobalSearch';
+import { selectFetchStatus } from '@/features/orders/orderSlice';
+
+const Restaurants: React.FC = () => {
+  useHideGlobalSearch();
+  const theme = useTheme();
+  const dispatch = useAppDispatch();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'));
+  //restaurant hooks
+  const onToggleFavorite = useRestaurantLogic().handleToggleFavorite;
+  const isFavourite = useRestaurantLogic().isFavorite;
+
+  // Local UI state
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [localSearch, setLocalSearch] = useState('');
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // Redux state
+  const paginatedRestaurants = useAppSelector(selectPaginatedRestaurants);
+  const totalPages = useAppSelector(selectTotalPages);
+  const activeFiltersCount = useAppSelector(selectActiveFiltersCount);
+  const fetchStatus = useAppSelector(selectFetchStatus);
+  const loading = fetchStatus === 'loading';
+  const error = useAppSelector(selectRestaurantError);
+  const filters = useAppSelector((state) => state.restaurants.filters);
+  const currentPage = useAppSelector((state) => state.restaurants.pagination.currentPage);
+  const filteredCount = useAppSelector(selectFilteredRestaurants).length;
+  useEffect(() => {
+    dispatch(fetchRestaurants());
+  }, [dispatch]);
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearch(value);
+    if (debounceTimer) clearTimeout(debounceTimer);
+    const timer = setTimeout(() => {
+      dispatch(setSearchQuery(value));
+    }, 500);
+    setDebounceTimer(timer);
+  };
+
+  const handleSortChange = (value: string) => {
+    dispatch(setSortBy(value as any));
+  };
+
+  const handleClearFilters = () => {
+    dispatch(clearFilters());
+    setLocalSearch('');
+  };
+
+  const handlePageChange = (_: React.ChangeEvent<unknown>, page: number) => {
+    dispatch(setCurrentPage(page));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getGridColumns = () => {
+    if (isMobile) return 12;
+    if (isTablet) return 6;
+    return 4;
+  };
+
+  // Convert active filters to simple chips you can omit
+  const activeFilterChips: ActiveFilterChip[] = [];
+  filters.cuisines.forEach(c => {
+    activeFilterChips.push({ key: `cuisine-${c}`, label: c, onDelete: () => dispatch(toggleCuisine(c)) });
+  });
+  if (filters.isVeg) {
+    activeFilterChips.push({ key: 'veg', label: 'Pure Veg', onDelete: () => dispatch(setVegFilter(false)) });
+  }
+  if (filters.isOpen) {
+    activeFilterChips.push({ key: 'open', label: 'Open Now', onDelete: () => dispatch(setOpenNowFilter(false)) });
+  }
+  if (filters.deliveryTime !== 'all') {
+    activeFilterChips.push({ key: 'time', label: `< ${filters.deliveryTime} mins`, onDelete: () => dispatch(setDeliveryTime('all')) });
+  }
+  const ref = React.useRef(0)
+  return (
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <PageHeader
+        title="Restaurants Delivery in Mumbai"
+        subtitle="Explore top-rated restaurants, cafes, and more"
+      />
+
+      <ListToolbar
+        searchValue={localSearch}
+        onSearchChange={handleSearchChange}
+        sortValue={filters.sortBy}
+        onSortChange={handleSortChange}
+        sortOptions={[
+          { value: 'rating', label: 'Rating: High to Low' },
+          { value: 'deliveryTime', label: 'Delivery Time' },
+          { value: 'price', label: 'Price: Low to High' },
+          { value: 'price_desc', label: 'Price: High to Low' },
+          { value: 'name', label: 'Name: A to Z' },
+        ]}
+        activeFilterCount={activeFiltersCount}
+        onFilterOpen={() => setFilterDrawerOpen(true)}
+        showMobileFilter={isMobile}
+        searchPlaceholder="Search for restaurants, cuisines..."
+      />
+      <ActiveFiltersRow filters={activeFilterChips} />
+
+      {/* <Grid container spacing={2} sx={{ mt: 2 }} wrap='nowrap'> */}
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 3,
+          height: '94%',
+          minWidth: 0,
+        }}
+      ></Box>
+      {!isMobile && (
+        <Grid item xs={12} md={3} >
+          <FilterPanel
+            activeFilterCount={activeFiltersCount}
+            onClearAll={handleClearFilters}
+            variant="sidebar"
+            sx={{ position: 'sticky', top: 20 }}
+          >
+            <RestaurantFilters />
+          </FilterPanel>
+        </Grid>
+      )}
+
+      {isMobile && (
+        <FilterPanel
+          open={filterDrawerOpen}
+          onClose={() => setFilterDrawerOpen(false)}
+          activeFilterCount={activeFiltersCount}
+          onClearAll={handleClearFilters}
+          variant="drawer"
+        >
+          <RestaurantFilters />
+        </FilterPanel>
+      )}
+
+      <Grid item xs={12} md={9}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" fontWeight={700}>
+            {filteredCount} restaurants found
+          </Typography>
+        </Box>
+
+        <AsyncBoundary
+          status={fetchStatus}
+          error={error}
+          hasData={paginatedRestaurants.length > 0}
+          onRetry={() => dispatch(fetchRestaurants())}
+          loadingComponent={<SkeletonGrid count={6} columns={{ xs: 12, sm: 6, md: 4 }} />}
+          emptyComponent={
+            <EmptyState
+              icon={<RestaurantIcon />}
+              title="No restaurants found"
+              description="Try adjusting your filters or search query to find what you're looking for."
+              action={{ label: 'Clear Filters', onClick: handleClearFilters }}
+            />
+          }
+        >
+          <Grid container spacing={3}>
+            {paginatedRestaurants.map((restaurant) => (
+              <Grid item xs={getGridColumns()} key={restaurant.id || (restaurant as any)._id}>
+                <Restaurants_Card restaurant={restaurant} />
+              </Grid>
+            ))}
+          </Grid>
+        </AsyncBoundary>
+      </Grid>
+    </Box>
+      {/* </Grid> */ }
+    </Container >
+  );
+};
+
+export default Restaurants;
