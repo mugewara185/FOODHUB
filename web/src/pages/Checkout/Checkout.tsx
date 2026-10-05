@@ -488,7 +488,7 @@ const Checkout: React.FC = () => {
                   {/* Error alert — shown if createOrderThunk fails */}
                   {orderError && (
                     <Alert severity="error" sx={{ mb: 3 }}>
-                      {orderError}
+                      {typeof orderError === 'string' ? orderError : (orderError as any)?.message}
                     </Alert>
                   )}
 

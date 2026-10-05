@@ -41,11 +41,14 @@ import {
   fetchOrdersThunk,
   cancelOrderThunk,
   selectOrders,
-  selectOrdersLoading,
+  selectFetchStatus,
   selectOrderCancelling,
   selectOrderError,
 } from '@/features/orders/orderSlice';
 import type { Order } from '@/core/types';
+import { AsyncBoundary } from '@/shared/components/ui/AsyncState';
+import { SkeletonGrid } from '@/shared/components/ui/SkeletonGrid';
+import EmptyState from '@/shared/components/ui/EmptyState';
 
 
 const Orders: React.FC = () => {
@@ -54,7 +57,7 @@ const Orders: React.FC = () => {
 
   // Redux state
   const orders = useAppSelector(selectOrders);
-  const isLoading = useAppSelector(selectOrdersLoading);
+  const fetchStatus = useAppSelector(selectFetchStatus);
   const isCancelling = useAppSelector(selectOrderCancelling);
   const orderError = useAppSelector(selectOrderError);
 
@@ -170,15 +173,7 @@ const Orders: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Loading indicator */}
-      {isLoading && <LinearProgress sx={{ mb: 2, borderRadius: 1 }} />}
 
-      {/* Error alert */}
-      {orderError && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {orderError}
-        </Alert>
-      )}
 
       {/* Tabs */}
       <Paper sx={{ mb: 4, borderRadius: 3 }}>

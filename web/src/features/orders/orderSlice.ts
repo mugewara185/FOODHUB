@@ -26,25 +26,20 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface OrderState {
-  /** User's order history */
   items: Order[];
-  /** The most recently placed order (for confirmation page) */
   currentOrder: Order | null;
-  /** True while GET /api/orders is in-flight */
-  loading: boolean;
-  /** True while POST /api/orders is in-flight */
-  creating: boolean;
-  /** True while PATCH /api/orders/:id/cancel is in-flight */
-  cancelling: boolean;
-  error: string | null;
+  fetchStatus: AsyncStatus;
+  createStatus: AsyncStatus;
+  cancelStatus: AsyncStatus;
+  error: NormalizedApiError | null;
 }
 
 const initialState: OrderState = {
   items: [],
   currentOrder: null,
-  loading: false,
-  creating: false,
-  cancelling: false,
+  fetchStatus: 'idle',
+  createStatus: 'idle',
+  cancelStatus: 'idle',
   error: null,
 };
 
@@ -72,6 +67,7 @@ export interface CheckoutPayload {
 // ---------------------------------------------------------------------------
 
 import { logger } from '../../core/dev/logger';
+import { normalizeError, type AsyncStatus, type NormalizedApiError } from '../../core/utils/asyncState';
 
 /**
  * Fetch the authenticated user's order history.
@@ -84,7 +80,7 @@ export const fetchOrdersThunk = createAsyncThunk<Order[], void, { state: RootSta
     try {
       return await orderApi.getUserOrders();
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch orders');
+      return rejectWithValue(normalizeError(err));
     }
   },
 );
@@ -100,7 +96,7 @@ export const fetchOrderByIdThunk = createAsyncThunk<Order, string, { state: Root
     try {
       return await orderApi.getById(id);
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch order');
+      return rejectWithValue(normalizeError(err));
     }
   },
 );
@@ -131,7 +127,7 @@ export const createOrderThunk = createAsyncThunk<Order, CheckoutPayload, { state
       };
       return await orderApi.create(payload);
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to place order');
+      return rejectWithValue(normalizeError(err));
     }
   },
 );
@@ -149,7 +145,7 @@ export const cancelOrderThunk = createAsyncThunk<Order, string, { state: RootSta
     try {
       return await orderApi.cancel(orderId);
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to cancel order');
+      return rejectWithValue(normalizeError(err));
     }
   },
 );
@@ -160,7 +156,7 @@ export const submitReviewThunk = createAsyncThunk<void, { orderId: string, resta
     try {
       await orderApi.submitReview(payload);
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to submit review');
+      return rejectWithValue(normalizeError(err));
     }
   }
 );
@@ -200,27 +196,26 @@ const orderSlice = createSlice({
     // fetchOrdersThunk
     builder
       .addCase(fetchOrdersThunk.pending, (state) => {
-        state.loading = true;
+        state.fetchStatus = 'loading';
         state.error = null;
       })
       .addCase(fetchOrdersThunk.fulfilled, (state, action: PayloadAction<Order[]>) => {
-        state.loading = false;
+        state.fetchStatus = 'success';
         state.items = action.payload;
       })
       .addCase(fetchOrdersThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.fetchStatus = 'error';
+        state.error = action.payload as NormalizedApiError;
       });
 
     // fetchOrderByIdThunk
     builder
       .addCase(fetchOrderByIdThunk.pending, (state) => {
-        state.loading = true;
+        state.fetchStatus = 'loading';
         state.error = null;
       })
       .addCase(fetchOrderByIdThunk.fulfilled, (state, action: PayloadAction<Order>) => {
-        state.loading = false;
-        // Upsert into items list
+        state.fetchStatus = 'success';
         const idx = state.items.findIndex((o) => o.id === action.payload.id);
         if (idx >= 0) {
           state.items[idx] = action.payload;
@@ -229,35 +224,34 @@ const orderSlice = createSlice({
         }
       })
       .addCase(fetchOrderByIdThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.fetchStatus = 'error';
+        state.error = action.payload as NormalizedApiError;
       });
 
     // createOrderThunk
     builder
       .addCase(createOrderThunk.pending, (state) => {
-        state.creating = true;
+        state.createStatus = 'loading';
         state.error = null;
       })
       .addCase(createOrderThunk.fulfilled, (state, action: PayloadAction<Order>) => {
-        state.creating = false;
+        state.createStatus = 'success';
         state.currentOrder = action.payload;
-        // Prepend to history list
         state.items.unshift(action.payload);
       })
       .addCase(createOrderThunk.rejected, (state, action) => {
-        state.creating = false;
-        state.error = action.payload as string;
+        state.createStatus = 'error';
+        state.error = action.payload as NormalizedApiError;
       });
 
     // cancelOrderThunk
     builder
       .addCase(cancelOrderThunk.pending, (state) => {
-        state.cancelling = true;
+        state.cancelStatus = 'loading';
         state.error = null;
       })
       .addCase(cancelOrderThunk.fulfilled, (state, action: PayloadAction<Order>) => {
-        state.cancelling = false;
+        state.cancelStatus = 'success';
         const idx = state.items.findIndex((o) => o.id === action.payload.id);
         if (idx >= 0) {
           state.items[idx] = action.payload;
@@ -267,8 +261,8 @@ const orderSlice = createSlice({
         }
       })
       .addCase(cancelOrderThunk.rejected, (state, action) => {
-        state.cancelling = false;
-        state.error = action.payload as string;
+        state.cancelStatus = 'error';
+        state.error = action.payload as NormalizedApiError;
       });
   },
 });
@@ -282,9 +276,11 @@ export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = 
 
 export const selectOrders = (state: RootState) => state.orders.items;
 export const selectCurrentOrder = (state: RootState) => state.orders.currentOrder;
-export const selectOrdersLoading = (state: RootState) => state.orders.loading;
-export const selectOrderCreating = (state: RootState) => state.orders.creating;
-export const selectOrderCancelling = (state: RootState) => state.orders.cancelling;
+export const selectOrdersLoading = (state: RootState) => state.orders.fetchStatus === 'loading';
+export const selectOrderCreating = (state: RootState) => state.orders.createStatus === 'loading';
+export const selectOrderCancelling = (state: RootState) => state.orders.cancelStatus === 'loading';
 export const selectOrderError = (state: RootState) => state.orders.error;
 
 export default orderSlice.reducer;
+
+export const selectFetchStatus = (state: RootState) => state.orders.fetchStatus;

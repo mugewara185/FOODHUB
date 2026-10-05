@@ -25,8 +25,9 @@ export interface RestaurantState {
   menuItems: FoodItem[];
   categories: Category[];
   featuredRestaurants: Restaurant[];
-  loading: boolean;
-  error: string | null;
+  fetchStatus: AsyncStatus;
+  fetchByIdStatus: AsyncStatus;
+  error: NormalizedApiError | null;
   filters: RestaurantFilters;
   pagination: {
     currentPage: number;
@@ -72,7 +73,7 @@ export const fetchRestaurants = createAsyncThunk(
         return result;
       } catch (error) {
       logger.error('RESTAURANT', 'Failed to load restaurants', { event: 'RESTAURANT.LOAD.FAILURE', error });
-      return rejectWithValue(`Failed to fetch restaurants:${error instanceof Error ? error.message : 'Unknown error'}`);
+      return rejectWithValue(normalizeError(error));
     }
   }
 );
@@ -99,7 +100,8 @@ const initialState: RestaurantState = {
   menuItems: [],
   categories: [],
   featuredRestaurants: [],
-  loading: false,
+  fetchStatus: 'idle',
+  fetchByIdStatus: 'idle',
   error: null,
   filters: {
     searchQuery: '',
@@ -211,22 +213,22 @@ const restaurantSlice = createSlice({
     builder
       // Fetch restaurants
       .addCase(fetchRestaurants.pending, (state) => {
-        state.loading = true;
+        state.fetchStatus = 'loading';
         state.error = null;
       })
       .addCase(fetchRestaurants.fulfilled, (state, action) => {
-        state.loading = false;
+        state.fetchStatus = 'success';
         state.restaurants = action.payload;
         state.featuredRestaurants = action.payload.filter(r => r.isFeatured);
       })
       .addCase(fetchRestaurants.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.fetchStatus = 'error';
+        state.error = action.payload as NormalizedApiError;
       })
 
       // Fetch restaurant by ID
       .addCase(fetchRestaurantById.pending, (state) => {
-        state.loading = true;
+        state.fetchByIdStatus = 'loading';
         state.error = null;
       })
       .addCase(fetchRestaurantById.fulfilled, (state, action) => {
@@ -237,8 +239,8 @@ const restaurantSlice = createSlice({
         state.categories = groupItemsByCategory(action.payload.items);
       })
       .addCase(fetchRestaurantById.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.fetchByIdStatus = 'error';
+        state.error = action.payload as NormalizedApiError;
       });
   },
 });
@@ -252,7 +254,8 @@ export const selectFeaturedRestaurants = (state: RootState) => state.restaurants
 export const selectSelectedRestaurant = (state: RootState) => state.restaurants.selectedRestaurant;
 export const selectRestaurantMenu = (state: RootState) => state.restaurants.menuItems;
 export const selectMenuCategories = (state: RootState) => state.restaurants.categories;
-export const selectRestaurantLoading = (state: RootState) => state.restaurants.loading;
+export const selectRestaurantLoading = (state: RootState) => state.restaurants.fetchStatus === 'loading';
+export const selectFetchStatus = (state: RootState) => state.restaurants.fetchStatus;
 export const selectRestaurantError = (state: RootState) => state.restaurants.error;
 
 export const selectFilteredRestaurants = createSelector(

@@ -31,6 +31,8 @@ import {
 //feature component
 import { RestaurantCard, RestaurantFilters } from '../../../features/restaurant/components';
 import { Restaurants_Card, RestaurantsCard } from '@features/restaurant/components/RestaurantCard';
+import { AsyncBoundary } from '@/shared/components/ui/AsyncState';
+// import { AsyncBoundary } from '@/shared/components/ui/AsyncState';
 //feature ui-component
 import {
   ListToolbar,
@@ -47,6 +49,7 @@ import type { ActiveFilterChip } from '../../../features/ui/components';
 import { Restaurant as RestaurantIcon } from '@mui/icons-material';
 
 import { useHideGlobalSearch } from '../../../features/ui/hooks/useHideGlobalSearch';
+import { selectFetchStatus } from '@/features/orders/orderSlice';
 
 const Restaurants: React.FC = () => {
   useHideGlobalSearch();
@@ -55,19 +58,20 @@ const Restaurants: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'));
   //restaurant hooks
-  const onToggleFavorite= useRestaurantLogic().handleToggleFavorite;
-  const isFavourite= useRestaurantLogic().isFavorite;
+  const onToggleFavorite = useRestaurantLogic().handleToggleFavorite;
+  const isFavourite = useRestaurantLogic().isFavorite;
 
   // Local UI state
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState('');
   const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // Redux state
   const paginatedRestaurants = useAppSelector(selectPaginatedRestaurants);
   const totalPages = useAppSelector(selectTotalPages);
   const activeFiltersCount = useAppSelector(selectActiveFiltersCount);
-  const loading = useAppSelector(selectRestaurantLoading);
+  const fetchStatus = useAppSelector(selectFetchStatus);
+  const loading = fetchStatus === 'loading';
   const error = useAppSelector(selectRestaurantError);
   const filters = useAppSelector((state) => state.restaurants.filters);
   const currentPage = useAppSelector((state) => state.restaurants.pagination.currentPage);
@@ -100,9 +104,9 @@ const Restaurants: React.FC = () => {
   };
 
   const getGridColumns = () => {
-    if (isMobile) return 12;      
-    if (isTablet) return 6;        
-    return 4;                      
+    if (isMobile) return 12;
+    if (isTablet) return 6;
+    return 4;
   };
 
   // Convert active filters to simple chips you can omit
@@ -119,7 +123,7 @@ const Restaurants: React.FC = () => {
   if (filters.deliveryTime !== 'all') {
     activeFilterChips.push({ key: 'time', label: `< ${filters.deliveryTime} mins`, onDelete: () => dispatch(setDeliveryTime('all')) });
   }
-const ref=React.useRef(0)
+  const ref = React.useRef(0)
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <PageHeader
@@ -175,59 +179,33 @@ const ref=React.useRef(0)
         <Grid item xs={12} md={9}>
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" fontWeight={700}>
-              {loading ? 'Finding restaurants...' : `${filteredCount} restaurants found`}
+              {filteredCount} restaurants found
             </Typography>
           </Box>
 
-          {loading ? (
-             <SkeletonGrid 
-               count={6} 
-               columns={{ xs: 12, sm: 6, md: 4 }} 
-             />
-          ) : error ? (
-            <Alert severity="error">{error}</Alert>
-          ) : paginatedRestaurants.length === 0 ? (
-            <EmptyState
-              icon={<RestaurantIcon />}
-              title="No restaurants found"
-              description="Try adjusting your filters or search query to find what you're looking for."
-              action={{ label: 'Clear Filters', onClick: handleClearFilters }}
-            />
-          ) : (
-            <>
-              <Grid container spacing={3}>
-                {paginatedRestaurants.map((restaurant) => (
-                  <Grid item xs={getGridColumns()} key={restaurant.id}>
-                    {(
-                    // console.log('RestaurantCard', ref.current++,':',restaurant.id),
-                    
-                    <RestaurantCard 
-                      restaurant={restaurant} 
-                      isFavorite={isFavourite}
-                      onToggleFavorite={onToggleFavorite}
-                    />
-                    // <RestaurantsCard restaurant={restaurant}/>
-                    // {/* <Restaurants_Card
-                    //   restaurant={restaurant}
-                    // /> */}
-                    )}
-                  </Grid>
-                ))}
-              </Grid>
-
-              {totalPages > 1 && (
-                <Box sx={{ mt: 6, display: 'flex', justifyContent: 'center' }}>
-                  <Pagination
-                    count={totalPages}
-                    page={currentPage}
-                    onChange={handlePageChange}
-                    color="primary"
-                    size={isMobile ? "small" : "large"}
-                  />
-                </Box>
-              )}
-            </>
-          )}
+          <AsyncBoundary
+            status={fetchStatus}
+            error={error}
+            hasData={paginatedRestaurants.length > 0}
+            onRetry={() => dispatch(fetchRestaurants())}
+            loadingComponent={<SkeletonGrid count={6} columns={{ xs: 12, sm: 6, md: 4 }} />}
+            emptyComponent={
+              <EmptyState
+                icon={<RestaurantIcon />}
+                title="No restaurants found"
+                description="Try adjusting your filters or search query to find what you're looking for."
+                action={{ label: 'Clear Filters', onClick: handleClearFilters }}
+              />
+            }
+          >
+            <Grid container spacing={3}>
+              {paginatedRestaurants.map((restaurant) => (
+                <Grid item xs={getGridColumns()} key={restaurant.id || (restaurant as any)._id}>
+                  <Restaurants_Card restaurant={restaurant} />
+                </Grid>
+              ))}
+            </Grid>
+          </AsyncBoundary>
         </Grid>
       </Grid>
     </Container>
