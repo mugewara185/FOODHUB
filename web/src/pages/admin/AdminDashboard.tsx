@@ -1,4 +1,4 @@
-import { appConfig } from '../../core/config/app.config';
+import api from '../../core/utils/api';
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -62,7 +62,7 @@ import {
 import { AdminAIAssistantTrigger } from './components/AdminAIAssistantTrigger';
 import { logger } from '../../core/dev/logger';
 import { StatsCard } from '../../shared/components/admin/StatsCard';
-import { getAuthToken } from '../../services/api/apiUtils';
+
 
 const COLORS = ['#FF6B35', '#00C853', '#2196F3', '#FFC107', '#9C27B0'];
 
@@ -95,30 +95,15 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     logger.info('ADMIN.PAGE.MOUNT', 'AdminDashboard component mounted');
-    const fetchAnalytics = async () => {
+          const fetchAnalytics = async () => {
       try {
         setLoading(true);
         setError(null);
-        logger.info('ADMIN.ANALYTICS.LOAD.START', `Loading analytics for period: ${timeRange}`);
         
-        const apiBaseUrl = appConfig.api.baseUrl;
-        const token = getAuthToken();
-
-        const response = await fetch(`${apiBaseUrl}/admin/analytics/dashboard?period=${timeRange}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) throw new Error('Failed to fetch analytics');
-        
-        const json = await response.json();
-        setAnalyticsData(json.data);
-        logger.info('ADMIN.ANALYTICS.LOAD.SUCCESS', `Successfully loaded analytics for period: ${timeRange}`);
-      } catch (err) {
-        console.error(err);
-        setError((err as Error).message);
-        logger.error('ADMIN.ANALYTICS.LOAD.FAILURE', 'Failed to load analytics data', err as Error);
+        const data = await api.get(`/admin/analytics/dashboard?period=${timeRange}`);
+        setAnalyticsData(data);
+      } catch (err: any) {
+        setError(err.message || 'Something went wrong');
       } finally {
         setLoading(false);
       }

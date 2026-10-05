@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
+
 import { Review } from './review.model';
 import { Order } from '../orders/order.model';
 import { Restaurant } from '../restaurants/restaurant.model';
@@ -7,6 +9,14 @@ import { transitionOrderStatus } from '../orders/order.service';
 import { AppError } from '../../shared/middleware/errorHandler';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
 import { sendSuccess } from '../../shared/utils/response';
+
+
+export const createReviewSchema = z.object({
+  orderId: z.string().min(1),
+  restaurantRating: z.number().min(1).max(5),
+  partnerRating: z.number().min(1).max(5),
+  comment: z.string().optional(),
+});
 
 function getActorRole(req: AuthRequest): string {
   if (req.user!.roles.includes('admin')) return 'admin';
@@ -18,10 +28,6 @@ export const createReview = async (req: AuthRequest, res: Response, next: NextFu
   try {
     const { orderId, restaurantRating, partnerRating, comment } = req.body;
     const userId = req.user!.id;
-
-    if (!orderId || typeof restaurantRating !== 'number' || typeof partnerRating !== 'number') {
-      throw new AppError('Missing required fields', 400);
-    }
 
     const order = await Order.findOne({ _id: orderId, userId });
     if (!order) {

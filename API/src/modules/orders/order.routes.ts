@@ -1,12 +1,24 @@
 import { Router } from 'express';
-import { createOrder, getUserOrders, getOwnerOrders, getOrderById, cancelOrder, acceptOrder, rejectOrder, markPreparing, markReady } from './order.controller';
+import {
+  createOrder,
+  getUserOrders,
+  getOwnerOrders,
+  getOrderById,
+  cancelOrder,
+  acceptOrder,
+  rejectOrder,
+  markPreparing,
+  markReady,
+  createOrderSchema
+} from './order.controller';
 import { protect, authorize } from '../../shared/middleware/auth.middleware';
+import { validateRequest } from '../../shared/middleware/validate.middleware';
 
 const router = Router();
 
 router.use(protect);
 
-router.post('/', createOrder);
+router.post('/', validateRequest(createOrderSchema), createOrder);
 router.get('/', getUserOrders);
 router.get('/owned', authorize('owner', 'admin'), getOwnerOrders);
 router.get('/:id', getOrderById);

@@ -173,15 +173,7 @@ export const toggleFavoriteThunk = createAsyncThunk<string[], string, { rejectVa
       const state = getState() as any;
       const user = state.auth.user;
       
-      if (appConfig.api.dataSource === 'mock') {
-        const currentFavorites = user?.favoriteRestaurants || [];
-        const isFav = currentFavorites.includes(restaurantId);
-        const updatedFavorites = isFav 
-          ? currentFavorites.filter((id: string) => id !== restaurantId) 
-          : [...currentFavorites, restaurantId];
-        logger.info('AUTH', 'Toggled favorite (mock)', { event: 'FAVORITE.TOGGLE.SUCCESS' });
-        return updatedFavorites;
-      }
+      
 
       const token = user?.token;
       if (!token) {
@@ -206,15 +198,7 @@ export const toggleFoodFavoriteThunk = createAsyncThunk<string[], string, { reje
       const state = getState() as any;
       const user = state.auth.user;
 
-      if (appConfig.api.dataSource === 'mock') {
-        const currentFavorites = user?.favoriteFoodItems || [];
-        const isFav = currentFavorites.includes(foodItemId);
-        const updatedFavorites = isFav 
-          ? currentFavorites.filter((id: string) => id !== foodItemId) 
-          : [...currentFavorites, foodItemId];
-        logger.info('AUTH', 'Toggled food favorite (mock)', { event: 'FAVORITE.FOOD.TOGGLE.SUCCESS' });
-        return updatedFavorites;
-      }
+      
 
       const token = user?.token;
       if (!token) {
@@ -434,4 +418,3 @@ const authSlice = createSlice({
 
 export const { logout, clearError, setAuthSession } = authSlice.actions;
 export default authSlice.reducer;
-

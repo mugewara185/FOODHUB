@@ -80,24 +80,10 @@ import { logger } from '../../core/dev/logger';
  */
 export const fetchOrdersThunk = createAsyncThunk<Order[], void, { state: RootState }>(
   'orders/fetchAll',
-  async (_, { getState, rejectWithValue }) => {
-    logger.info('ORDER', 'Loading order history', { event: 'ORDER.HISTORY.LOAD.START' });
+  async (_, { rejectWithValue }) => {
     try {
-      if (appConfig.api.dataSource === 'api') {
-        const token = getToken(getState());
-        const orders = await orderApi.getUserOrders(token);
-        logger.info('ORDER', 'Loaded order history', { event: 'ORDER.HISTORY.LOAD.SUCCESS' });
-        return orders;
-      }
-      if (import.meta.env.DEV) {
-        const { generateOrders } = await import('../../core/data/factories/orders');
-        await new Promise((r) => setTimeout(r, 600));
-        logger.info('ORDER', 'Loaded mock order history', { event: 'ORDER.HISTORY.LOAD.SUCCESS' });
-        return generateOrders(8) as unknown as Order[];
-      }
-      return [];
+      return await orderApi.getUserOrders();
     } catch (err) {
-      logger.error('ORDER', 'Failed to load order history', { event: 'ORDER.HISTORY.LOAD.FAILURE', error: err });
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch orders');
     }
   },
@@ -110,27 +96,10 @@ export const fetchOrdersThunk = createAsyncThunk<Order[], void, { state: RootSta
  */
 export const fetchOrderByIdThunk = createAsyncThunk<Order, string, { state: RootState }>(
   'orders/fetchById',
-  async (id, { getState, rejectWithValue }) => {
-    logger.info('ORDER', 'Loading order details', { event: 'ORDER.DETAIL.LOAD.START', data: { orderId: id } });
+  async (id, { rejectWithValue }) => {
     try {
-      if (appConfig.api.dataSource === 'api') {
-        const token = getToken(getState());
-        const order = await orderApi.getById(id, token);
-        logger.info('ORDER', 'Loaded order details', { event: 'ORDER.DETAIL.LOAD.SUCCESS' });
-        return order;
-      }
-      if (import.meta.env.DEV) {
-        const { generateOrders } = await import('../../core/data/factories/orders');
-        await new Promise((r) => setTimeout(r, 400));
-        const orders = generateOrders(8) as unknown as Order[];
-        const found = orders.find((o) => o.id === id);
-        if (!found) throw new Error('Order not found');
-        logger.info('ORDER', 'Loaded mock order details', { event: 'ORDER.DETAIL.LOAD.SUCCESS' });
-        return found;
-      }
-      throw new Error('Order not found');
+      return await orderApi.getById(id);
     } catch (err) {
-      logger.error('ORDER', 'Failed to load order details', { event: 'ORDER.DETAIL.LOAD.FAILURE', error: err });
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch order');
     }
   },
@@ -146,62 +115,22 @@ export const fetchOrderByIdThunk = createAsyncThunk<Order, string, { state: Root
 export const createOrderThunk = createAsyncThunk<Order, CheckoutPayload, { state: RootState }>(
   'orders/create',
   async ({ deliveryAddress, paymentMethod, note }, { getState, rejectWithValue }) => {
-    logger.info('ORDER', 'Order creation started', { event: 'ORDER.CREATE.START', data: { paymentMethod } });
     try {
-      logger.info('ORDER', 'Validating order payload', { event: 'ORDER.VALIDATION.START' });
       const state = getState();
       const cart = state.cart;
-
-      if (!cart.restaurantId) throw new Error('Cart is empty — cannot place order');
-      if (cart.items.length === 0) throw new Error('Cart is empty — cannot place order');
-      logger.info('ORDER', 'Validation successful', { event: 'ORDER.VALIDATION.SUCCESS' });
-
-      const backendPaymentMethod = mapPaymentMethod(paymentMethod);
-
-      if (appConfig.api.dataSource === 'api') {
-        const token = getToken(state);
-        const payload: CreateOrderPayload = {
-          restaurantId: cart.restaurantId,
-          items: cart.items.map(mapCartItemToOrderItem),
-          deliveryAddress,
-          paymentMethod: backendPaymentMethod,
-          note,
-        };
-        logger.info('ORDER', 'Payload ready', { event: 'ORDER.CREATE.PAYLOAD_READY' });
-        const newOrder = await orderApi.create(payload, token);
-        logger.info('ORDER', 'Order created successfully', { event: 'ORDER.CREATE.SUCCESS', data: { orderId: newOrder.id } });
-        return newOrder;
+      if (cart.items.length === 0 || !cart.restaurantId) {
+        throw new Error('Cart is empty or missing restaurant info');
       }
-
-      // mock mode — build a synthetic Order from cart
-      await new Promise((r) => setTimeout(r, 800));
-      const mockOrder: Order = {
-        id: `mock-${Date.now()}`,
-        userId: state.auth.user?.id ?? 'guest',
+      const backendPaymentMethod = mapPaymentMethod(paymentMethod);
+      const payload: CreateOrderPayload = {
         restaurantId: cart.restaurantId,
-        restaurantName: cart.restaurantName ?? 'Restaurant',
-        items: cart.items.map((item) => ({
-          foodItemId: item.foodItemId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-        })),
-        subtotal: cart.subtotal,
-        deliveryFee: cart.deliveryFee,
-        tax: cart.tax,
-        discount: cart.discount,
-        total: cart.total,
-        status: 'pending_owner',
-        paymentMethod: paymentMethod as Order['paymentMethod'],
-        paymentStatus: 'pending',
-        deliveryInfo: { address: deliveryAddress },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        items: cart.items.map(mapCartItemToOrderItem),
+        deliveryAddress,
+        paymentMethod: backendPaymentMethod,
+        note,
       };
-      logger.info('ORDER', 'Mock order created successfully', { event: 'ORDER.CREATE.SUCCESS', data: { orderId: mockOrder.id } });
-      return mockOrder;
+      return await orderApi.create(payload);
     } catch (err) {
-      logger.error('ORDER', 'Failed to create order', { event: 'ORDER.CREATE.FAILURE', error: err });
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to place order');
     }
   },
@@ -216,18 +145,9 @@ export const createOrderThunk = createAsyncThunk<Order, CheckoutPayload, { state
  */
 export const cancelOrderThunk = createAsyncThunk<Order, string, { state: RootState }>(
   'orders/cancel',
-  async (orderId, { getState, rejectWithValue }) => {
+  async (orderId, { rejectWithValue }) => {
     try {
-      if (appConfig.api.dataSource === 'api') {
-        const token = getToken(getState());
-        return await orderApi.cancel(orderId, token);
-      }
-      // mock mode
-      await new Promise((r) => setTimeout(r, 400));
-      const state = getState();
-      const existing = state.orders.items.find((o) => o.id === orderId);
-      if (!existing) throw new Error('Order not found');
-      return { ...existing, status: 'cancelled' };
+      return await orderApi.cancel(orderId);
     } catch (err) {
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to cancel order');
     }
@@ -236,15 +156,9 @@ export const cancelOrderThunk = createAsyncThunk<Order, string, { state: RootSta
 
 export const submitReviewThunk = createAsyncThunk<void, { orderId: string, restaurantRating: number, partnerRating: number, comment?: string }, { state: RootState }>(
   'orders/submitReview',
-  async (payload, { getState, rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      if (appConfig.api.dataSource === 'api') {
-        const token = getToken(getState());
-        await orderApi.submitReview(payload, token);
-      } else {
-        // mock mode
-        await new Promise((r) => setTimeout(r, 400));
-      }
+      await orderApi.submitReview(payload);
     } catch (err) {
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to submit review');
     }

@@ -2,14 +2,11 @@
  * orderApi.ts
  *
  * API service for the order domain.
- * Used when VITE_DATA_SOURCE=api.
- *
- * Follows the same fetch-based pattern as authApi.ts and restaurantApi.ts.
- * All Backend<->Frontend normalization is isolated here.
+ * Uses Unified ApiClient.
  */
 
-import { appConfig } from '../../../core/config/app.config';
 import type { Order, CartItem, PaymentMethod } from '../../../core/types';
+import api from '../../../core/utils/api';
 
 // Raw Backend DTO shapes
 interface OrderItemApiDTO {
@@ -42,12 +39,6 @@ interface OrderApiDTO {
   note?: string;
   createdAt: string;
   updatedAt?: string;
-}
-
-interface ApiEnvelope<T> {
-  success: boolean;
-  message?: string;
-  data: T;
 }
 
 // Normalization helpers
@@ -124,101 +115,34 @@ export const mapPaymentMethod = (
   return 'cash';
 };
 
-import { logAPI } from '../../../core/dev/logger';
-import { v4 as uuidv4 } from 'uuid';
-
-// HTTP helper
-const request = async <T>(
-  endpoint: string,
-  token: string,
-  init?: RequestInit,
-): Promise<T> => {
-  const traceId = uuidv4().substring(0, 8);
-  const method = init?.method || 'GET';
-  const url = `${appConfig.api.baseUrl}${endpoint}`;
-
-  let parsedBody;
-  try {
-    parsedBody = init?.body ? JSON.parse(init.body as string) : undefined;
-  } catch (e) { }
-
-  logAPI.request(method, url, parsedBody, traceId);
-  const startTime = performance.now();
-
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    ...init,
-  });
-
-  const durationMs = performance.now() - startTime;
-  const payload = (await response.json().catch(() => ({}))) as ApiEnvelope<T> | { message?: string };
-
-  if (!response.ok) {
-    const msg =
-      typeof payload === 'object' &&
-        payload !== null &&
-        'message' in payload &&
-        payload.message
-        ? String(payload.message)
-        : `Request failed (${response.status})`;
-
-    logAPI.error(method, url, new Error(msg), traceId);
-    throw new Error(msg);
-  }
-
-  logAPI.response(method, url, response.status, durationMs, payload, traceId);
-
-  if (typeof payload === 'object' && payload !== null && 'data' in payload) {
-    return (payload as ApiEnvelope<T>).data as T;
-  }
-  return payload as T;
-};
-
 // Public API
 export const orderApi = {
-  async create(payload: CreateOrderPayload, token: string): Promise<Order> {
-    const dto = await request<OrderApiDTO>('/orders', token, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+  async create(payload: CreateOrderPayload, _token?: string): Promise<Order> {
+    const dto = await api.post<OrderApiDTO>('/orders', payload);
     return normalizeOrder(dto);
   },
 
-  async getUserOrders(token: string): Promise<Order[]> {
-    console.log("getUserOrders called from api");
-    const dtos = await request<OrderApiDTO[]>('/orders', token);
+  async getUserOrders(_token?: string): Promise<Order[]> {
+    const dtos = await api.get<OrderApiDTO[]>('/orders');
     return dtos.map(normalizeOrder);
   },
 
-  async getById(id: string, token: string): Promise<Order> {
-    console.log('getById called from api')
-    const dto = await request<OrderApiDTO>(`/orders/${id}`, token);
+  async getById(id: string, _token?: string): Promise<Order> {
+    const dto = await api.get<OrderApiDTO>(`/orders/${id}`);
     return normalizeOrder(dto);
   },
 
-  async cancel(id: string, token: string): Promise<Order> {
-    const dto = await request<OrderApiDTO>(`/orders/${id}/cancel`, token, {
-      method: 'PATCH',
-    });
+  async cancel(id: string, _token?: string): Promise<Order> {
+    const dto = await api.patch<OrderApiDTO>(`/orders/${id}/cancel`);
     return normalizeOrder(dto);
   },
 
-  async submitReview(payload: { orderId: string, restaurantRating: number, partnerRating: number, comment?: string }, token: string): Promise<void> {
-    await request<any>('/reviews', token, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+  async submitReview(payload: { orderId: string, restaurantRating: number, partnerRating: number, comment?: string }, _token?: string): Promise<void> {
+    await api.post<any>('/reviews', payload);
   }
 };
 
-import { getAuthToken } from '../../../services/api/apiUtils';
-
 export async function adminGetAllOrders(): Promise<Order[]> {
-  const token = getAuthToken();
-  if (!token) throw new Error('No auth token found');
-  const dtos = await request<OrderApiDTO[]>('/orders/owned', token);
+  const dtos = await api.get<OrderApiDTO[]>('/orders/owned');
   return dtos.map(normalizeOrder);
 }

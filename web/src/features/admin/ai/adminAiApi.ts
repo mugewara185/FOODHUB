@@ -38,25 +38,9 @@ export interface AIResponse {
 
 import { type AIMessage } from './adminAiSlice';
 
-const API_BASE = appConfig.api.baseUrl;
+import api from '../../../core/utils/api';
 
 export async function sendAIMessage(messages: AIMessage[], conversationId?: string): Promise<AIResponse> {
-  const token = localStorage.getItem('token');
-  const response = await fetch(`${API_BASE}/admin/ai/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ messages, conversationId }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.message || 'AI request failed');
-  }
-
-  const data = await response.json();
-  return data.data as AIResponse;
+  const payload = await api.post<AIResponse>('/admin/ai/chat', { messages, conversationId });
+  return payload;
 }
-

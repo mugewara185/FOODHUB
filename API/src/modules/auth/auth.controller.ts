@@ -6,7 +6,7 @@ import { config } from '../../config/env';
 import { AppError } from '../../shared/middleware/errorHandler';
 import { sendSuccess } from '../../shared/utils/response';
 
-const registerSchema = z.object({
+export const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
@@ -14,16 +14,16 @@ const registerSchema = z.object({
   address: z.string().optional(),
 });
 
-const loginSchema = z.object({
+export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
 
-const forgotPasswordSchema = z.object({
+export const forgotPasswordSchema = z.object({
   email: z.string().email(),
 });
 
-const resetPasswordSchema = z.object({
+export const resetPasswordSchema = z.object({
   password: z.string().min(6),
   confirmPassword: z.string().min(6),
   token: z.string().min(1),
@@ -36,10 +36,8 @@ function signToken(id: string): string {
 }
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
-  // console.log('Registering user with data:', req.body);
   try {
-    const body = registerSchema.parse(req.body);
-    // const body= req.body
+    const body = req.body;
     const existing = await User.findOne({ email: body.email });
     if (existing) throw new AppError('Email already in use', 409);
 
@@ -63,14 +61,12 @@ export async function register(req: Request, res: Response, next: NextFunction):
 
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const body = loginSchema.parse(req.body);
+    const body = req.body;
     console.log("body", body);
     const user = await User.findOne({ email: new RegExp(`^${body.email}$`) })
       .select('+password');
     console.log('User found:', user);
-    // if (!user || !(await user.comparePassword(body.password))) {
-    //   throw new AppError('Invalid email or password', 401);
-    // }
+
     if (!user) {
       console.log('user not found!!')
       throw new AppError('Invalid email', 401);
@@ -96,7 +92,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 
 export async function forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const body = forgotPasswordSchema.parse(req.body);
+    const body = req.body;
     const user = await User.findOne({ email: body.email });
 
     if (user) {
@@ -113,7 +109,7 @@ export async function forgotPassword(req: Request, res: Response, next: NextFunc
 
 export async function resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const body = resetPasswordSchema.parse(req.body);
+    const body = req.body;
 
     if (body.password !== body.confirmPassword) {
       throw new AppError('Passwords do not match', 400);

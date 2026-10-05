@@ -19,6 +19,7 @@ export interface ApiRequestConfig extends RequestInit {
   url: string;
   traceId: string;
   queryParams?: Record<string, string | number | boolean>;
+  mockAdapter?: () => Promise<Response>;
 }
 
 export interface ApiResponseContext {
@@ -86,12 +87,12 @@ export class ApiClient {
       config = await interceptor(config);
     }
 
-    const { url, traceId, queryParams, ...fetchOptions } = config;
+    const { url, traceId, queryParams, mockAdapter, ...fetchOptions } = config;
     const startTime = performance.now();
     let data: any;
 
     try {
-      const response = await fetch(url, fetchOptions);
+      const response = mockAdapter ? await mockAdapter() : await fetch(url, fetchOptions);
       const durationMs = performance.now() - startTime;
 
       data = await response.json().catch(() => ({}));
@@ -155,9 +156,11 @@ export const api = new ApiClient(appConfig.api.baseUrl || '/api');
 // --- Standard Interceptors ---
 
 // 1. Mock Data Source Extension Point
+import { ApiSimulator } from '../dev/simulator/ApiSimulator';
+
 api.interceptors.request.push((config) => {
   if (appConfig.api.dataSource === 'mock') {
-    // Hooks for future ApiSimulator
+    config.mockAdapter = () => ApiSimulator.resolve(config);
   }
   return config;
 });

@@ -10,7 +10,7 @@ import { getIO } from '../../socket';
 
 import { assignDelivery, releaseDeliveryForOrder } from '../delivery/delivery.service';
 
-const createOrderSchema = z.object({
+export const createOrderSchema = z.object({
   restaurantId: z.string().min(1),
   items: z.array(
     z.object({
@@ -27,7 +27,7 @@ const createOrderSchema = z.object({
 
 export async function createOrder(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const body = createOrderSchema.parse(req.body);
+    const body = req.body;
 
     const restaurant = await Restaurant.findById(body.restaurantId);
     if (!restaurant) throw new AppError('Restaurant not found', 404);
@@ -35,7 +35,7 @@ export async function createOrder(req: AuthRequest, res: Response, next: NextFun
 
     // Securely calculate total amount using authoritative menu prices
     let totalAmount = 0;
-    const validatedItems = body.items.map(item => {
+    const validatedItems = body.items.map((item: any) => {
       const menuItem = restaurant.menu.find(m => (m as any)._id?.toString() === item.menuItemId);
       if (!menuItem) {
         throw new AppError(`Menu item ${item.menuItemId} not found in restaurant`, 400);
@@ -151,11 +151,11 @@ export async function cancelOrder(req: AuthRequest, res: Response, next: NextFun
 
     const io = getIO();
     io.to(order.id).emit('order_status_update', { orderId: order.id, status: 'cancelled' });
-    io.to(req.user!.id).emit('notification', { 
-      title: 'Order Cancelled', 
+    io.to(req.user!.id).emit('notification', {
+      title: 'Order Cancelled',
       message: `Your order from ${order.restaurantName} was cancelled.`,
       orderId: order.id,
-      status: 'cancelled' 
+      status: 'cancelled'
     });
 
     sendSuccess({ res, message: 'Order cancelled', data: order });
