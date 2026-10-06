@@ -9,20 +9,30 @@
 - Phase 5 — Admin & Polish: API & Runtime-verified
 
 ## EVIDENCE
-- Phase 4 verified via `npx tsx API/src/modules/delivery/__tests__/partner-lifecycle.test.ts`
-- Phase 5 verified via `npx tsx API/src/modules/orders/__tests__/admin-orders.test.ts`
-- Full Application Flow verified via `npx tsx API/src/__tests__/multi-actor-e2e.test.ts` (Automated API/Realtime integration mimicking multi-browser session).
+**Backend Integration Verification**
+- `API/src/__tests__/multi-actor-e2e.test.ts`
+- validates API/DB/server-side Socket.IO integration
+
+**Browser/Product E2E Verification**
+- `web/e2e.ts`
+- Puppeteer
+- separate Customer / Owner / Partner / Admin browser contexts
+- actual UI actions
+- Socket.IO client-side realtime updates
+- Partner MUI dialogs
+- Leaflet/GPS-related frontend state
+- final Admin delivered-order visibility
+
+*(The browser E2E is the final product-level verification.)*
 
 ## REMAINING BLOCKERS
 - Seed pipeline plaintext passwords (Auth prerequisite) [DEFERRED BY PROJECT DECISION].
 
 ## VERIFICATION
 - **Build verification:** PASS (`npx tsc --noEmit` & `npm run build` on API & Web)
-- **Backend runtime verification:** PASS
-- **Route-level verification:** PASS 
-- **Event verification:** PASS
-- **Full product E2E verification:** PASS (via automated multi-actor integration script bridging Frontend routes + Socket.io realtime architecture).
-- **Last Verified Commit:** `HEAD` (will be updated on commit)
+- **Backend Integration Verification:** PASS
+- **Browser/Product E2E Verification:** PASS
+- **Last Verified Commit:** `79c0cf268ba6c51092e4861692f7a1e8cb3ea039`
 
 ## HISTORICAL DIAGNOSIS
 
