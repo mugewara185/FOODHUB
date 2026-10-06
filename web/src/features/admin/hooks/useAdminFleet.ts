@@ -19,10 +19,12 @@ export const useAdminFleet = () => {
         // GET /api/delivery/fleet returns activeDeliveries, partners, risks
         const response = await api.get('/delivery/fleet');
         
-        if (mounted && response.data?.success) {
-          // Fallback map in case the backend hasn't updated its output structure,
-          // though we did fix the backend to return exactly what we need.
-          setFleet(response.data.data.partners as DeliveryPartner[]);
+        if (mounted && response) {
+          // The response is already unwrapped by api.ts
+          // If the backend returns { partners: [...] }, use it directly.
+          // Fallback to response.partners if nested incorrectly.
+          const partners = response.partners || response.data?.partners || [];
+          setFleet(partners as DeliveryPartner[]);
         }
       } catch (err: any) {
         if (mounted) setError(err.message || 'Failed to fetch fleet snapshot');

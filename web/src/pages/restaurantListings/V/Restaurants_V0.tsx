@@ -158,7 +158,7 @@ const Restaurants: React.FC = () => {
           height: '94%',
           minWidth: 0,
         }}
-      ></Box>
+      >
       {!isMobile && (
         <Grid item xs={12} md={3} >
           <FilterPanel

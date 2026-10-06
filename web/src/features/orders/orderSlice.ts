@@ -216,6 +216,7 @@ const orderSlice = createSlice({
       })
       .addCase(fetchOrderByIdThunk.fulfilled, (state, action: PayloadAction<Order>) => {
         state.fetchStatus = 'success';
+        state.currentOrder = action.payload;
         const idx = state.items.findIndex((o) => o.id === action.payload.id);
         if (idx >= 0) {
           state.items[idx] = action.payload;

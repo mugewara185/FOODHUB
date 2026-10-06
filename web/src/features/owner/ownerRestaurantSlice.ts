@@ -18,10 +18,7 @@ export const fetchOwnerRestaurantThunk = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const data = await api.get('restaurants/mine');
-      if (data.success === false) {
-        throw new Error(data.message || 'Failed to fetch restaurant');
-      }
-      return data.data;
+      return data;
     } catch (err: any) {
       return rejectWithValue(err.message);
     }

@@ -67,10 +67,7 @@ export const fetchPartnerStateThunk = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const data = await api.get('delivery/partner/me');
-      if (data.success === false) {
-        throw new Error(data.message || 'Failed to fetch partner state');
-      }
-      return data.data;
+      return data;
     } catch (err: any) {
       return rejectWithValue(err.message);
     }
@@ -86,10 +83,7 @@ export const setOnlineStatusThunk = createAsyncThunk(
   async (shouldBeOnline: boolean, { dispatch, rejectWithValue }) => {
     try {
       const data = await api.patch('delivery/partner/me/status', { status: shouldBeOnline ? 'available' : 'offline' });
-      if (data.success === false) {
-        throw new Error(data.message || 'Failed to update status');
-      }
-      return data.data;
+      return data;
     } catch (err: any) {
       dispatch(showToast({ message: err.message || 'Failed to update status', type: 'error' }));
       return rejectWithValue(err.message);
@@ -108,10 +102,7 @@ export const updateAssignmentStatusThunk = createAsyncThunk(
   ) => {
     try {
       const data = await api.patch(`delivery/${deliveryId}/status`, { status });
-      if (data.success === false) {
-        throw new Error(data.message || 'Failed to update delivery status');
-      }
-      return { deliveryId, status, delivery: data.data };
+      return { deliveryId, status, delivery: data };
     } catch (err: any) {
       dispatch(showToast({ message: err.message || 'Failed to update delivery status', type: 'error' }));
       return rejectWithValue(err.message);
@@ -134,10 +125,7 @@ export const acceptAssignmentThunk = createAsyncThunk(
   ) => {
     try {
       const data = await api.post(`delivery/partner/${orderId}/accept`);
-      if (data.success === false) {
-        throw new Error(data.message || 'Failed to accept delivery');
-      }
-      return data.data;
+      return data;
     } catch (err: any) {
       dispatch(showToast({ message: err.message || 'Failed to accept delivery', type: 'error' }));
       return rejectWithValue(err.message);
@@ -155,10 +143,7 @@ export const rejectAssignmentThunk = createAsyncThunk(
     { dispatch, rejectWithValue }
   ) => {
     try {
-      const data = await api.post(`delivery/partner/${orderId}/reject`);
-      if (data.success === false) {
-        throw new Error(data.message || 'Failed to decline delivery');
-      }
+      await api.post(`delivery/partner/${orderId}/reject`);
       return { orderId };
     } catch (err: any) {
       dispatch(showToast({ message: err.message || 'Failed to decline delivery', type: 'error' }));
