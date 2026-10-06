@@ -114,7 +114,7 @@ export async function updateDeliveryStatus(
     if (newStatus === 'delivered' && partner) {
       partner.status = 'available';
       partner.currentAssignedDelivery = undefined;
-      (partner as any).completedDeliveries = ((partner as any).completedDeliveries || 0) + 1;
+      partner.completedDeliveries = (partner.completedDeliveries || 0) + 1;
       await partner.save();
     }
   }

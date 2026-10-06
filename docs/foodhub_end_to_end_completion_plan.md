@@ -6,14 +6,17 @@
 - Phase 1 — Data/Auth prerequisites: [Deferred]
 - Phase 2 — API contract integrity: Build-verified
 - Phase 3 — Customer tracking + realtime: Build-verified (Socket kill switches removed)
-- Phase 4 — Partner delivery lifecycle: Build-verified (UI off-by-one fixed; backend release bug fixed; accept state machine fixed)
+- Phase 4 — Partner delivery lifecycle: Runtime-verified (Backend release bug & accept state machine fixed, verified via integration test)
 - Phase 5 — Admin & Polish: Pending
 - Final E2E verification: Pending
 
-**Current Blockers:** Admin orders list 404, seed pipeline plaintext passwords.
-**Last Verified Commit:** HEAD (working tree)
+**EVIDENCE:**
+- Phase 4 Runtime Verification passed via `API/src/modules/delivery/__tests__/partner-lifecycle.test.ts`.
 
-## A. Executive Diagnosis
+**CURRENT BLOCKERS:** Admin orders list 404, seed pipeline plaintext passwords.
+**LAST VERIFIED COMMIT:** a70c48c3bc0d2bd07939fae410f8e537bf7cd5c5
+
+## A. Historical Diagnosis (Pre-Phase 4)
 
 **How close is the CURRENT repository to a genuinely working end-to-end FoodHub flow?**
 **Status:** ~75% complete but **0% End-to-End Functional**

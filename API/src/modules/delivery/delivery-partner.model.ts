@@ -8,6 +8,7 @@ export interface IDeliveryPartner extends Document {
   phone: string;
   vehicle: string;
   rating: number;
+  completedDeliveries: number;
   status: DeliveryPartnerStatus;
   currentAssignedDelivery?: string;
   currentLocation?: {
@@ -23,6 +24,7 @@ const deliveryPartnerSchema = new Schema<IDeliveryPartner>(
     phone: { type: String, required: true },
     vehicle: { type: String, required: true },
     rating: { type: Number, default: 5.0 },
+    completedDeliveries: { type: Number, default: 0 },
     status: { 
       type: String, 
       enum: ['available', 'assigned', 'on_delivery', 'offline'],
