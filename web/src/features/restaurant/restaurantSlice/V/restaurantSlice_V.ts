@@ -6,6 +6,7 @@ import type { Restaurant, FoodItem, Category } from '@core/types';
 import { appConfig } from '../../../../core/config/app.config';
 import { restaurantApi } from '../../../../services/api/restaurantApi';
 import { logger } from '@/core/dev/logger';
+import { normalizeError, type AsyncStatus, type NormalizedApiError } from '@/core/utils/asyncState';
 
 export type RestaurantFilters = {
   searchQuery: string;
@@ -28,6 +29,7 @@ export interface RestaurantState {
   fetchStatus: AsyncStatus;
   fetchByIdStatus: AsyncStatus;
   error: NormalizedApiError | null;
+  loading: boolean;
   filters: RestaurantFilters;
   pagination: {
     currentPage: number;
@@ -69,9 +71,9 @@ export const fetchRestaurants = createAsyncThunk(
     logger.info('RESTAURANT', 'Loading restaurants', { event: 'RESTAURANT.LOAD.START' });
     try {
       const result = await restaurantApi.getAll();
-        logger.info('RESTAURANT', 'Loaded restaurants', { event: 'RESTAURANT.LOAD.SUCCESS' });
-        return result;
-      } catch (error) {
+      logger.info('RESTAURANT', 'Loaded restaurants', { event: 'RESTAURANT.LOAD.SUCCESS' });
+      return result;
+    } catch (error) {
       logger.error('RESTAURANT', 'Failed to load restaurants', { event: 'RESTAURANT.LOAD.FAILURE', error });
       return rejectWithValue(normalizeError(error));
     }
@@ -84,9 +86,9 @@ export const fetchRestaurantById = createAsyncThunk(
     logger.info('RESTAURANT', 'Loading restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.START', data: { restaurantId: id } });
     try {
       const result = await restaurantApi.getById(id);
-        logger.info('RESTAURANT', 'Loaded restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.SUCCESS' });
-        return result;
-      } catch (error) {
+      logger.info('RESTAURANT', 'Loaded restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.SUCCESS' });
+      return result;
+    } catch (error) {
       logger.error('RESTAURANT', 'Failed to load restaurant details', { event: 'RESTAURANT.DETAIL.LOAD.FAILURE', error });
       return rejectWithValue(`Failed to fetch restaurant details:${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -102,6 +104,7 @@ const initialState: RestaurantState = {
   featuredRestaurants: [],
   fetchStatus: 'idle',
   fetchByIdStatus: 'idle',
+  loading: false,
   error: null,
   filters: {
     searchQuery: '',

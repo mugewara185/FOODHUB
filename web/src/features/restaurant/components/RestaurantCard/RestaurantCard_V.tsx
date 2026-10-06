@@ -29,7 +29,7 @@ interface RestaurantsCardProps {
   onToggleFavorite?: (id: string) => void;
 }
 
-export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<RestaurantsCardProps>(({ 
+export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<RestaurantsCardProps>(({
   restaurant,
   isFavorite: propIsFavorite,
   onToggleFavorite: propOnToggleFavorite
@@ -51,9 +51,9 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
   };
 
   return (
-    <Card 
+    <Card
       onClick={() => navigate(`/restaurants/${id}`)}
-      sx={{ 
+      sx={{
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -66,7 +66,13 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
         }
       }}
     >
-      <Box sx={{ position: 'relative' }}>
+      <Box sx={{
+        position: 'relative',
+        width: '100%',
+        aspectRatio: '16 / 9',
+        overflow: 'hidden',
+        flexShrink: 0
+      }}>
         <Button
           variant="contained"
           size="small"
@@ -99,7 +105,12 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
           <SafeImage
             src={image ? `${image}?w=400&h=225&fit=crop&q=80` : undefined}
             alt={name}
-            className="w-full h-full object-cover"
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'block',
+              objectFit: 'cover',
+            }}
           />
         </div>
       </Box>
