@@ -116,6 +116,18 @@ export async function getOwnerOrders(req: AuthRequest, res: Response, next: Next
   }
 }
 
+export async function getAllOrders(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .populate('restaurantId', 'name imageUrl city');
+
+    sendSuccess({ res, message: 'All orders fetched', data: orders });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getOrderById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
     const order = await Order.findById(req.params.id).populate('restaurantId', 'name imageUrl address phone');

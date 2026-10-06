@@ -143,6 +143,6 @@ export const orderApi = {
 };
 
 export async function adminGetAllOrders(): Promise<Order[]> {
-  const dtos = await api.get<OrderApiDTO[]>('/orders/owned');
+  const dtos = await api.get<OrderApiDTO[]>('/orders/all');
   return dtos.map(normalizeOrder);
 }

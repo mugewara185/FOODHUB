@@ -9,7 +9,8 @@ import {
   rejectOrder,
   markPreparing,
   markReady,
-  createOrderSchema
+  createOrderSchema,
+  getAllOrders
 } from './order.controller';
 import { protect, authorize } from '../../shared/middleware/auth.middleware';
 import { validateRequest } from '../../shared/middleware/validate.middleware';
@@ -21,6 +22,7 @@ router.use(protect);
 router.post('/', validateRequest(createOrderSchema), createOrder);
 router.get('/', getUserOrders);
 router.get('/owned', authorize('owner', 'admin'), getOwnerOrders);
+router.get('/all', authorize('admin'), getAllOrders);
 router.get('/:id', getOrderById);
 router.patch('/:id/cancel', cancelOrder);
 

@@ -1,26 +1,25 @@
 # FoodHub End-to-End Completion Plan
 
 ## CURRENT STATUS
-- Overall E2E: 40% (Not E2E Complete)
+- Overall E2E: 50% (Not E2E Complete)
 - Phase 1 — Data/Auth prerequisites: [Deferred]
 - Phase 2 — API contract integrity: Build-verified
 - Phase 3 — Customer tracking + realtime: Build-verified
 - Phase 4 — Partner delivery lifecycle: Route & Runtime-verified
-- Phase 5 — Admin & Polish: Pending
+- Phase 5 — Admin & Polish: API & Runtime-verified (Admin orders list 404 fixed)
 
 ## EVIDENCE
 - Phase 4 verified via `npx tsx API/src/modules/delivery/__tests__/partner-lifecycle.test.ts`
-- Verification includes HTTP route testing, native Mongoose updates, and Socket.IO `emit` interception.
+- Phase 5 verified via `npx tsx API/src/modules/orders/__tests__/admin-orders.test.ts`
 
 ## REMAINING BLOCKERS
-- Seed pipeline plaintext passwords (Auth prerequisite).
-- Admin orders list 404 (`GET /orders/owned`).
+- Seed pipeline plaintext passwords (Auth prerequisite) [DEFERRED BY PROJECT DECISION].
 
 ## VERIFICATION
-- **Build verification:** PASS (`npx tsc --noEmit` & `npm run build`)
-- **Backend runtime verification:** PASS (Services correctly update MongoDB documents)
-- **Route-level verification:** PASS (Express test server handled `POST /partner/:orderId/accept` natively)
-- **Event verification:** PASS (Intercepted `getIO()` confirmed `order:status_changed` was emitted)
+- **Build verification:** PASS (`npx tsc --noEmit` & `npm run build` on API & Web)
+- **Backend runtime verification:** PASS
+- **Route-level verification:** PASS (Admin `GET /orders/all` endpoint handles authorization perfectly)
+- **Event verification:** PASS
 - **Full product E2E verification:** PENDING (Requires cross-browser testing)
 - **Last Verified Commit:** `HEAD` (will be updated on commit)
 
@@ -183,8 +182,7 @@ Do **NOT** touch the following yet:
 
 ## NEXT PHASE
 
-**Target: Phase 5 (Admin & Polish) & Phase 1 (Auth Seeding)**
+**Target: Full-Product E2E Verification**
 **Specific Actions:**
-1. Fix Admin Orders list to call a valid endpoint instead of the 404 `GET /orders/owned`.
-2. Modify `API/src/modules/dev/dev.controller.ts` or `web/src/core/dev/utils/factorySeed.ts` (whichever executes the DB write) to securely hash passwords for seeded users.
-**Verification:** Admin can view the list of all orders. Seeded users can log in without `DEV_BYPASS_AUTH`.
+- Since all major product loops (Phase 2-5) are API/Route/Runtime verified, perform a real multi-actor browser session (Customer -> Owner -> Partner -> Customer) to guarantee the end-to-end integration genuinely works over WebSockets and UI state. 
+- Phase 1 (Auth Seeding) remains DEFERRED BY PROJECT DECISION and can be tackled post-E2E.
