@@ -28,9 +28,9 @@ export async function protect(
     if (isDev && isBypassAuth && (!authHeader || !authHeader.startsWith('Bearer '))) {
       console.log('⚠️ DEV_BYPASS_AUTH is active! Bypassing JWT validation.');
       req.user = { 
-        id: '64e8e50f3c5f4a1b8c1a9999', // dummy ObjectId
+        id: (req.headers['x-dev-bypass-user-id'] as string) || '64e8e50f3c5f4a1b8c1a9999',
         email: 'dev@zom2.local', 
-        roles: ['user', 'admin', 'owner', 'partner'], 
+        roles: req.headers['x-dev-bypass-role'] ? [(req.headers['x-dev-bypass-role'] as string)] : ['user', 'admin', 'owner', 'partner'], 
         name: 'Dev Bypasser' 
       };
       return next();
