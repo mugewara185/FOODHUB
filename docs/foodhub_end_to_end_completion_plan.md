@@ -2,16 +2,16 @@
 
 # Current E2E Completion
 
-- Overall E2E: 20%
+- Overall E2E: 30%
 - Phase 1 — Data/Auth prerequisites: [Deferred]
-- Phase 2 — API contract integrity: 100% (Verified API envelope fixes)
-- Phase 3 — Customer tracking + realtime: 50% (Fixed order tracking thunk; socket kill switch pending)
-- Phase 4 — Partner delivery lifecycle: 0%
-- Phase 5 — Admin & Polish: 0%
-- Final E2E verification: 0%
+- Phase 2 — API contract integrity: Build-verified
+- Phase 3 — Customer tracking + realtime: Build-verified (Socket kill switches removed)
+- Phase 4 — Partner delivery lifecycle: 20% (UI off-by-one fixed; backend release bug pending)
+- Phase 5 — Admin & Polish: Pending
+- Final E2E verification: Pending
 
-**Current Blockers:** Socket kill switches breaking realtime updates. Partner UI off-by-one transitions.
-**Last Verified Commit:** HEAD (5f2c963)
+**Current Blockers:** Backend partner release bug in `delivery.service.ts`, canonical accept state-machine refactor.
+**Last Verified Commit:** HEAD (bdc0a2c)
 
 ## A. Executive Diagnosis
 
@@ -172,9 +172,8 @@ Do **NOT** touch the following yet:
 
 ## J. Recommended Next Implementation Session
 
-**Target: Phase 1 & 2 (Auth Seeding & API Envelope Fixes)**
+**Target: Phase 4 (Partner Delivery Lifecycle)**
 **Specific Actions:**
-1. Modify `API/src/modules/dev/dev.controller.ts` or `web/src/core/dev/utils/factorySeed.ts` (whichever executes the DB write) to securely hash passwords for seeded users.
-2. Standardize token retrieval in `authSlice.ts` to match `apiUtils.ts` (`localStorage` vs `sessionStorage`).
-3. Audit and patch `ownerOrderApi.ts` and `deliveryPartnerSlice.ts` to expect unwrapped `data` payloads from `api.ts`, removing all `if (res.success)` checks.
-**Verification:** You should be able to log in with a seeded user, disable `DEV_BYPASS_AUTH`, and load the Owner Dashboard without frontend Redux errors.
+1. Update `delivery.service.ts` to clear `assignedOrder` and set status back to `available` upon delivery completion.
+2. Fix the `accept` endpoint to use the canonical state machine instead of raw `findOneAndUpdate`.
+**Verification:** Partner accepts order, arrives, picks up, and marks delivered. Partner is then free to accept a new order.

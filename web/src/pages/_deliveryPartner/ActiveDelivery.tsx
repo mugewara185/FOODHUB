@@ -252,7 +252,7 @@ console.log('ActiveDelivery render: activeAssignment=', activeAssignment, 'curre
             <Typography variant="h6" fontWeight={700} gutterBottom>
               Actions
             </Typography>
-            {activeStep === 1 && (
+            {activeStep === 0 && (
               <Button
                 fullWidth
                 variant="contained"
@@ -263,7 +263,7 @@ console.log('ActiveDelivery render: activeAssignment=', activeAssignment, 'curre
                 Arrived at Restaurant
               </Button>
             )}
-            {activeStep === 2 && (
+            {activeStep === 1 && (
               <Button
                 fullWidth
                 variant="contained"
@@ -274,7 +274,7 @@ console.log('ActiveDelivery render: activeAssignment=', activeAssignment, 'curre
                 Confirm Pickup
               </Button>
             )}
-            {activeStep === 3 && (
+            {activeStep === 2 && (
               <Button
                 fullWidth
                 variant="contained"
@@ -285,7 +285,7 @@ console.log('ActiveDelivery render: activeAssignment=', activeAssignment, 'curre
                 Start Delivery
               </Button>
             )}
-            {activeStep === 4 && (
+            {activeStep === 3 && (
               <Button
                 fullWidth
                 variant="contained"

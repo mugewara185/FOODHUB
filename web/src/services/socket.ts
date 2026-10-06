@@ -125,13 +125,6 @@ class SocketService {
       this.socket?.off("delivery:assigned", callback);
       this.socket?.off("delivery:location", callback);
       this.socket?.off("delivery:status", callback);
-    } else {
-      this.socket?.off("order_status_update");
-      this.socket?.off("order:status_changed");
-      this.socket?.off("partner:location_updated");
-      this.socket?.off("delivery:assigned");
-      this.socket?.off("delivery:location");
-      this.socket?.off("delivery:status");
     }
   }
 
@@ -141,10 +134,7 @@ class SocketService {
 
   leaveAdminFleet() {
     this.socket?.emit("leave_admin_fleet");
-    this.socket?.off("delivery:location");
-    this.socket?.off("delivery:status");
-    this.socket?.off("delivery:risk");
-    this.socket?.off("delivery:risk_cleared");
+    
   }
 
   onAdminFleetEvent(event: string, callback: (data: any) => void) {
@@ -254,4 +244,6 @@ class SocketService {
 }
 
 export const socketService = new SocketService();
+
+
 
