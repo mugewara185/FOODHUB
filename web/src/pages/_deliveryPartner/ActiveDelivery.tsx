@@ -62,7 +62,7 @@ const ActiveDelivery: React.FC = () => {
     dispatch(fetchPartnerStateThunk());
   }, [dispatch]);
   
-console.log('ActiveDelivery render: activeAssignment=', activeAssignment, 'currentLocation=', currentLocation, 'isLoading=', isLoading);
+console.log('ActiveDelivery render: activeAssignment.status=', activeAssignment?.status, 'isLoading=', isLoading);
   const targetLoc =
     activeAssignment?.status === 'out_for_delivery' || activeAssignment?.status === 'nearby'
       ? activeAssignment.dropoffLocation

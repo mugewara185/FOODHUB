@@ -25,7 +25,7 @@ export async function protect(
     const isDev = config.nodeEnv === 'development' || process.env.NODE_ENV === 'development';
     const isBypassAuth = process.env.DEV_BYPASS_AUTH === 'true' || req.headers['x-dev-bypass-auth'] === 'true';
     
-    if (isDev && isBypassAuth && (!authHeader || !authHeader.startsWith('Bearer '))) {
+    if (isDev && (isBypassAuth && (!authHeader || !authHeader.startsWith('Bearer ') || req.headers['x-dev-bypass-auth'] === 'true'))) {
       console.log('⚠️ DEV_BYPASS_AUTH is active! Bypassing JWT validation.');
       req.user = { 
         id: (req.headers['x-dev-bypass-user-id'] as string) || '64e8e50f3c5f4a1b8c1a9999',

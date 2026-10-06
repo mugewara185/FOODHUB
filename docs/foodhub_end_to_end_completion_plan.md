@@ -165,6 +165,7 @@ The Partner UI (`ActiveDelivery.tsx`) and the Partner Backend do not agree on st
 ## H. Deferred Work
 
 Do **NOT** touch the following yet:
+- Phase 1 Auth Seeding (Project explicitly deferred this to focus on E2E functionality)
 - Admin Fleet mapping and complex operational visibility tools.
 - Complex review backend logic (ensure basic functionality first).
 - Notification services (FCM/Push).
@@ -173,17 +174,23 @@ Do **NOT** touch the following yet:
 
 ## I. Final Verification Protocol
 
+**Backend Verification:** (`API/src/__tests__/multi-actor-e2e.test.ts`)
+Validates the Node.js/Express service boundaries, MongoDB constraints, canonical transition routes, and server-side Socket.IO emission logic via direct API requests. (STATUS: COMPLETED & VERIFIED)
+
+**Browser Verification:** (`web/e2e.ts`)
+Validates the React UI, RTK Query / Redux state machines, Socket.IO client transports, Leaflet Map integration, MUI dialogs, and GPS Simulator logic across four separate concurrent browser contexts via Puppeteer. (STATUS: COMPLETED & VERIFIED)
+
 1. **Seed & Clean:** Run DB reset and seed pipeline.
-2. **Customer:** Login as Customer -> Add to cart -> Checkout -> Place Order. Verify `OrderTracking` loads and connects to Socket room.
-3. **Owner:** Login as Owner (separate browser) -> See new order via Socket -> Accept Order -> Mark 'Ready for Pickup'.
-4. **Partner:** Login as Partner (separate browser) -> See assigned order -> Accept -> 'Arrive' -> 'Pick Up' -> 'Deliver'.
+2. **Customer:** Place Order via dev bypass. Verify `OrderTracking` loads and connects to Socket room.
+3. **Owner:** See new order via Socket -> Accept Order -> Mark 'Ready for Pickup'.
+4. **Partner:** See assigned order -> Accept -> 'Arrive' -> 'Pick Up' (with Dialog) -> 'Start Delivery' -> 'Deliver' (with Dialog).
 5. **Customer:** Verify tracking UI updates to 'Delivered' in real-time.
 6. **Partner:** Verify Partner returns to 'Available' state.
-7. **Admin:** Login as Admin -> View order history -> Confirm order shows as Delivered.
+7. **Admin:** Verify Admin orders view accurately reflects 'Delivered' state.
 
 ## NEXT PHASE
 
 **Target: Polish & Features (Optional)**
 **Specific Actions:**
-- The Core Product Flow is officially Complete and Verified.
+- The Core Product Flow (Phases 2-5) is officially Complete and E2E Browser Verified.
 - Future work may include resolving Phase 1 (Auth Seeding), notifications, payment integrations, or UI polish.

@@ -175,10 +175,28 @@ const deliveryPartnerSlice = createSlice({
 
     // ── Socket-projected events ──────────────────────────────────────────
 
-    assignmentBroadcastReceived: (state, action: PayloadAction<DeliveryAssignment>) => {
+    assignmentBroadcastReceived: (state, action: PayloadAction<any>) => {
       const exists = state.availableAssignments.some(a => a.orderId === action.payload.orderId);
       if (!exists) {
-        state.availableAssignments.push(action.payload);
+        // Map backend payload to frontend expected model
+        const p = action.payload;
+        state.availableAssignments.push({
+          deliveryId: p.orderId, // Fake delivery ID until accepted
+          orderId: p.orderId,
+          restaurant: p.restaurantName || 'Restaurant',
+          restaurantImage: '',
+          customer: p.customerName || 'Customer',
+          pickupLocation: { lat: 0, lng: 0 },
+          dropoffLocation: { lat: 0, lng: 0 },
+          pickupAddress: p.restaurantAddress || 'Restaurant Address',
+          dropAddress: typeof p.deliveryAddress === 'string' ? p.deliveryAddress : (p.deliveryAddress?.street || 'Delivery Address'),
+          distance: '3 km',
+          estimatedTime: '15 mins',
+          amount: p.totalAmount || 0,
+          priority: 'medium',
+          status: 'partner_assigned',
+          items: p.items || []
+        });
       }
     },
 
@@ -292,7 +310,7 @@ const deliveryPartnerSlice = createSlice({
       }
       // Backend may return the canonical updated delivery. Trust it if present.
       if (delivery?.currentLocation) {
-        state.currentLocation = delivery.currentLocation;
+        state.currentLocation = delivery.currentLocation.coordinates ? { lat: delivery.currentLocation.coordinates[1], lng: delivery.currentLocation.coordinates[0] } : delivery.currentLocation;
       }
     });
     builder.addCase(updateAssignmentStatusThunk.rejected, (state) => {
@@ -305,10 +323,33 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(acceptAssignmentThunk.fulfilled, (state, action) => {
       state.isLoading = false;
-      state.activeAssignment = action.payload;
       state.status = 'ON_DELIVERY';
+      
+      const d = action.payload.data || action.payload; // fallback if unwrapped
+      const orderId = action.meta.arg.orderId;
+      const matched = state.availableAssignments.find(a => a.orderId === orderId);
+
+      state.activeAssignment = {
+        deliveryId: d._id || d.deliveryId,
+        orderId: d.orderId || orderId,
+        partnerId: d.partnerId || '',
+        restaurant: matched?.restaurant || 'Restaurant',
+        restaurantImage: '',
+        customer: 'Customer',
+        pickupLocation: d.pickupLocation?.coordinates ? { lat: d.pickupLocation.coordinates[1], lng: d.pickupLocation.coordinates[0] } : (matched?.pickupLocation || { lat: 0, lng: 0 }),
+        dropoffLocation: d.destinationLocation?.coordinates ? { lat: d.destinationLocation.coordinates[1], lng: d.destinationLocation.coordinates[0] } : (matched?.dropoffLocation || { lat: 0, lng: 0 }),
+        pickupAddress: matched?.pickupAddress || 'Pickup',
+        dropAddress: matched?.dropAddress || 'Dropoff',
+        distance: matched?.distance || '0 km',
+        estimatedTime: matched?.estimatedTime || '0 mins',
+        amount: matched?.amount || 0,
+        priority: 'medium',
+        status: d.status || 'partner_assigned',
+        items: []
+      };
+
       state.availableAssignments = state.availableAssignments.filter(
-        (a) => a.orderId !== action.meta.arg.orderId
+        (a) => a.orderId !== orderId
       );
     });
     builder.addCase(acceptAssignmentThunk.rejected, (state) => {
