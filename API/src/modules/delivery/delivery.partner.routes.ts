@@ -4,6 +4,7 @@ import { DeliveryPartner } from './delivery-partner.model';
 import { protect, authorize } from '../../shared/middleware/auth.middleware';
 import { toLatLng } from '../../utils/geo';
 import { Order } from '../orders/order.model';
+import { transitionOrderStatus } from '../orders/order.service';
 import { emitDeliveryAssigned } from './delivery.events';
 
 const router = Router();
@@ -115,17 +116,22 @@ router.post(
         return res.status(404).json({ success: false, message: 'Partner profile not found' });
       }
 
+      if (partner.status !== 'available') {
+        return res.status(400).json({ success: false, message: 'Partner is not available for new assignments' });
+      }
+
       const { orderId } = req.params;
 
-      const updated = await Order.findOneAndUpdate(
-        { _id: orderId, status: 'awaiting_partner' },
-        { $set: { status: 'partner_assigned' } },
-        { new: true }
-      );
-
-      if (!updated) {
-        return res.status(409).json({ success: false, message: 'already_assigned' });
+      const order = await Order.findOne({ _id: orderId, status: 'awaiting_partner' });
+      if (!order) {
+        return res.status(409).json({ success: false, message: 'already_assigned or invalid state' });
       }
+
+      // Transition order status canonically (will emit order:status_changed)
+      const updated = await transitionOrderStatus(orderId, 'partner_assigned', {
+        id: req.user!.id,
+        role: 'system' // role='system' allows bypassing owner/user validation in transitionOrderStatus
+      });
 
       // Create a Delivery record
       const delivery = new Delivery({

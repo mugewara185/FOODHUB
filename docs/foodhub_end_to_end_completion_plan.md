@@ -2,16 +2,16 @@
 
 # Current E2E Completion
 
-- Overall E2E: 30%
+- Overall E2E: 40%
 - Phase 1 — Data/Auth prerequisites: [Deferred]
 - Phase 2 — API contract integrity: Build-verified
 - Phase 3 — Customer tracking + realtime: Build-verified (Socket kill switches removed)
-- Phase 4 — Partner delivery lifecycle: 20% (UI off-by-one fixed; backend release bug pending)
+- Phase 4 — Partner delivery lifecycle: Build-verified (UI off-by-one fixed; backend release bug fixed; accept state machine fixed)
 - Phase 5 — Admin & Polish: Pending
 - Final E2E verification: Pending
 
-**Current Blockers:** Backend partner release bug in `delivery.service.ts`, canonical accept state-machine refactor.
-**Last Verified Commit:** HEAD (bdc0a2c)
+**Current Blockers:** Admin orders list 404, seed pipeline plaintext passwords.
+**Last Verified Commit:** HEAD (working tree)
 
 ## A. Executive Diagnosis
 
@@ -172,8 +172,8 @@ Do **NOT** touch the following yet:
 
 ## J. Recommended Next Implementation Session
 
-**Target: Phase 4 (Partner Delivery Lifecycle)**
+**Target: Phase 5 (Admin & Polish) & Phase 1 (Auth Seeding)**
 **Specific Actions:**
-1. Update `delivery.service.ts` to clear `assignedOrder` and set status back to `available` upon delivery completion.
-2. Fix the `accept` endpoint to use the canonical state machine instead of raw `findOneAndUpdate`.
-**Verification:** Partner accepts order, arrives, picks up, and marks delivered. Partner is then free to accept a new order.
+1. Fix Admin Orders list to call a valid endpoint instead of the 404 `GET /orders/owned`.
+2. Modify `API/src/modules/dev/dev.controller.ts` or `web/src/core/dev/utils/factorySeed.ts` (whichever executes the DB write) to securely hash passwords for seeded users.
+**Verification:** Admin can view the list of all orders. Seeded users can log in without `DEV_BYPASS_AUTH`.
