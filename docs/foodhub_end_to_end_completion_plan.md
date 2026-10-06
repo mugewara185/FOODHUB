@@ -1,22 +1,30 @@
 # FoodHub End-to-End Completion Plan
 
-# Current E2E Completion
-
-- Overall E2E: 40%
+## CURRENT STATUS
+- Overall E2E: 40% (Not E2E Complete)
 - Phase 1 — Data/Auth prerequisites: [Deferred]
 - Phase 2 — API contract integrity: Build-verified
-- Phase 3 — Customer tracking + realtime: Build-verified (Socket kill switches removed)
-- Phase 4 — Partner delivery lifecycle: Runtime-verified (Backend release bug & accept state machine fixed, verified via integration test)
+- Phase 3 — Customer tracking + realtime: Build-verified
+- Phase 4 — Partner delivery lifecycle: Route & Runtime-verified
 - Phase 5 — Admin & Polish: Pending
-- Final E2E verification: Pending
 
-**EVIDENCE:**
-- Phase 4 Runtime Verification passed via `API/src/modules/delivery/__tests__/partner-lifecycle.test.ts`.
+## EVIDENCE
+- Phase 4 verified via `npx tsx API/src/modules/delivery/__tests__/partner-lifecycle.test.ts`
+- Verification includes HTTP route testing, native Mongoose updates, and Socket.IO `emit` interception.
 
-**CURRENT BLOCKERS:** Admin orders list 404, seed pipeline plaintext passwords.
-**LAST VERIFIED COMMIT:** a70c48c3bc0d2bd07939fae410f8e537bf7cd5c5
+## REMAINING BLOCKERS
+- Seed pipeline plaintext passwords (Auth prerequisite).
+- Admin orders list 404 (`GET /orders/owned`).
 
-## A. Historical Diagnosis (Pre-Phase 4)
+## VERIFICATION
+- **Build verification:** PASS (`npx tsc --noEmit` & `npm run build`)
+- **Backend runtime verification:** PASS (Services correctly update MongoDB documents)
+- **Route-level verification:** PASS (Express test server handled `POST /partner/:orderId/accept` natively)
+- **Event verification:** PASS (Intercepted `getIO()` confirmed `order:status_changed` was emitted)
+- **Full product E2E verification:** PENDING (Requires cross-browser testing)
+- **Last Verified Commit:** `HEAD` (will be updated on commit)
+
+## HISTORICAL DIAGNOSIS
 
 **How close is the CURRENT repository to a genuinely working end-to-end FoodHub flow?**
 **Status:** ~75% complete but **0% End-to-End Functional**
@@ -173,7 +181,7 @@ Do **NOT** touch the following yet:
 6. **Partner:** Verify Partner returns to 'Available' state.
 7. **Admin:** Login as Admin -> View order history -> Confirm order shows as Delivered.
 
-## J. Recommended Next Implementation Session
+## NEXT PHASE
 
 **Target: Phase 5 (Admin & Polish) & Phase 1 (Auth Seeding)**
 **Specific Actions:**
