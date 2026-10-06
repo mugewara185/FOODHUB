@@ -137,12 +137,8 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
 export async function getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = (req as any).user.id;
-    console.log('GET ME CALLED WITH USER ID:', userId);
     const user = await User.findById(userId);
     if (!user) {
-      console.log('USER NOT FOUND IN DB:', userId);
-      const allUsers = await User.find();
-      console.log('ALL USERS IN DB:', allUsers.map(u => u._id.toString()));
       throw new AppError('User not found', 404);
     }
 
