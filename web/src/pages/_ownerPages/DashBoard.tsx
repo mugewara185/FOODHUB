@@ -7,7 +7,14 @@ import {
 import {
   ShoppingBag, Restaurant, Star, CheckCircle, Schedule
 } from '@mui/icons-material';
-import { useAppSelector } from '@app/store/hooks';
+import { useAppSelector, useAppDispatch } from '@app/store/hooks';
+import { 
+  acceptOrderThunk, 
+  rejectOrderThunk, 
+  markPreparingThunk, 
+  markReadyThunk 
+} from '../../features/orders/ownerOrderApi';
+import { Button, Stack } from '@mui/material';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -39,6 +46,7 @@ const getStatusChipColor = (status: string) => {
 };
 
 const OwnerDashboard: React.FC = () => {
+  const dispatch = useAppDispatch();
   const { pendingOrders, activeOrders, isLoading } = useAppSelector((state: any) => state.ownerOrders);
   const { data: restaurant } = useAppSelector((state: any) => state.ownerRestaurant);
 
@@ -51,6 +59,36 @@ const OwnerDashboard: React.FC = () => {
 
   const lastPending = pendingOrders ? pendingOrders.slice(0, 5) : [];
   const lastActive = activeOrders ? activeOrders.slice(0, 5) : [];
+
+  const renderActions = (order: any) => {
+    switch(order.status) {
+      case 'pending_owner':
+        return (
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            <Button size="small" variant="contained" color="success" onClick={() => dispatch(acceptOrderThunk(order.id))}>Accept</Button>
+            <Button size="small" variant="outlined" color="error" onClick={() => dispatch(rejectOrderThunk(order.id))}>Reject</Button>
+          </Stack>
+        );
+      case 'confirmed':
+        return (
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            <Button size="small" variant="contained" color="primary" onClick={() => dispatch(markPreparingThunk(order.id))}>Mark Preparing</Button>
+          </Stack>
+        );
+      case 'preparing':
+        return (
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            <Button size="small" variant="contained" color="info" onClick={() => dispatch(markReadyThunk(order.id))}>Mark Ready</Button>
+          </Stack>
+        );
+      case 'ready_for_pickup':
+        return (
+          <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic', color: 'text.secondary' }}>Waiting for partner</Typography>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
@@ -136,7 +174,14 @@ const OwnerDashboard: React.FC = () => {
                             <Chip label={order.status} size="small" color={getStatusChipColor(order.status) as any} />
                           </Box>
                         }
-                        secondary={`₹${order.total?.toFixed(2) || order.subtotal?.toFixed(2) || 0}`}
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">
+                              {`₹${order.total?.toFixed(2) || order.subtotal?.toFixed(2) || 0}`}
+                            </Typography>
+                            {renderActions(order)}
+                          </Box>
+                        }
                       />
                     </ListItem>
                     {index < lastPending.length - 1 && <Divider sx={{ my: 1 }} />}
@@ -165,7 +210,14 @@ const OwnerDashboard: React.FC = () => {
                             <Chip label={order.status} size="small" color={getStatusChipColor(order.status) as any} />
                           </Box>
                         }
-                        secondary={`₹${order.total?.toFixed(2) || order.subtotal?.toFixed(2) || 0}`}
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">
+                              {`₹${order.total?.toFixed(2) || order.subtotal?.toFixed(2) || 0}`}
+                            </Typography>
+                            {renderActions(order)}
+                          </Box>
+                        }
                       />
                     </ListItem>
                     {index < lastActive.length - 1 && <Divider sx={{ my: 1 }} />}

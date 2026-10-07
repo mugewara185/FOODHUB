@@ -235,54 +235,13 @@ console.log('ActiveDelivery render: activeAssignment.status=', activeAssignment?
         </Grid>
 
         <Grid item xs={12} lg={4}>
-          <Paper sx={{ p: 3, mb: 3, borderRadius: 3, textAlign: 'center' }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>
-              Actions
+          <Paper sx={{ p: 3, mb: 3, borderRadius: 3, textAlign: 'center', bgcolor: 'info.light', color: 'info.contrastText' }}>
+            <Typography variant="subtitle1" fontWeight={700}>
+              Live Tracking Simulator Active
             </Typography>
-            {activeStep === 0 && (
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                size="large"
-                onClick={() => handleStatusUpdate('arrived_pickup')}
-              >
-                Arrived at Restaurant
-              </Button>
-            )}
-            {activeStep === 1 && (
-              <Button
-                fullWidth
-                variant="contained"
-                color="secondary"
-                size="large"
-                onClick={() => setPickupDialog(true)}
-              >
-                Confirm Pickup
-              </Button>
-            )}
-            {activeStep === 2 && (
-              <Button
-                fullWidth
-                variant="contained"
-                color="warning"
-                size="large"
-                onClick={() => handleStatusUpdate('out_for_delivery')}
-              >
-                Start Delivery
-              </Button>
-            )}
-            {activeStep === 3 && (
-              <Button
-                fullWidth
-                variant="contained"
-                color="success"
-                size="large"
-                onClick={() => setDeliveryDialog(true)}
-              >
-                Mark Delivered
-              </Button>
-            )}
+            <Typography variant="body2">
+              The delivery is progressing automatically. Sit back and watch the updates.
+            </Typography>
           </Paper>
 
           <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>

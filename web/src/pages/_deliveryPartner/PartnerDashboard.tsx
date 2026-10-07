@@ -33,14 +33,26 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../app/store';
-import { selectPartnerStats, selectActiveAssignment, selectIsPartnerOnline, setOnlineStatusThunk } from '../../features/deliveryPartner/deliveryPartnerSlice';
+import { 
+  selectPartnerStats, 
+  selectActiveAssignment, 
+  selectIsPartnerOnline, 
+  setOnlineStatusThunk,
+  selectAvailableAssignments,
+  acceptAssignmentThunk,
+  rejectAssignmentThunk
+} from '../../features/deliveryPartner/deliveryPartnerSlice';
+import { useDeliveryAvailable } from '../../features/deliveryPartner/hooks/useDeliveryAvailable';
 
 const PartnerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const stats = useAppSelector(selectPartnerStats);
   const currentOrder = useAppSelector(selectActiveAssignment);
+  const availableAssignments = useAppSelector(selectAvailableAssignments);
   const isOnline = useAppSelector(selectIsPartnerOnline);
   const dispatch = useAppDispatch();
+
+  useDeliveryAvailable();
 
   const handleToggleOnline = () => {
     dispatch(setOnlineStatusThunk(!isOnline));
@@ -145,6 +157,48 @@ const PartnerDashboard: React.FC = () => {
             }}
           />
         </Paper>
+      )}
+
+      {/* Available Assignments Alert */}
+      {availableAssignments.length > 0 && !currentOrder && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" fontWeight={700} gutterBottom>
+            Available Deliveries
+          </Typography>
+          <Stack spacing={2}>
+            {availableAssignments.map(assignment => (
+              <Paper key={assignment.orderId} sx={{ p: 3, borderRadius: 3, border: '2px solid', borderColor: 'primary.main' }}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} md={8}>
+                    <Typography variant="subtitle1" fontWeight={700}>Order #{assignment.orderId.slice(0, 8)}</Typography>
+                    <Typography variant="body2">From: {assignment.restaurant}</Typography>
+                    <Typography variant="body2">To: {assignment.customer || 'Customer'}</Typography>
+                    <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>Earnings: ₹{assignment.amount}</Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4} sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => dispatch(rejectAssignmentThunk({ orderId: assignment.orderId }))}
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={async () => {
+                        await dispatch(acceptAssignmentThunk({ orderId: assignment.orderId })).unwrap();
+                        navigate('/partner/active');
+                      }}
+                    >
+                      Accept
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
+            ))}
+          </Stack>
+        </Box>
       )}
 
       {/* Stats Cards */}

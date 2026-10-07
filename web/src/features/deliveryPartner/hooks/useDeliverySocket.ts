@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { socketService } from '../../../services/socket';
 import type { DeliveryAssignedPayload, DeliveryStatusPayload, DeliveryLocationPayload } from '../../../core/types/socket.events';
 
@@ -27,12 +27,21 @@ export const useDeliverySocket = (role: 'customer' | 'partner' | 'admin' | 'owne
     };
   }, []);
 
+  const callbacksRef = useRef(callbacks);
+  useEffect(() => {
+    callbacksRef.current = callbacks;
+  }, [callbacks]);
+
   useEffect(() => {
     if (connectionStatus !== 'connected') return;
 
-    if (callbacks?.onAssigned) socketService.onDeliveryAssigned(callbacks.onAssigned);
-    if (callbacks?.onStatus) socketService.onDeliveryStatus(callbacks.onStatus);
-    if (callbacks?.onLocation) socketService.onDeliveryLocation(callbacks.onLocation);
+    const handleAssigned = (payload: DeliveryAssignedPayload) => callbacksRef.current?.onAssigned?.(payload);
+    const handleStatus = (payload: DeliveryStatusPayload) => callbacksRef.current?.onStatus?.(payload);
+    const handleLocation = (payload: DeliveryLocationPayload) => callbacksRef.current?.onLocation?.(payload);
+
+    socketService.onDeliveryAssigned(handleAssigned);
+    socketService.onDeliveryStatus(handleStatus);
+    socketService.onDeliveryLocation(handleLocation);
 
     // If role is admin, we also explicitly join the admin fleet room
     if (role === 'admin') {
@@ -40,16 +49,15 @@ export const useDeliverySocket = (role: 'customer' | 'partner' | 'admin' | 'owne
     }
 
     return () => {
-      if (callbacks?.onAssigned) socketService.offDeliveryAssigned(callbacks.onAssigned);
-      if (callbacks?.onStatus) socketService.offDeliveryStatus(callbacks.onStatus);
-      if (callbacks?.onLocation) {
-        (socketService as any).socket?.off('delivery:location', callbacks.onLocation);
-      }
+      socketService.offDeliveryAssigned(handleAssigned);
+      socketService.offDeliveryStatus(handleStatus);
+      (socketService as any).socket?.off('delivery:location', handleLocation);
+      
       if (role === 'admin') {
         socketService.leaveAdminFleet();
       }
     };
-  }, [role, callbacks, connectionStatus]);
+  }, [role, connectionStatus]);
 
   return { connectionStatus };
 };

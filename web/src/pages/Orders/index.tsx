@@ -240,6 +240,12 @@ const Orders: React.FC = () => {
                             Reorder
                           </Button>
                           
+                          {['pending_owner', 'confirmed', 'preparing', 'ready_for_pickup', 'awaiting_partner', 'partner_assigned', 'picked_up', 'out_for_delivery', 'nearby'].includes(order.status) && (
+                            <Button variant="contained" size="small" startIcon={<LocalShipping />} onClick={() => handleOrderAction('track', order.id)}>
+                              Track
+                            </Button>
+                          )}
+
                           {order.status === 'delivered' && (
                             <Button variant="outlined" size="small" startIcon={<RateReview />} onClick={() => handleOrderAction('review', order.id)}>
                               Review
