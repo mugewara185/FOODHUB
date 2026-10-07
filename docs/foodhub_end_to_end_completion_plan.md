@@ -82,13 +82,18 @@ NotificationBell / Toast
 - Dashboard UI integration for live socket events (Next sprint).
 
 ## VERIFICATION
-- **Build verification:** PASS (`npx tsc --noEmit` & `npm run build` on API)
+- **Build verification:** TypeScript verification PASS (`npx tsc --noEmit`).
 - **Backend Integration Verification:** PASS
 - **Browser/Product E2E Verification:** PASS (Historical, not rerun for Phase 8)
 - **Persistent Notification Verification:** PASS
-- **Delivery Simulator Rebuild (Phase 8):** PASS (Simulator-verified, real simulator loop tested locally)
-- **Last Verified Commit:** `7b36940017e6fd15f822865b14737c7efc9f127a`
-
+- **Delivery Simulator Rebuild (Phase 8):**
+  - Implemented: PASS
+  - Runtime-verified: PASS
+  - Simulator-verified: PASS
+  - Socket-event verified: PASS
+  - E2E/browser verified for this change: NOT VERIFIED
+  - Dashboard UI integration: REMAINING
+- **Last Verified Commit:** `7b244b636231eceff7e9412ae42bf4dd49c5e1f3`
 ## HISTORICAL DIAGNOSIS
 
 *(Note: The following diagnosis describes the repository state at the beginning of the E2E completion effort and is preserved for historical engineering context. The issues described below have been resolved.)*
