@@ -30,7 +30,7 @@ export const OwnerRoutes = (
     <Route path='active' element={<Active />} />
 
     {/* Redirects and Coming Soon Routes */}
-    {/* <Route path='orders' element={<Navigate to="/owner/queue" replace />} /> */}
+    <Route path='orders' element={<Navigate to="/owner/queue" replace />} />
     {/* <Route path='orders/*' element={<Navigate to="/owner/queue" replace />} /> */}
     <Route path='menu' element={<ComingSoon title="Menu Management" />} />
     <Route path='menu/*' element={<ComingSoon title="Menu Management" />} />

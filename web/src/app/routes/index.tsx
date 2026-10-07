@@ -17,7 +17,7 @@ const AppRoutes: React.FC = () => {
       <RouteLogger />
       <Routes>
         <Route
-          path="/"
+          path="/*"
           element={
             user?.role.includes('owner')
               ? <Navigate to="/owner" replace />
@@ -40,8 +40,8 @@ const AppRoutes: React.FC = () => {
                     // user?.role.includes('dev') ? (console.log(' dev routes'), DevRoutes) : 
                     (console.error('No roles found in user'), UserRoutes)
           ) : (
-            console.log('%cuser is not definedrcbaa', 'color:red; font-weight:bold'),
-            <Navigate to='/login' replace />
+            console.log('%cuser is not defined', 'color:red; font-weight:bold'),
+            UserRoutes
           )
         }
         {/* {
@@ -63,3 +63,6 @@ const AppRoutes: React.FC = () => {
 };
 
 export default AppRoutes;
+
+//TODO:
+// should add a fallBack/warning page in case of no paths found like errors 

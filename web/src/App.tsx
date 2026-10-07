@@ -26,7 +26,7 @@ import { RoleSwitcher } from "./core/ui/buttons/RoleSwitcher";
 
 const App: React.FC = () => {
   const dispatch = useAppDispatch();
-  
+
   // const isPartnerOnline = useAppSelector(state => state.deliveryPartner.isOnline);
   // useDeliverySocket(isPartnerOnline ? 'partner' : 'customer', {
   //   onStatus: (payload) => {
@@ -54,7 +54,7 @@ const App: React.FC = () => {
       logger.info('SOCKET', 'Connecting socket', { event: 'SOCKET.CONNECT.START', data: { userId: user.id } });
       socketService.connect(user.id);
       logger.info('SOCKET', 'Socket connected', { event: 'SOCKET.CONNECT.SUCCESS' });
-      
+
       dispatch(fetchNotificationsThunk());
 
       const handleNotification = (data: any) => {
@@ -110,12 +110,12 @@ const App: React.FC = () => {
             cuisineLength={CUISINES.length}
           />
           <RoleSwitcher />
+          <LogConsole
+            open={LogConsoleOpen}
+            onClose={() => setLogConsoleOpen(false)}
+          />
         </React.Suspense>
       )}
-      <LogConsole
-        open={LogConsoleOpen}
-        onClose={() => setLogConsoleOpen(false)}
-      />
     </AuthProvider>
   );
 };
