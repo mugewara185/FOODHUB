@@ -1,7 +1,7 @@
 # FoodHub End-to-End Completion Plan
 
 ## CURRENT STATUS
-- Overall E2E: 100% (Live Tracking Simulation Fixed, Core Flow verified, Dashboard UI integrated)
+- Overall E2E: 95% (Dashboard UI integrated; Cross-domain socket chat remaining)
 - Phase 1 — Data/Auth prerequisites: [Deferred]
 - Phase 2 — API contract integrity: Build & Runtime-verified
 - Phase 3 — Customer tracking + realtime: Build & Runtime-verified
@@ -10,6 +10,7 @@
 - Phase 6 — Persistent Notifications: Verified
 - Phase 7 — Customer Profile: Verified
 - Phase 8 — Live Tracking Demo & Dashboard Integration: Verified
+- Phase 9 — Cross-domain socket chat: Remaining
 
 ## EVIDENCE
 **Backend Integration Verification**
@@ -86,13 +87,27 @@ NotificationBell / Toast
 - **Browser/Product E2E Verification:** PASS (Historical, not rerun for Phase 8)
 - **Persistent Notification Verification:** PASS
 - **Delivery Simulator Rebuild & Dashboard Integration (Phase 8):**
-  - Backend Simulator Implemented: PASS
-  - Runtime-verified: PASS
-  - Simulator-verified: PASS
-  - Socket-event verified: PASS
-  - Frontend Dashboard Integration: PASS (Owner actions, Partner `delivery:available`, Simulator tracking)
-  - E2E/browser verified for this change: NOT VERIFIED
-- **Last Verified Commit:** `3b1cb032c2534f37803d36cf3c1ce7009b7c8449`
+  - Implemented: PASS
+  - TypeScript verification: PASS
+  - Frontend build: PASS
+  - Socket-event integration: PASS
+  - Browser/E2E verification: NOT VERIFIED
+
+  **Currently Verified:**
+  - Owner dashboard actions
+  - Partner delivery:available flow
+  - Partner acceptance
+  - Active delivery socket tracking
+  - Customer tracking integration
+  - useDeliverySocket listener stability
+  - TypeScript build
+  - Frontend production build
+
+  **Remaining:**
+  - Browser/E2E verification
+  - Cross-domain socket chat
+
+- **Last Verified Commit:** `3bf1a6bd40eae427b7a1cc7da2bc672a1ddf40f0`
 ## HISTORICAL DIAGNOSIS
 
 *(Note: The following diagnosis describes the repository state at the beginning of the E2E completion effort and is preserved for historical engineering context. The issues described below have been resolved.)*
