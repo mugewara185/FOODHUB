@@ -51,10 +51,19 @@ export const markAsReadThunk = createAsyncThunk(
   }
 );
 
-export const markAllAsReadThunk = createAsyncThunk(
+export const markAllAsReadThunk = createAsyncThunk<
+  void,
+  void,
+  { state: RootState }
+>(
   'notifications/markAllAsRead',
-  async () => {
-    await api.patch('/notifications/read-all');
+  async (_, { getState, rejectWithValue }) => {
+    const previousItems = getState().notifications.items;
+    try {
+      await api.patch('/notifications/read-all');
+    } catch (error: any) {
+      return rejectWithValue(previousItems);
+    }
   }
 );
 
@@ -95,12 +104,26 @@ const notificationSlice = createSlice({
         state.unreadCount = Math.max(0, state.unreadCount - 1);
       }
     });
+    builder.addCase(markAsReadThunk.rejected, (state, action) => {
+      const notification = state.items.find(n => n.id === action.meta.arg);
+      if (notification && notification.isRead) {
+        notification.isRead = false;
+        state.unreadCount += 1;
+      }
+    });
+
     // Optimistic UI for mark all as read
     builder.addCase(markAllAsReadThunk.pending, (state) => {
       state.items.forEach(n => {
         n.isRead = true;
       });
       state.unreadCount = 0;
+    });
+    builder.addCase(markAllAsReadThunk.rejected, (state, action) => {
+      if (action.payload) {
+        state.items = action.payload as AppNotification[];
+        state.unreadCount = state.items.filter(n => !n.isRead).length;
+      }
     });
   }
 });

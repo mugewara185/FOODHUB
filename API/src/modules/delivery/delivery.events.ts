@@ -1,4 +1,4 @@
-import { notificationService } from '../notifications/notification.service';
+
 import { DeliveryStatus } from './delivery.state';
 import { getIO } from '../../socket';
 
@@ -51,15 +51,6 @@ export function emitDeliveryAssigned(payload: DeliveryAssignedPayload & { custom
   io.to('admin_fleet').emit('delivery:assigned', payload);
   if (payload.partnerUserId) {
     io.to(payload.partnerUserId).emit('delivery:assigned', payload); // NEW
-    try {
-      notificationService.createNotification({
-        userId: payload.partnerUserId,
-        title: 'New Delivery',
-        message: 'You have been assigned a new delivery.',
-        type: 'info',
-        orderId: payload.orderId
-      });
-    } catch(e) { console.error('Failed to create notification', e); }
   }
   if (payload.customerUserId) {
     io.to(payload.customerUserId).emit('delivery:assigned', payload);

@@ -10,6 +10,8 @@ import { notificationService } from '../notification.service';
 import { getIO, initSocket } from '../../../socket';
 import { createServer } from 'http';
 import { transitionOrderStatus } from '../../orders/order.service';
+import { DeliveryPartner } from '../../delivery/delivery-partner.model';
+import { assignDelivery } from '../../delivery/delivery.service';
 
 let server: any;
 let tokenA: string;
@@ -20,7 +22,11 @@ let restaurant: any;
 let order: any;
 
 beforeAll(async () => {
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/foodhub-test');
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/foodhub-test';
+  if (!uri.includes('test')) {
+    throw new Error('Safety guard: Refusing to run tests against non-test database: ' + uri);
+  }
+  await mongoose.connect(uri);
   server = createServer(app);
   initSocket(server);
 });
@@ -168,7 +174,7 @@ describe('Persistent Notification Architecture', () => {
     expect(notifs.every(n => n.isRead)).toBe(true);
   });
 
-  it('Test 6 — Domain integration (Customer delivered notification)', async () => {
+  it('Test 6 — Domain integration (Order service transition creates customer notification)', async () => {
     const io = getIO();
     const emitSpy = jest.spyOn(io, 'to').mockReturnValue({ emit: jest.fn() } as any);
 
@@ -192,5 +198,30 @@ describe('Persistent Notification Architecture', () => {
     const deliveredNotif = notifs[0]; // Most recent
     expect(deliveredNotif.title).toBe('Order Delivered');
     expect(deliveredNotif.type).toBe('success');
+  });
+
+  it('Test 7 — Domain integration (Delivery service assigns partner)', async () => {
+    // Create an available partner
+    const partner = await DeliveryPartner.create({
+      userId: userA._id, // reuse userA as partner for this test just to have a valid ID
+      name: 'Test Partner',
+      phone: '9999999999',
+      status: 'available',
+      currentLocation: { type: 'Point', coordinates: [0, 0] },
+      completedDeliveries: 0,
+      vehicle: 'bicycle'
+    });
+
+    // Assign delivery
+    await assignDelivery(order._id.toString(), [0, 0], [1, 1]);
+
+    // Verify Notification was created for Partner
+    const notifs = await Notification.find({ userId: userA._id, orderId: order._id }).sort({ createdAt: -1 });
+    expect(notifs.length).toBeGreaterThan(0);
+    
+    const assignNotif = notifs[0];
+    expect(assignNotif.title).toBe('New Delivery');
+    expect(assignNotif.type).toBe('info');
+    expect(assignNotif.message).toContain('assigned a new delivery');
   });
 });

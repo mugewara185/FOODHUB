@@ -160,13 +160,6 @@ export const NotificationBell: React.FC = () => {
             ))
           )}
         </List>
-        {notifications.length > 0 && (
-          <Box sx={{ p: 1, textAlign: 'center', bgcolor: 'background.default' }}>
-            <Button size="small" color="error" onClick={() => dispatch(clearAll())}>
-              Clear All
-            </Button>
-          </Box>
-        )}
       </Popover>
     </>
   );

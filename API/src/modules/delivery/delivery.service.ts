@@ -7,6 +7,7 @@ import { Types } from 'mongoose';
 import { getIO } from '../../socket';
 import { assertValidTransition, DeliveryStatus } from './delivery.state';
 import { emitDeliveryAssigned, emitDeliveryStatus, emitDeliveryReleased } from './delivery.events';
+import { notificationService } from '../notifications/notification.service';
 
 export async function assignDelivery(orderId: string, restaurantLocation: [number, number], customerLocation: [number, number]) {
   // 1. Find nearest available partner (for demo, just find any available)
@@ -46,6 +47,20 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
     partnerName: partner.name,
     partnerPhone: partner.phone
   });
+
+  if (partner.userId) {
+    try {
+      await notificationService.createNotification({
+        userId: partner.userId.toString(),
+        title: 'New Delivery',
+        message: 'You have been assigned a new delivery.',
+        type: 'info',
+        orderId: delivery.orderId.toString()
+      });
+    } catch (e) {
+      console.error('[assignDelivery] Failed to create partner notification:', e);
+    }
+  }
 
   // 4. Start Simulator
   startDeliverySimulation(delivery.id.toString());
