@@ -1,8 +1,16 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { addAddress, removeAddress, toggleFavorite, toggleFoodFavorite, updateProfile, getAllUsers, getUserById, updateUserAdmin, deleteUserAdmin } from './user.controller';
 import { protect, authorize } from '../../shared/middleware/auth.middleware';
+import { validateRequest } from '../../shared/middleware/validate.middleware';
 
 const router = Router();
+
+const updateProfileSchema = z.object({
+  name: z.string().min(1).optional(),
+  phone: z.string().optional(),
+  avatar: z.string().optional(),
+});
 
 router.post('/addresses', protect, addAddress);
 router.delete('/addresses/:addressId', protect, removeAddress);
@@ -12,7 +20,7 @@ router.delete('/addresses/:addressId', protect, removeAddress);
 router.post('/favorites/food/:foodItemId', protect, toggleFoodFavorite);
 router.post('/favorites/:restaurantId', protect, toggleFavorite);
 
-router.patch('/profile', protect, updateProfile);
+router.patch('/profile', protect, validateRequest(updateProfileSchema), updateProfile);
 
 // Admin routes
 router.get('/admin', protect, authorize('admin'), getAllUsers);

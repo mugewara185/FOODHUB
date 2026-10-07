@@ -117,4 +117,51 @@ describe('Customer Profile Architecture', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.addresses.length).toBe(0);
   });
+
+  it('enforces cross-user isolation for profile updates', async () => {
+    // User B tries to update User A by passing User A's ID in body or params, but API doesn't accept ID
+    // User B calls update profile, it only updates User B
+    const res = await request(app)
+      .patch('/api/users/profile')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ name: 'Hacked User A', userId: user._id });
+
+    expect(res.status).toBe(200);
+    
+    // Verify User A is unchanged
+    const userA = await User.findById(user._id);
+    expect(userA!.name).toBe('New Name');
+    
+    // Verify User B was updated instead
+    const userB = await User.findById(otherUser._id);
+    expect(userB!.name).toBe('Hacked User A');
+  });
+
+  it('enforces cross-user isolation for address deletion', async () => {
+    // Give User A an address
+    const addRes = await request(app)
+      .post('/api/users/addresses')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Home A',
+        phone: '123',
+        street: 'A St',
+        city: 'A City',
+        type: 'home'
+      });
+      
+    const addressId = addRes.body.data.addresses[0]._id || addRes.body.data.addresses[0].id;
+    
+    // User B tries to remove User A's address
+    const delRes = await request(app)
+      .delete(`/api/users/addresses/${addressId}`)
+      .set('Authorization', `Bearer ${otherToken}`);
+      
+    expect(delRes.status).toBe(200); // the API returns 200 but shouldn't delete User A's address, as it looks in User B's array
+    
+    // Verify User A still has the address
+    const userA = await User.findById(user._id);
+    expect(userA!.addresses.length).toBe(1);
+    expect((userA!.addresses[0] as any)._id.toString()).toBe(addressId);
+  });
 });

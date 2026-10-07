@@ -8,6 +8,7 @@
 - Phase 4 — Partner delivery lifecycle: Route & Runtime-verified
 - Phase 5 — Admin & Polish: API & Runtime-verified
 - Phase 6 — Persistent Notifications: Verified
+- Phase 7 — Customer Profile: Verified
 
 ## EVIDENCE
 **Backend Integration Verification**
@@ -57,6 +58,16 @@ Redux notificationSlice
 NotificationBell / Toast
 ```
 
+**Customer Profile Verification (Phase 7)**
+- Core profile read
+- Update allowed fields: name, phone, avatar
+- Address add/remove integration
+- Authenticated user isolation
+- API persistence and Zod validation boundary
+- Redux/AuthUser synchronization
+- Integration tests (`API/src/modules/users/__tests__/profile.integration.test.ts`)
+- *(Note: Broader account-page placeholders such as payments or account deletion remain outside Phase 7)*
+
 ## REMAINING BLOCKERS
 - Seed pipeline plaintext passwords (Auth prerequisite) [DEFERRED BY PROJECT DECISION].
 
@@ -65,7 +76,7 @@ NotificationBell / Toast
 - **Backend Integration Verification:** PASS
 - **Browser/Product E2E Verification:** PASS
 - **Persistent Notification Verification:** PASS
-- **Last Verified Commit:** `5aa883e643135d135c185cc7251d4f7e50a940f7`
+- **Last Verified Commit:** `7af40e0931b3a18775c147bfbf55312274296f0f`
 
 ## HISTORICAL DIAGNOSIS
 
