@@ -3,6 +3,7 @@ import { config } from '../../config/env';
 import { AppError } from '../../shared/middleware/errorHandler';
 import { sendSuccess } from '../../shared/utils/response';
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import { Order } from '../orders/order.model';
 import { DeliveryPartner } from '../delivery/delivery-partner.model';
 import { Restaurant } from '../restaurants/restaurant.model';
@@ -60,10 +61,23 @@ export async function seedFactoryData(req: Request, res: Response, next: NextFun
       let skipped = 0;
       let modelErrors: any[] = [];
 
-      if (documents.length > 0) {
+
+      let documentsToInsert = documents;
+      if (modelName === 'User' && documentsToInsert.length > 0) {
+        // Only hash passwords for fixed development users
+        documentsToInsert = await Promise.all(documents.map(async (doc: any) => {
+          if (doc.__isFixed && doc.password === 'devdev') {
+            doc.password = await bcrypt.hash('devdev', 12);
+          }
+          return doc;
+        }));
+      }
+
+      if (documentsToInsert.length > 0) {
+
         try {
-          await Model.insertMany(documents, { ordered: false, rawResult: true });
-          inserted = documents.length;
+          await Model.insertMany(documentsToInsert, { ordered: false, rawResult: true });
+          inserted = documentsToInsert.length;
         } catch (insertErr: any) {
           if (insertErr.name === 'MongoBulkWriteError' || insertErr.code === 11000 || insertErr.writeErrors) {
             inserted = insertErr.insertedCount ?? 0;
@@ -72,26 +86,30 @@ export async function seedFactoryData(req: Request, res: Response, next: NextFun
             // Distinguish skipped vs failed
             const genuineErrors = [];
             for (const we of writeErrors) {
-              const doc = documents[we.index];
-              if (we.code === 11000 && doc && doc.__isFixed) {
+              const doc = documentsToInsert[we.index];
+              const errCode = we.code || we.err?.code; if (errCode === 11000 && doc && doc.__isFixed) {
                 // Fixed account already exists -> intentionally skipped
+                // But we must ensure its password is reset to devdev
+                if (modelName === 'User' && doc.password) {
+                  await Model.updateOne({ _id: doc._id }, { $set: { password: doc.password } });
+                }
                 skipped++;
               } else {
                 genuineErrors.push(we);
               }
             }
             
-            failed = documents.length - inserted - skipped;
+            failed = documentsToInsert.length - inserted - skipped;
             
             if (genuineErrors.length > 0) {
               modelErrors = genuineErrors.map((we: any) => ({
                 index: we.index,
-                code: we.code,
-                message: we.errmsg?.substring(0, 200)
+                code: we.code || we.err?.code,
+                message: (we.errmsg || we.err?.errmsg)?.substring(0, 200)
               })).slice(0, 10);
             }
           } else {
-            failed = documents.length;
+            failed = documentsToInsert.length;
             modelErrors.push({ message: insertErr.message?.substring(0, 200) });
           }
           
