@@ -176,12 +176,18 @@ export async function cancelOrder(req: AuthRequest, res: Response, next: NextFun
 
     const io = getIO();
     io.to(order.id).emit('order_status_update', { orderId: order.id, status: 'cancelled' });
-    io.to(req.user!.id).emit('notification', {
-      title: 'Order Cancelled',
-      message: `Your order from ${order.restaurantName} was cancelled.`,
-      orderId: order.id,
-      status: 'cancelled'
-    });
+    
+    try {
+      await notificationService.createNotification({
+        userId: req.user!.id,
+        title: 'Order Cancelled',
+        message: `Your order from ${order.restaurantName} was cancelled.`,
+        type: 'warning',
+        orderId: order.id
+      });
+    } catch (e) {
+      console.error('[cancelOrder] Failed to create cancellation notification:', e);
+    }
 
     sendSuccess({ res, message: 'Order cancelled', data: order });
   } catch (err) {

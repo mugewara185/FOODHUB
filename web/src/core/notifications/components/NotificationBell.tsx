@@ -25,7 +25,7 @@ import {
   DoneAll
 } from '@mui/icons-material';
 import { useAppSelector, useAppDispatch } from '../../../app/store/hooks';
-import { selectNotifications, selectUnreadCount, markAsReadThunk, markAllAsReadThunk, clearAll } from '../notificationSlice';
+import { selectNotifications, selectUnreadCount, markAsReadThunk, markAllAsReadThunk } from '../notificationSlice';
 import { formatDistanceToNow } from 'date-fns';
 
 export const NotificationBell: React.FC = () => {

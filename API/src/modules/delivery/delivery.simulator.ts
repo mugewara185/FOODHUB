@@ -128,12 +128,18 @@ export async function startDeliverySimulation(deliveryId: string) {
 
         const order = await Order.findById(delivery.orderId);
         if (order) {
-            io.to(order.userId.toString()).emit('notification', {
+            try {
+              const { notificationService } = require('../notifications/notification.service');
+              await notificationService.createNotification({
+                userId: order.userId.toString(),
                 title: 'Delivery Update',
                 message: `Your order is now ${delivery.status.replace('_', ' ')}`,
-                orderId: delivery.orderId.toString(),
-                status: delivery.status
-            });
+                type: 'info',
+                orderId: delivery.orderId.toString()
+              });
+            } catch (e) {
+              console.error('[simulator] Failed to create delivery notification:', e);
+            }
         }
       }
 

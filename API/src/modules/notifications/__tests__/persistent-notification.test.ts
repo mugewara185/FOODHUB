@@ -9,9 +9,10 @@ import { Restaurant } from '../../restaurants/restaurant.model';
 import { notificationService } from '../notification.service';
 import { getIO, initSocket } from '../../../socket';
 import { createServer } from 'http';
-import { transitionOrderStatus } from '../../orders/order.service';
 import { DeliveryPartner } from '../../delivery/delivery-partner.model';
+import { transitionOrderStatus } from '../../orders/order.service';
 import { assignDelivery } from '../../delivery/delivery.service';
+import { cancelOrder } from '../../orders/order.controller';
 
 let server: any;
 let tokenA: string;
@@ -223,5 +224,35 @@ describe('Persistent Notification Architecture', () => {
     expect(assignNotif.title).toBe('New Delivery');
     expect(assignNotif.type).toBe('info');
     expect(assignNotif.message).toContain('assigned a new delivery');
+  });
+
+  it('Test 8 — Domain integration (Order controller cancels order)', async () => {
+    // Create mock request and response
+    const req = {
+      params: { id: order._id.toString() },
+      user: { id: userA._id.toString(), roles: ['user'] }
+    } as any;
+    
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    } as any;
+    
+    const next = jest.fn();
+
+    await cancelOrder(req, res, next);
+    
+    // Verify order cancelled
+    const updatedOrder = await Order.findById(order._id);
+    expect(updatedOrder!.status).toBe('cancelled');
+    
+    // Verify notification was created
+    const notifs = await Notification.find({ userId: userA._id, orderId: order._id }).sort({ createdAt: -1 });
+    expect(notifs.length).toBeGreaterThan(0);
+    
+    const cancelNotif = notifs[0];
+    expect(cancelNotif.title).toBe('Order Cancelled');
+    expect(cancelNotif.type).toBe('warning');
+    expect(cancelNotif.message).toContain('cancelled');
   });
 });

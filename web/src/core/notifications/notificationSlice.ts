@@ -85,10 +85,6 @@ const notificationSlice = createSlice({
         state.unreadCount = state.items.filter(n => !n.isRead).length;
       }
     },
-    clearAll: (state) => {
-      state.items = [];
-      state.unreadCount = 0;
-    },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchNotificationsThunk.fulfilled, (state, action) => {
@@ -128,7 +124,7 @@ const notificationSlice = createSlice({
   }
 });
 
-export const { addNotification, clearAll } = notificationSlice.actions;
+export const { addNotification } = notificationSlice.actions;
 
 export const selectNotifications = (state: RootState) => state.notifications.items;
 export const selectUnreadCount = (state: RootState) => state.notifications.unreadCount;
