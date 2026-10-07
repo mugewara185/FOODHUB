@@ -16,7 +16,7 @@ import { useDevContext } from "@core/dev/contexts/DevContext";
 import { useLogger, logger } from "./core/dev/logger";
 import LogConsole from "./core/dev/logger";
 import { Toast } from "./shared/components/notifications";
-import { addNotification } from "./core/notifications/notificationSlice";
+import { addNotification, fetchNotificationsThunk } from "./core/notifications/notificationSlice";
 import { socketService } from "./services/socket";
 import { showToast } from "./features/ui/uiSlice";
 import { updateOrderStatusLocally } from "./features/orders/orderSlice";
@@ -54,15 +54,22 @@ const App: React.FC = () => {
       logger.info('SOCKET', 'Connecting socket', { event: 'SOCKET.CONNECT.START', data: { userId: user.id } });
       socketService.connect(user.id);
       logger.info('SOCKET', 'Socket connected', { event: 'SOCKET.CONNECT.SUCCESS' });
+      
+      dispatch(fetchNotificationsThunk());
 
-      const handleNotification = (data: { title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error', orderId?: string, status?: string }) => {
+      const handleNotification = (data: any) => {
         const notifType = data.type || 'info';
         // Transient UI Toast
         dispatch(showToast({ message: data.message, type: notifType }));
         dispatch(addNotification({
+          id: data.id || data._id?.toString() || `notif-${Date.now()}`,
           title: data.title,
           message: data.message,
           type: notifType,
+          isRead: data.isRead || false,
+          createdAt: data.createdAt || new Date().toISOString(),
+          orderId: data.orderId,
+          status: data.status,
           targetPath: data.orderId ? `/orders/tracking/${data.orderId}` : undefined,
         }));
         logger.info('APP', 'Notification received via socket', { event: 'NOTIFICATION.RECEIVED', data });

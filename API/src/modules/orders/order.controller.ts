@@ -1,3 +1,4 @@
+import { notificationService } from '../notifications/notification.service';
 import { Response, NextFunction } from 'express';
 import { transitionOrderStatus } from './order.service';
 import { z } from 'zod';
@@ -64,6 +65,18 @@ export async function createOrder(req: AuthRequest, res: Response, next: NextFun
     const ownerRoom = restaurant.ownerId?.toString();
     if (ownerRoom) {
       io.to(ownerRoom).emit('order:new', order.toObject());
+      
+      try {
+        await notificationService.createNotification({
+          userId: ownerRoom,
+          title: 'New Order Received',
+          message: `You have a new order: ${order._id.toString().slice(-6).toUpperCase()}`,
+          type: 'info',
+          orderId: order._id,
+        });
+      } catch (e) {
+        console.error('Failed to create notification for owner', e);
+      }
     }
 
     sendSuccess({ res, statusCode: 201, message: 'Order placed successfully', data: order });

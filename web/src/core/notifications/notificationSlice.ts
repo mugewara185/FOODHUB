@@ -1,5 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../../app/store';
+import { api } from '../utils/api';
 
 export interface AppNotification {
   id: string;
@@ -23,51 +24,90 @@ const initialState: NotificationState = {
   unreadCount: 0,
 };
 
+// Map backend notification to frontend AppNotification
+const mapNotification = (n: any): AppNotification => ({
+  id: n.id || n._id?.toString(),
+  title: n.title,
+  message: n.message,
+  type: n.type,
+  isRead: n.isRead,
+  createdAt: n.createdAt,
+  orderId: n.orderId?.toString(),
+});
+
+export const fetchNotificationsThunk = createAsyncThunk(
+  'notifications/fetchAll',
+  async () => {
+    const data = await api.get('/notifications');
+    return data.notifications.map(mapNotification);
+  }
+);
+
+export const markAsReadThunk = createAsyncThunk(
+  'notifications/markAsRead',
+  async (id: string) => {
+    const data = await api.patch(`/notifications/${id}/read`);
+    return mapNotification(data.notification);
+  }
+);
+
+export const markAllAsReadThunk = createAsyncThunk(
+  'notifications/markAllAsRead',
+  async () => {
+    await api.patch('/notifications/read-all');
+  }
+);
+
 const notificationSlice = createSlice({
   name: 'notifications',
   initialState,
   reducers: {
-    addNotification: (state, action: PayloadAction<Omit<AppNotification, 'id' | 'isRead' | 'createdAt'>>) => {
-      const newNotification: AppNotification = {
-        ...action.payload,
-        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      };
-      // Add to beginning of array
-      state.items.unshift(newNotification);
-
-      // Limit to 50 notifications
-      if (state.items.length > 50) {
-        state.items = state.items.slice(0, 50);
+    // Used for incoming socket events which now come fully formed from backend
+    addNotification: (state, action: PayloadAction<AppNotification>) => {
+      // Avoid duplicates just in case
+      if (!state.items.find(n => n.id === action.payload.id)) {
+        state.items.unshift(action.payload);
+        
+        // Limit to 50 notifications
+        if (state.items.length > 50) {
+          state.items = state.items.slice(0, 50);
+        }
+        
+        state.unreadCount = state.items.filter(n => !n.isRead).length;
       }
-
-      state.unreadCount = state.items.filter(n => !n.isRead).length;
-    },
-    markAsRead: (state, action: PayloadAction<string>) => {
-      const notification = state.items.find(n => n.id === action.payload);
-      if (notification && !notification.isRead) {
-        notification.isRead = true;
-        state.unreadCount = Math.max(0, state.unreadCount - 1);
-      }
-    },
-    markAllAsRead: (state) => {
-      state.items.forEach(n => {
-        n.isRead = true;
-      });
-      state.unreadCount = 0;
     },
     clearAll: (state) => {
       state.items = [];
       state.unreadCount = 0;
     },
   },
+  extraReducers: (builder) => {
+    builder.addCase(fetchNotificationsThunk.fulfilled, (state, action) => {
+      state.items = action.payload;
+      state.unreadCount = state.items.filter((n: AppNotification) => !n.isRead).length;
+    });
+    
+    // Optimistic UI for mark as read
+    builder.addCase(markAsReadThunk.pending, (state, action) => {
+      const notification = state.items.find(n => n.id === action.meta.arg);
+      if (notification && !notification.isRead) {
+        notification.isRead = true;
+        state.unreadCount = Math.max(0, state.unreadCount - 1);
+      }
+    });
+    // Optimistic UI for mark all as read
+    builder.addCase(markAllAsReadThunk.pending, (state) => {
+      state.items.forEach(n => {
+        n.isRead = true;
+      });
+      state.unreadCount = 0;
+    });
+  }
 });
 
-export const { addNotification, markAsRead, markAllAsRead, clearAll } = notificationSlice.actions;
+export const { addNotification, clearAll } = notificationSlice.actions;
 
 export const selectNotifications = (state: RootState) => state.notifications.items;
 export const selectUnreadCount = (state: RootState) => state.notifications.unreadCount;
 
 export default notificationSlice.reducer;
-

@@ -1,3 +1,4 @@
+import { notificationService } from '../notifications/notification.service';
 import { Order, OrderStatus, IOrder } from './order.model';
 import { Restaurant } from '../restaurants/restaurant.model';
 import { AppError } from '../../shared/middleware/errorHandler';
@@ -61,6 +62,37 @@ export async function transitionOrderStatus(
   
   // 6. Saves the order
   await order.save();
+
+  // Create persistent customer notification for key transitions
+  if (['confirmed', 'preparing', 'delivered', 'rejected'].includes(newStatus)) {
+    let title = 'Order Update';
+    let message = `Your order is now ${newStatus.replace('_', ' ')}.`;
+    let type: 'success' | 'info' | 'warning' | 'error' = 'info';
+
+    if (newStatus === 'confirmed') title = 'Order Confirmed';
+    if (newStatus === 'preparing') title = 'Being Prepared';
+    if (newStatus === 'delivered') {
+      title = 'Order Delivered';
+      message = 'Your order has been delivered! Enjoy your meal.';
+      type = 'success';
+    }
+    if (newStatus === 'rejected') {
+      title = 'Order Rejected';
+      type = 'error';
+    }
+
+    try {
+      await notificationService.createNotification({
+        userId: order.userId,
+        title,
+        message,
+        type,
+        orderId: order.id,
+      });
+    } catch (e) {
+      console.error('Failed to create notification', e);
+    }
+  }
 
   const io = getIO();
   // 7. Emits order_status_update to the order room (existing pattern)

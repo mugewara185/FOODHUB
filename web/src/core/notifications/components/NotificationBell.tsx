@@ -25,7 +25,7 @@ import {
   DoneAll
 } from '@mui/icons-material';
 import { useAppSelector, useAppDispatch } from '../../../app/store/hooks';
-import { selectNotifications, selectUnreadCount, markAsRead, markAllAsRead, clearAll } from '../notificationSlice';
+import { selectNotifications, selectUnreadCount, markAsReadThunk, markAllAsReadThunk, clearAll } from '../notificationSlice';
 import { formatDistanceToNow } from 'date-fns';
 
 export const NotificationBell: React.FC = () => {
@@ -45,7 +45,7 @@ export const NotificationBell: React.FC = () => {
 
   const handleMarkAsRead = (id: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    dispatch(markAsRead(id));
+    dispatch(markAsReadThunk(id));
   };
 
   const open = Boolean(anchorEl);
@@ -94,7 +94,7 @@ export const NotificationBell: React.FC = () => {
           <Box>
             {unreadCount > 0 && (
               <Tooltip title="Mark all as read">
-                <MuiIconButton size="small" color="inherit" onClick={() => dispatch(markAllAsRead())}>
+                <MuiIconButton size="small" color="inherit" onClick={() => dispatch(markAllAsReadThunk())}>
                   <DoneAll fontSize="small" />
                 </MuiIconButton>
               </Tooltip>
@@ -118,7 +118,7 @@ export const NotificationBell: React.FC = () => {
                     '&:hover': { bgcolor: 'action.selected' }
                   }}
                   onClick={() => {
-                    if (!notification.isRead) dispatch(markAsRead(notification.id));
+                    if (!notification.isRead) dispatch(markAsReadThunk(notification.id));
                     if (notification.targetPath) {
                       handleClose();
                       navigate(notification.targetPath);
