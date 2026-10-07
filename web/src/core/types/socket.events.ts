@@ -24,3 +24,12 @@ export interface DeliveryLocationPayload extends DeliveryBasePayload {
 export interface PartnerLocationUpdatedPayload extends DeliveryBasePayload {
   location: { lat: number; lng: number };
 }
+
+export interface OrderChatMessage {
+  orderId: string;
+  senderId: string;
+  senderRole: 'user' | 'owner' | 'partner' | 'admin';
+  senderName: string;
+  message: string;
+  timestamp?: string;
+}

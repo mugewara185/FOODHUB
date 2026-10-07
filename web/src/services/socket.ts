@@ -5,7 +5,7 @@ import type {
   DeliveryAssignedPayload,
   DeliveryStatusPayload,
   DeliveryLocationPayload,
-  PartnerLocationUpdatedPayload,
+  PartnerLocationUpdatedPayload, OrderChatMessage,
 } from "../core/types/socket.events";
 
 class SocketService {
@@ -236,6 +236,18 @@ class SocketService {
 
   offDeliveryAvailable(callback?: (data: any) => void) {
     this.socket?.off("delivery:available", callback);
+  }
+
+  sendOrderChatMessage(payload: OrderChatMessage) {
+    this.socket?.emit("order:chat:send", payload);
+  }
+
+  onOrderChatMessage(callback: (payload: OrderChatMessage) => void) {
+    this.socket?.on("order:chat:message", callback);
+  }
+
+  offOrderChatMessage(callback?: (payload: OrderChatMessage) => void) {
+    this.socket?.off("order:chat:message", callback);
   }
 
   removeAllListeners() {

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box, Grid, Paper, Typography, Card, CardContent, Avatar, Chip,
   List, ListItem, ListItemText, ListItemAvatar, Divider,
-  Alert, CircularProgress
+  Alert, CircularProgress, Dialog, DialogContent
 } from '@mui/material';
 import {
-  ShoppingBag, Restaurant, Star, CheckCircle, Schedule
+  ShoppingBag, Restaurant, Star, CheckCircle, Schedule, Chat
 } from '@mui/icons-material';
 import { useAppSelector, useAppDispatch } from '@app/store/hooks';
 import { 
@@ -15,6 +15,7 @@ import {
   markReadyThunk 
 } from '../../features/orders/ownerOrderApi';
 import { Button, Stack } from '@mui/material';
+import OrderChat from '../../shared/components/OrderChat/OrderChat';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -49,6 +50,9 @@ const OwnerDashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const { pendingOrders, activeOrders, isLoading } = useAppSelector((state: any) => state.ownerOrders);
   const { data: restaurant } = useAppSelector((state: any) => state.ownerRestaurant);
+  const { user } = useAppSelector((state: any) => state.auth);
+  
+  const [chatOrderId, setChatOrderId] = useState<string | null>(null);
 
   const pendingCount = pendingOrders?.length || 0;
   const activeCount = activeOrders?.length || 0;
@@ -67,26 +71,36 @@ const OwnerDashboard: React.FC = () => {
           <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
             <Button size="small" variant="contained" color="success" onClick={() => dispatch(acceptOrderThunk(order.id))}>Accept</Button>
             <Button size="small" variant="outlined" color="error" onClick={() => dispatch(rejectOrderThunk(order.id))}>Reject</Button>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
           </Stack>
         );
       case 'confirmed':
         return (
           <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
             <Button size="small" variant="contained" color="primary" onClick={() => dispatch(markPreparingThunk(order.id))}>Mark Preparing</Button>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
           </Stack>
         );
       case 'preparing':
         return (
           <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
             <Button size="small" variant="contained" color="info" onClick={() => dispatch(markReadyThunk(order.id))}>Mark Ready</Button>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
           </Stack>
         );
       case 'ready_for_pickup':
         return (
-          <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic', color: 'text.secondary' }}>Waiting for partner</Typography>
+          <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'center' }}>
+            <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', mr: 2 }}>Waiting for partner</Typography>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
+          </Stack>
         );
       default:
-        return null;
+        return (
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
+          </Stack>
+        );
     }
   };
 
@@ -234,6 +248,19 @@ const OwnerDashboard: React.FC = () => {
           <Alert severity="success" icon={<CheckCircle />}>All caught up! No active or pending orders.</Alert>
         </Box>
       )}
+
+      <Dialog open={!!chatOrderId} onClose={() => setChatOrderId(null)} maxWidth="sm" fullWidth>
+        <DialogContent sx={{ p: 0 }}>
+          {chatOrderId && user && (
+            <OrderChat 
+              orderId={chatOrderId}
+              currentUserId={user.id}
+              currentUserRole="owner"
+              currentUserName={user.name || 'Owner'}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

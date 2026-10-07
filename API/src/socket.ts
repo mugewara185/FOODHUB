@@ -31,6 +31,17 @@ export const initSocket = (server: HttpServer) => {
       console.log(`Socket ${socket.id} joined admin fleet room`);
     });
 
+    socket.on('order:chat:send', (payload) => {
+      if (!payload || !payload.orderId || !payload.message || typeof payload.message !== 'string') {
+        return;
+      }
+      // Broadcast to everyone in the order room, including the sender
+      io.to(payload.orderId).emit('order:chat:message', {
+        ...payload,
+        timestamp: payload.timestamp || new Date().toISOString()
+      });
+    });
+
     socket.on('partner:location_updated', async (payload) => {
       // payload: { deliveryId, orderId, partnerId, location: { lat, lng } }
       try {

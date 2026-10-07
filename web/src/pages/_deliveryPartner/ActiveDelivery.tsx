@@ -24,8 +24,10 @@ import {
   Restaurant,
   Person,
   CenterFocusStrong,
+  Chat
 } from '@mui/icons-material';
 import Map from '../../shared/components/maps/Map';
+import OrderChat from '../../shared/components/OrderChat/OrderChat';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@app/store/hooks';
 import {
@@ -52,10 +54,12 @@ const ActiveDelivery: React.FC = () => {
   const activeAssignment = useAppSelector(selectActiveAssignment);
   const currentLocation = useAppSelector(selectPartnerLocation);
   const isLoading = useAppSelector(selectIsLoading);
+  const { user } = useAppSelector((state: any) => state.auth);
 
   const [pickupDialog, setPickupDialog] = useState(false);
   const [deliveryDialog, setDeliveryDialog] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Fetch partner state (active delivery + location + status) on mount.
   // This replaces the old fetchActiveAssignmentThunk which always returned null.
@@ -239,9 +243,12 @@ console.log('ActiveDelivery render: activeAssignment.status=', activeAssignment?
             <Typography variant="subtitle1" fontWeight={700}>
               Live Tracking Simulator Active
             </Typography>
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ mb: 2 }}>
               The delivery is progressing automatically. Sit back and watch the updates.
             </Typography>
+            <Button variant="contained" color="secondary" startIcon={<Chat />} onClick={() => setChatOpen(true)}>
+              Chat with Customer / Owner
+            </Button>
           </Paper>
 
           <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
@@ -338,6 +345,19 @@ console.log('ActiveDelivery render: activeAssignment.status=', activeAssignment?
             Delivered
           </Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog open={chatOpen} onClose={() => setChatOpen(false)} maxWidth="sm" fullWidth>
+        <DialogContent sx={{ p: 0 }}>
+          {activeAssignment && user && (
+            <OrderChat 
+              orderId={activeAssignment.orderId}
+              currentUserId={user.id}
+              currentUserRole="partner"
+              currentUserName={user.name || 'Delivery Partner'}
+            />
+          )}
+        </DialogContent>
       </Dialog>
     </Box>
   );

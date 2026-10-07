@@ -6,10 +6,12 @@ import {
 } from '@mui/material';
 import {
   MoreVert, Replay, RateReview, Help, Cancel, LocalShipping,
-  CheckCircle, AccessTime, Restaurant, ShoppingBag
+  CheckCircle, AccessTime, Restaurant, ShoppingBag, Chat
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { fetchOrdersThunk, cancelOrderThunk } from '@/features/orders/orderSlice';
+import OrderChat from '@/shared/components/OrderChat/OrderChat';
+import { Dialog, DialogContent } from '@mui/material';
 
 const Orders: React.FC = () => {
   const navigate = useNavigate();
@@ -17,8 +19,10 @@ const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [chatOrderId, setChatOrderId] = useState<string | null>(null);
 
   const { items: orders, loading, cancelling } = useAppSelector((state) => state.orders);
+  const { user } = useAppSelector((state: any) => state.auth);
 
   useEffect(() => {
     dispatch(fetchOrdersThunk());
@@ -241,9 +245,14 @@ const Orders: React.FC = () => {
                           </Button>
                           
                           {['pending_owner', 'confirmed', 'preparing', 'ready_for_pickup', 'awaiting_partner', 'partner_assigned', 'picked_up', 'out_for_delivery', 'nearby'].includes(order.status) && (
-                            <Button variant="contained" size="small" startIcon={<LocalShipping />} onClick={() => handleOrderAction('track', order.id)}>
-                              Track
-                            </Button>
+                            <>
+                              <Button variant="contained" size="small" startIcon={<LocalShipping />} onClick={() => handleOrderAction('track', order.id)}>
+                                Track
+                              </Button>
+                              <Button variant="contained" color="secondary" size="small" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>
+                                Chat
+                              </Button>
+                            </>
                           )}
 
                           {order.status === 'delivered' && (
@@ -278,6 +287,19 @@ const Orders: React.FC = () => {
           <Cancel sx={{ mr: 1, fontSize: 20 }} /> Cancel Order
         </MenuItem>
       </Menu>
+
+      <Dialog open={!!chatOrderId} onClose={() => setChatOrderId(null)} maxWidth="sm" fullWidth>
+        <DialogContent sx={{ p: 0 }}>
+          {chatOrderId && user && (
+            <OrderChat 
+              orderId={chatOrderId}
+              currentUserId={user.id}
+              currentUserRole="user"
+              currentUserName={user.name || 'Customer'}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 };
