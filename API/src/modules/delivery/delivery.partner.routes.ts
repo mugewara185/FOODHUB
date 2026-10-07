@@ -6,7 +6,8 @@ import { toLatLng } from '../../utils/geo';
 import { Order } from '../orders/order.model';
 import { transitionOrderStatus } from '../orders/order.service';
 import { emitDeliveryAssigned } from './delivery.events';
-
+import { Restaurant } from '../restaurants/restaurant.model';
+import { startDeliverySimulation } from './delivery.simulator';
 const router = Router();
 
 /**
@@ -133,18 +134,30 @@ router.post(
         role: 'system' // role='system' allows bypassing owner/user validation in transitionOrderStatus
       });
 
+      const restaurant = await Restaurant.findById(order.restaurantId);
+      const rLat = restaurant?.location?.lat || 12.9716;
+      const rLng = restaurant?.location?.lng || 77.5946;
+
+      const pickupCoords: [number, number] = [rLng, rLat];
+      const destCoords: [number, number] = [rLng + 0.02, rLat + 0.02];
+      const startCoords: [number, number] = partner.currentLocation?.coordinates?.length === 2 
+          ? [partner.currentLocation.coordinates[0], partner.currentLocation.coordinates[1]] 
+          : [rLng - 0.01, rLat - 0.01];
+
       // Create a Delivery record
       const delivery = new Delivery({
         orderId: updated._id,
         partnerId: partner._id,
         status: 'partner_assigned',
-        pickupLocation: partner.currentLocation, // Simplified since order has string address
-        destinationLocation: partner.currentLocation // We don't have lat/lng in basic order
+        pickupLocation: { type: 'Point', coordinates: pickupCoords },
+        destinationLocation: { type: 'Point', coordinates: destCoords },
+        currentLocation: { type: 'Point', coordinates: startCoords }
       });
       await delivery.save();
 
       partner.status = 'assigned';
       partner.currentAssignedDelivery = delivery._id as any;
+      partner.currentLocation = { type: 'Point', coordinates: startCoords };
       await partner.save();
 
       emitDeliveryAssigned({
@@ -153,10 +166,12 @@ router.post(
         partnerId: partner._id.toString(),
         partnerUserId: partner.userId.toString(),
         customerUserId: updated.userId.toString(),
-        partnerName: partner.vehicleDetails?.plateNumber || 'Partner', // Fallback, could use req.user.name
-        partnerPhone: partner.rating.toString(), // We don't have phone in partner model directly, just mock it
+        partnerName: partner.name || 'Partner',
+        partnerPhone: partner.phone || '9999999999',
         status: 'partner_assigned'
       });
+
+      startDeliverySimulation(delivery._id.toString());
 
       return res.json({ success: true, data: delivery });
     } catch (error) {

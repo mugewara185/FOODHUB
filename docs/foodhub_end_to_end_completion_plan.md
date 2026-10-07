@@ -1,7 +1,7 @@
 # FoodHub End-to-End Completion Plan
 
 ## CURRENT STATUS
-- Overall E2E: 100% (Core Flow Complete)
+- Overall E2E: 90% (Live Tracking Simulation Fixed, Core Flow verified but needs UI integration)
 - Phase 1 — Data/Auth prerequisites: [Deferred]
 - Phase 2 — API contract integrity: Build & Runtime-verified
 - Phase 3 — Customer tracking + realtime: Build & Runtime-verified
@@ -9,6 +9,7 @@
 - Phase 5 — Admin & Polish: API & Runtime-verified
 - Phase 6 — Persistent Notifications: Verified
 - Phase 7 — Customer Profile: Verified
+- Phase 8 — Live Tracking Demo: Backend Simulator Verified
 
 ## EVIDENCE
 **Backend Integration Verification**
@@ -68,15 +69,25 @@ NotificationBell / Toast
 - Integration tests (`API/src/modules/users/__tests__/profile.integration.test.ts`)
 - *(Note: Broader account-page placeholders such as payments or account deletion remain outside Phase 7)*
 
+**Live Tracking Demo (Phase 8)**
+- `API/src/modules/delivery/delivery.partner.routes.ts`
+- Rewritten partner acceptance route to fetch proper restaurant coordinates.
+- Implemented deterministic demo fallback destination (since standard order lacks coordinates).
+- Simulator correctly parameterized with valid distinct start, pickup, and destination points.
+- Verified socket invariants (`delivery:location`, `delivery:status`, `delivery:assigned`) remain unchanged.
+- Backend routing and typescript builds successfully validated.
+
 ## REMAINING BLOCKERS
 - Seed pipeline plaintext passwords (Auth prerequisite) [DEFERRED BY PROJECT DECISION].
+- Dashboard UI integration for live socket events (Next sprint).
 
 ## VERIFICATION
-- **Build verification:** PASS (`npx tsc --noEmit` & `npm run build` on API & Web)
+- **Build verification:** PASS (`npx tsc --noEmit` & `npm run build` on API)
 - **Backend Integration Verification:** PASS
-- **Browser/Product E2E Verification:** PASS
+- **Browser/Product E2E Verification:** PASS (Historical, not rerun for Phase 8)
 - **Persistent Notification Verification:** PASS
-- **Last Verified Commit:** `7af40e0931b3a18775c147bfbf55312274296f0f`
+- **Delivery Simulator Rebuild (Phase 8):** PASS (Build verified, `partner-lifecycle.test.ts` passed locally)
+- **Last Verified Commit:** `3fbb151cf0961d9aa16f0c6254f1cac39877b731`
 
 ## HISTORICAL DIAGNOSIS
 
@@ -246,10 +257,9 @@ Validates the React UI, RTK Query / Redux state machines, Socket.IO client trans
 
 ## NEXT PHASE
 
-**Target: Remaining Backlog**
+**Target: Live Tracking Dashboard UI**
 **Specific Actions:**
-- The Core Product Flow (Phases 2-5) is officially Complete and E2E Browser Verified.
-- Persistent in-app notification architecture (Phase 6) is complete.
-- Customer Profile Architecture (Phase 7) is complete and verified (avatar upload, profile fields, addresses, backend authorization).
-- Phase 1 (Auth Seeding) remains explicitly deferred by project decision.
+- Integrate frontend map components with `delivery:location` socket events.
+- Animate marker between start -> pickup -> destination.
+- Bind `delivery:status` and `order:status_changed` to UI overlays.
 - Future work should now be selected from the remaining product/engineering backlog (e.g., payment integrations, UI polish, FCM push notifications).
