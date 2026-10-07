@@ -16,22 +16,22 @@ const OwnerProtected: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 export const OwnerRoutes = (
-  <Route 
-    path="/owner/*" 
+  <Route
+    path="/owner/*"
     element={
       <OwnerProtected>
         <OwnerLayout />
       </OwnerProtected>
-    } 
+    }
   >
     <Route index element={<OwnerDashboard />} />
     <Route path='settings' element={<OwnerSettings />} />
     <Route path='queue' element={<Queue />} />
     <Route path='active' element={<Active />} />
-    
+
     {/* Redirects and Coming Soon Routes */}
-    <Route path='orders' element={<Navigate to="/owner/queue" replace />} />
-    <Route path='orders/*' element={<Navigate to="/owner/queue" replace />} />
+    {/* <Route path='orders' element={<Navigate to="/owner/queue" replace />} /> */}
+    {/* <Route path='orders/*' element={<Navigate to="/owner/queue" replace />} /> */}
     <Route path='menu' element={<ComingSoon title="Menu Management" />} />
     <Route path='menu/*' element={<ComingSoon title="Menu Management" />} />
     <Route path='analytics' element={<ComingSoon title="Analytics" />} />
