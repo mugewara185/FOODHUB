@@ -79,20 +79,19 @@ NotificationBell / Toast
 
 ## REMAINING BLOCKERS
 - Seed pipeline plaintext passwords (Auth prerequisite) [DEFERRED BY PROJECT DECISION].
-- Dashboard UI integration for live socket events (Next sprint).
 
 ## VERIFICATION
 - **Build verification:** TypeScript verification PASS (`npx tsc --noEmit`).
 - **Backend Integration Verification:** PASS
 - **Browser/Product E2E Verification:** PASS (Historical, not rerun for Phase 8)
 - **Persistent Notification Verification:** PASS
-- **Delivery Simulator Rebuild (Phase 8):**
-  - Implemented: PASS
+- **Delivery Simulator Rebuild & Dashboard Integration (Phase 8):**
+  - Backend Simulator Implemented: PASS
   - Runtime-verified: PASS
   - Simulator-verified: PASS
   - Socket-event verified: PASS
+  - Frontend Dashboard Integration: PASS (Implemented `App.tsx` global tracking, `OwnerLayout` fetches, and wired socket states in `Orders.tsx` / `ActiveDelivery.tsx`)
   - E2E/browser verified for this change: NOT VERIFIED
-  - Dashboard UI integration: REMAINING
 - **Last Verified Commit:** `7b244b636231eceff7e9412ae42bf4dd49c5e1f3`
 ## HISTORICAL DIAGNOSIS
 
@@ -262,9 +261,16 @@ Validates the React UI, RTK Query / Redux state machines, Socket.IO client trans
 
 ## NEXT PHASE
 
-**Target: Live Tracking Dashboard UI**
-**Specific Actions:**
-- Integrate frontend map components with `delivery:location` socket events.
-- Animate marker between start -> pickup -> destination.
-- Bind `delivery:status` and `order:status_changed` to UI overlays.
-- Future work should now be selected from the remaining product/engineering backlog (e.g., payment integrations, UI polish, FCM push notifications).
+**Target: Dashboard UI Integration Complete**
+**Specific Actions Completed:**
+- Integrated frontend map components with `delivery:location` socket events via `useDeliverySocket`.
+- Bound `delivery:status` and `order:status_changed` to UI overlays and global Redux slices.
+- `ActiveDelivery.tsx` now listens to real events instead of local GPS simulator.
+- `OwnerDashboard` is fully real-time responsive via `OwnerLayout`.
+- Customer `Orders` page has embedded tracking access and updates dynamically.
+
+**Next Steps (Future Work):**
+- Fix Auth Seeding (Plaintext passwords)
+- External push notification services (FCM/Push)
+- Stripe/Payment Gateway integrations
+- UI/UX polish on the Partner and Admin dashboards

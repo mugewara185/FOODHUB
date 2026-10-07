@@ -82,10 +82,12 @@ const App: React.FC = () => {
 
       socketService.onNotification(handleNotification);
       socketService.onOrderStatusUpdate(handleOrderStatusUpdate);
+      socketService.onOrderStatusChanged(handleOrderStatusUpdate);
 
       return () => {
         socketService.offNotification(handleNotification);
         socketService.offOrderStatusUpdate(handleOrderStatusUpdate);
+        socketService.offOrderStatusChanged(handleOrderStatusUpdate);
       };
     } else if (isInitialized && !isAuthenticated) {
       logger.info('SOCKET', 'Disconnecting socket', { event: 'SOCKET.DISCONNECT' });

@@ -35,9 +35,10 @@ import {
   fetchPartnerStateThunk,
   updateAssignmentStatusThunk,
   partnerLocationReceived,
+  deliveryStatusChangedReceived,
 } from '@features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
-import { useGPSSimulator } from '../../core/dev/gpsSimulator';
+import { useDeliverySocket } from '../../features/deliveryPartner/hooks/useDeliverySocket';
 
 interface DeliveryStep {
   label: string;
@@ -68,28 +69,14 @@ console.log('ActiveDelivery render: activeAssignment.status=', activeAssignment?
       ? activeAssignment.dropoffLocation
       : activeAssignment?.pickupLocation;
 
-  // GPS simulator: emits new locations via the callback.
-  // Dispatches partnerLocationReceived (socket-projected naming) and
-  // forwards the update via socketService using explicit IDs.
-  useGPSSimulator(
-    !!activeAssignment && !!targetLoc,
-    currentLocation,
-    targetLoc,
-    (newLoc) => {
-      dispatch(partnerLocationReceived(newLoc));
-
-      if (activeAssignment?.deliveryId && activeAssignment?.orderId && activeAssignment?.partnerId) {
-        socketService.updatePartnerLocation(
-          {
-            deliveryId: activeAssignment.deliveryId,
-            orderId: activeAssignment.orderId,
-            partnerId: activeAssignment.partnerId,
-          },
-          newLoc
-        );
-      }
+  const { connectionStatus } = useDeliverySocket('partner', {
+    onLocation: (payload) => {
+      dispatch(partnerLocationReceived({ lat: payload.location.lat, lng: payload.location.lng }));
+    },
+    onStatus: (payload) => {
+      dispatch(deliveryStatusChangedReceived({ deliveryId: payload.deliveryId, status: payload.status as any }));
     }
-  );
+  });
 
   if (isLoading) {
     return (

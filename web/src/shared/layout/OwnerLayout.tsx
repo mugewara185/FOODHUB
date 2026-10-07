@@ -43,6 +43,9 @@ import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeli
 import { NotificationBell } from '../../core/notifications/components/NotificationBell';
 import { fetchOwnerRestaurantThunk } from '../../features/owner/ownerRestaurantSlice';
 
+import { fetchOwnerQueueThunk, fetchOwnerActiveThunk } from '../../features/orders/ownerOrderApi';
+import { useOwnerSocket } from '../../features/orders/hooks/useOwnerSocket';
+
 const drawerWidth = 280;
 
 const menuItems = [
@@ -109,11 +112,15 @@ const menuItems = [
   
     const { user, logout } = useAuth();
     useDeliveryNotifications('owner');
+    useOwnerSocket(); // Bind to socket events globally for owner
+    
     const pendingCount = useAppSelector(state => state.ownerOrders?.pendingOrders?.length || 0);
     const { data: restaurant } = useAppSelector((state: any) => state.ownerRestaurant);
 
     useEffect(() => {
       dispatch(fetchOwnerRestaurantThunk());
+      dispatch(fetchOwnerQueueThunk());
+      dispatch(fetchOwnerActiveThunk());
     }, [dispatch]);
 
   const handleDrawerToggle = () => {
