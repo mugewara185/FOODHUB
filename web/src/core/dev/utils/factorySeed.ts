@@ -269,17 +269,17 @@ interface UserTemplate {
   email: string;
   role: 'user' | 'admin' | 'owner' | 'partner' | 'dev';
   _id: string;
-    isFixed: boolean;
+  isFixed: boolean;
 }
 
 const FIXED_USER_TEMPLATES: UserTemplate[] = [
-{ _id: '000000000000000000000001', name: 'Admin User', email: 'admin@foodhub.dev', role: 'admin', isFixed: true },
+  { _id: '000000000000000000000001', name: 'Admin User', email: 'admin@foodhub.dev', role: 'admin', isFixed: true },
   { _id: '000000000000000000000002', name: 'Dev User', email: 'dev@foodhub.dev', role: 'dev', isFixed: true },
   { _id: '000000000000000000000003', name: 'John Customer', email: 'john@foodhub.dev', role: 'user', isFixed: true },
   { _id: '000000000000000000000004', name: 'Priya Singh', email: 'priya@foodhub.dev', role: 'user', isFixed: true },
   { _id: '000000000000000000000005', name: 'Rahul Mehta', email: 'rahul@foodhub.dev', role: 'user', isFixed: true },
   { _id: '000000000000000000000006', name: 'Spice Garden Owner', email: 'owner.spice@foodhub.dev', role: 'owner', isFixed: true },
-  ];
+];
 
 // Realistic review comment templates by sentiment and theme
 const POSITIVE_COMMENTS = [
@@ -432,251 +432,251 @@ export const buildFactorySeedPayload = (
   const payloadWarnings: string[] = [];
 
   // === Step 1: Generate User IDs ===
-    const userIds: string[] = [];
-    const userDocs: any[] = [];
-    
-    const dpCount = config.deliveryPartners?.count ?? (targets.includes('users') ? 10 : 0);
-    const restCount = config.restaurants?.count ?? RESTAURANT_TEMPLATES.length;
-    let targetUserCount = config.users?.total ?? config.users?.count ?? 10;
-    
-    // We need at least enough users to satisfy DP + Owners + Fixed
-    
-      const roleDist = config.users?.roleDistribution || {};
-      const adminCount = roleDist.admin || 0;
-      const explicitOwnerCount = Math.max(restCount, roleDist.owner || 0);
-      const explicitPartnerCount = Math.max(dpCount, roleDist.partner || 0);
-      
-      const requiredMin = explicitPartnerCount + explicitOwnerCount + adminCount + FIXED_USER_TEMPLATES.length;
+  const userIds: string[] = [];
+  const userDocs: any[] = [];
 
-    if (targetUserCount < requiredMin && targetUserCount > 0) {
-      payloadWarnings.push(`Users: requested user count (${targetUserCount}) is smaller than needed for delivery partners and owners. Increasing to ${requiredMin}.`);
-      targetUserCount = requiredMin;
+  const dpCount = config.deliveryPartners?.count ?? (targets.includes('users') ? 10 : 0);
+  const restCount = config.restaurants?.count ?? RESTAURANT_TEMPLATES.length;
+  let targetUserCount = config.users?.total ?? config.users?.count ?? 10;
+
+  // We need at least enough users to satisfy DP + Owners + Fixed
+
+  const roleDist = config.users?.roleDistribution || {};
+  const adminCount = roleDist.admin || 0;
+  const explicitOwnerCount = Math.max(restCount, roleDist.owner || 0);
+  const explicitPartnerCount = Math.max(dpCount, roleDist.partner || 0);
+
+  const requiredMin = explicitPartnerCount + explicitOwnerCount + adminCount + FIXED_USER_TEMPLATES.length;
+
+  if (targetUserCount < requiredMin && targetUserCount > 0) {
+    payloadWarnings.push(`Users: requested user count (${targetUserCount}) is smaller than needed for delivery partners and owners. Increasing to ${requiredMin}.`);
+    targetUserCount = requiredMin;
+  }
+
+  if (targets.includes('users') || targets.includes('orders') || targets.includes('reviews')) {
+    logger.info('FactorySeed', 'seed:users:start', { event: 'seed:users:start', traceId });
+
+    // Fixed seed users first
+    for (const template of FIXED_USER_TEMPLATES) {
+      const uid = template._id;
+      userIds.push(uid);
+      const city = pick(indianCities);
+      userDocs.push({
+        _id: uid,
+        __isFixed: true,
+        name: template.name,
+        email: template.email,
+        password: 'devdev',
+        roles: [template.role],
+        phone: randomPhone(),
+        addresses: [
+          {
+            name: 'Home',
+            phone: randomPhone(),
+            street: randomStreetAddress(city),
+            city,
+            state: 'Karnataka',
+            type: 'home',
+            isDefault: true,
+          },
+        ],
+        favoriteRestaurants: [],
+      });
     }
 
-    if (targets.includes('users') || targets.includes('orders') || targets.includes('reviews')) {
-      logger.info('FactorySeed', 'seed:users:start', { event: 'seed:users:start', traceId });
-  
-      // Fixed seed users first
-      for (const template of FIXED_USER_TEMPLATES) {
-          const uid = template._id;
-        userIds.push(uid);
-        const city = pick(indianCities);
-        userDocs.push({
-            _id: uid,
-            __isFixed: true,
-            name: template.name,
-          email: template.email,
-          password: 'Password123!',
-          roles: [template.role],
-          phone: randomPhone(),
-          addresses: [
-            {
-              name: 'Home',
-              phone: randomPhone(),
-              street: randomStreetAddress(city),
-              city,
-              state: 'Karnataka',
-              type: 'home',
-              isDefault: true,
-            },
-          ],
-          favoriteRestaurants: [],
-        });
-      }
-  
-      // Additional random users
-      const extraCount = Math.max(0, targetUserCount - FIXED_USER_TEMPLATES.length);
-      for (let i = 0; i < extraCount; i++) {
-        const uid = generateObjectId();
-        const name = randomName();
-        const city = pick(indianCities);
-        userIds.push(uid);
-        userDocs.push({
-          _id: uid,
-          name,
-          email: randomEmail(name, i),
-          password: 'Password123!',
-          roles: ['user'],
-          phone: randomPhone(),
-          addresses: [
-            {
-              name: 'Home',
-              phone: randomPhone(),
-              street: randomStreetAddress(city),
-              city,
-              state: pick(['Karnataka', 'Maharashtra', 'Tamil Nadu', 'Telangana']),
-              type: 'home',
-              isDefault: true,
-            },
-            ...(Math.random() > 0.5
-              ? [
-                {
-                  name: 'Office',
-                  phone: randomPhone(),
-                  street: randomStreetAddress(city),
-                  city,
-                  state: pick(['Karnataka', 'Maharashtra', 'Tamil Nadu', 'Telangana']),
-                  type: 'work',
-                  isDefault: false,
-                },
-              ]
-              : []),
-          ],
-          favoriteRestaurants: [],
-        });
-      }
+    // Additional random users
+    const extraCount = Math.max(0, targetUserCount - FIXED_USER_TEMPLATES.length);
+    for (let i = 0; i < extraCount; i++) {
+      const uid = generateObjectId();
+      const name = randomName();
+      const city = pick(indianCities);
+      userIds.push(uid);
+      userDocs.push({
+        _id: uid,
+        name,
+        email: randomEmail(name, i),
+        password: 'Password123!',
+        roles: ['user'],
+        phone: randomPhone(),
+        addresses: [
+          {
+            name: 'Home',
+            phone: randomPhone(),
+            street: randomStreetAddress(city),
+            city,
+            state: pick(['Karnataka', 'Maharashtra', 'Tamil Nadu', 'Telangana']),
+            type: 'home',
+            isDefault: true,
+          },
+          ...(Math.random() > 0.5
+            ? [
+              {
+                name: 'Office',
+                phone: randomPhone(),
+                street: randomStreetAddress(city),
+                city,
+                state: pick(['Karnataka', 'Maharashtra', 'Tamil Nadu', 'Telangana']),
+                type: 'work',
+                isDefault: false,
+              },
+            ]
+            : []),
+        ],
+        favoriteRestaurants: [],
+      });
+    }
 
-      // Role Assignment
-      const assignableUsers = userDocs.filter(u => !u.roles.includes('admin') && !u.roles.includes('dev'));
-      
-      // 1. Delivery Partners
-      
-        const shuffled = [...assignableUsers].sort(() => 0.5 - Math.random());
-        let currentIdx = 0;
-        
-        // Admins
-        for(let i=0; i < adminCount && currentIdx < shuffled.length; i++, currentIdx++) {
-           shuffled[currentIdx].roles.push('admin');
-        }
-        
-        // Partners
-        for(let i=0; i < explicitPartnerCount && currentIdx < shuffled.length; i++, currentIdx++) {
-           shuffled[currentIdx].roles.push('partner');
-        }
-        
-        // Owners
-        for(let i=0; i < explicitOwnerCount && currentIdx < shuffled.length; i++, currentIdx++) {
-           shuffled[currentIdx].roles.push('owner');
-        }
+    // Role Assignment
+    const assignableUsers = userDocs.filter(u => !u.roles.includes('admin') && !u.roles.includes('dev'));
+
+    // 1. Delivery Partners
+
+    const shuffled = [...assignableUsers].sort(() => 0.5 - Math.random());
+    let currentIdx = 0;
+
+    // Admins
+    for (let i = 0; i < adminCount && currentIdx < shuffled.length; i++, currentIdx++) {
+      shuffled[currentIdx].roles.push('admin');
+    }
+
+    // Partners
+    for (let i = 0; i < explicitPartnerCount && currentIdx < shuffled.length; i++, currentIdx++) {
+      shuffled[currentIdx].roles.push('partner');
+    }
+
+    // Owners
+    for (let i = 0; i < explicitOwnerCount && currentIdx < shuffled.length; i++, currentIdx++) {
+      shuffled[currentIdx].roles.push('owner');
+    }
 
     logger.info('FactorySeed', 'seed:users:complete', {
-        event: 'seed:users:complete',
-        traceId,
-        data: { count: userDocs.length },
-      });
-    }
-  
-    // === Step 2: Generate Delivery Partners ===
-    const partnerDocs: any[] = [];
-    if (targets.includes('users') && dpCount > 0) {
-      logger.info('FactorySeed', 'seed:partners:start', { event: 'seed:partners:start', traceId });
-      const vehicles = ['Bike', 'Scooter', 'EV Bike', 'Electric Scooter'];
-      
-      const partnerUsers = userDocs.filter(u => u.roles.includes('partner')).slice(0, dpCount);
-      
-      for (const user of partnerUsers) {
-        const pid = generateObjectId();
-        partnerDocs.push({
-          _id: pid,
-          userId: user._id,
-          name: user.name,
-          phone: user.phone,
-          vehicle: pick(vehicles),
-          rating: randomFloat(4.0, 5.0, 1),
-          status: 'available',
-          currentLocation: {
-            type: 'Point',
-            coordinates: [77.5946 + (Math.random() - 0.5) * 0.1, 12.9716 + (Math.random() - 0.5) * 0.1]
-          }
-        });
-      }
-    }
+      event: 'seed:users:complete',
+      traceId,
+      data: { count: userDocs.length },
+    });
+  }
 
-    // === Step 2b: Generate Restaurants + Menu ===
-    const restaurantIds: string[] = [];
-    const restaurantDocs: any[] = [];
-    const restaurantScenarios: RestaurantScenario[] = [];
-  
-    if (targets.includes('restaurants') || targets.includes('foodItems') || targets.includes('orders') || targets.includes('reviews')) {
-      logger.info('FactorySeed', 'seed:restaurants:start', { event: 'seed:restaurants:start', traceId });
-      
-      const ownerUsers = userDocs.filter(u => u.roles.includes('owner'));
-      let ownerIdx = 0;
-  
-      let targetRestCount = config.restaurants?.count ?? RESTAURANT_TEMPLATES.length;
-      if (!targets.includes('restaurants')) {
-        targetRestCount = Math.min(targetRestCount, RESTAURANT_TEMPLATES.length);
-      }
-  
-      for (let restIdx = 0; restIdx < targetRestCount; restIdx++) {
-        const template = RESTAURANT_TEMPLATES[restIdx % RESTAURANT_TEMPLATES.length];
-        const nameSuffix = restIdx >= RESTAURANT_TEMPLATES.length ? ` #${Math.floor(restIdx / RESTAURANT_TEMPLATES.length) + 1}` : '';
-        const finalName = `${template.name}${nameSuffix}`;
+  // === Step 2: Generate Delivery Partners ===
+  const partnerDocs: any[] = [];
+  if (targets.includes('users') && dpCount > 0) {
+    logger.info('FactorySeed', 'seed:partners:start', { event: 'seed:partners:start', traceId });
+    const vehicles = ['Bike', 'Scooter', 'EV Bike', 'Electric Scooter'];
 
-        const rid = generateObjectId();
-        restaurantIds.push(rid);
-        restaurantScenarios.push(template.scenario);
-  
-        const totalFoodItems = config.foodItems?.count ?? 50;
-        const targetItemsPerRestaurant = Math.max(1, Math.ceil(totalFoodItems / targetRestCount));
-  
-        const menuTemplates = MENU_TEMPLATES_BY_CUISINE[template.cuisine[0]] ?? MENU_TEMPLATES_BY_CUISINE['American'];
-        const items = [];
-        for (let i = 0; i < targetItemsPerRestaurant; i++) {
-          const itemTpl = menuTemplates[i % menuTemplates.length];
-          items.push({
-            _id: generateObjectId(),
-            name: `${itemTpl.name} ${i + 1}`,
-            description: `Delicious ${itemTpl.name} prepared with fresh ingredients.`,
-            price: itemTpl.price,
-            category: itemTpl.category,
-            isVegetarian: Math.random() > 0.4,
-            isAvailable: true,
-          });
+    const partnerUsers = userDocs.filter(u => u.roles.includes('partner')).slice(0, dpCount);
+
+    for (const user of partnerUsers) {
+      const pid = generateObjectId();
+      partnerDocs.push({
+        _id: pid,
+        userId: user._id,
+        name: user.name,
+        phone: user.phone,
+        vehicle: pick(vehicles),
+        rating: randomFloat(4.0, 5.0, 1),
+        status: 'available',
+        currentLocation: {
+          type: 'Point',
+          coordinates: [77.5946 + (Math.random() - 0.5) * 0.1, 12.9716 + (Math.random() - 0.5) * 0.1]
         }
-  
-        const city = template.city;
-        const baseRating = template.baseRating;
-  
-        const IMAGE_POOL = [
-          '1550547660-d9450f859349',
-          '1576521925361-2c5a9dc42c92',
-          '1555396273-367ea4eb4db5',
-          '1466978913421-dad2ebd01d17',
-          '1604908176997-4318b3e0cfe6',
-        ];
-        const BANNER_POOL = [
-          '1570521944256-e7a1ff3c4d46',
-          '1552566626-52f8b828add9',
-          '1517248135467-4c7edcad34c4',
-          '1498654896293-37aacf113fd9',
-        ];
-        const imgId = IMAGE_POOL[restaurantIds.length % IMAGE_POOL.length];
-        const bannerId = BANNER_POOL[restaurantIds.length % BANNER_POOL.length];
-  
-        const ownerUser = ownerUsers[ownerIdx % ownerUsers.length];
-        ownerIdx++;
-
-        restaurantDocs.push({
-          _id: rid,
-          ownerId: ownerUser._id,
-          name: finalName,
-          description: `${finalName} - serving the finest ${template.cuisine.join(' & ')} cuisine in ${city}.`,
-          cuisine: template.cuisine,
-          address: randomStreetAddress(city),
-          city,
-          rating: clampRating(baseRating),
-          totalRatings: template.scenario === 'underperformer' ? randomInt(80, 200) : randomInt(150, 500),
-          priceRange: template.priceRange,
-          imageUrl: `https://images.unsplash.com/photo-${imgId}?w=800`,
-          bannerUrl: `https://images.unsplash.com/photo-${bannerId}?w=1200`,
-          tags: template.tags,
-          isOpen: template.isOpen,
-          isFeatured: template.isFeatured,
-          menu: items,
-          deliveryTimeMin: template.deliveryTimeMin,
-          phone: randomPhone(),
-        });
-      }
-  
-      logger.info('FactorySeed', 'seed:restaurants:complete', {
-        event: 'seed:restaurants:complete',
-        traceId,
-        data: { count: restaurantDocs.length },
       });
     }
-  
-    // ── Step 3: Generate Orders ──────────────────────────────────────────────
+  }
+
+  // === Step 2b: Generate Restaurants + Menu ===
+  const restaurantIds: string[] = [];
+  const restaurantDocs: any[] = [];
+  const restaurantScenarios: RestaurantScenario[] = [];
+
+  if (targets.includes('restaurants') || targets.includes('foodItems') || targets.includes('orders') || targets.includes('reviews')) {
+    logger.info('FactorySeed', 'seed:restaurants:start', { event: 'seed:restaurants:start', traceId });
+
+    const ownerUsers = userDocs.filter(u => u.roles.includes('owner'));
+    let ownerIdx = 0;
+
+    let targetRestCount = config.restaurants?.count ?? RESTAURANT_TEMPLATES.length;
+    if (!targets.includes('restaurants')) {
+      targetRestCount = Math.min(targetRestCount, RESTAURANT_TEMPLATES.length);
+    }
+
+    for (let restIdx = 0; restIdx < targetRestCount; restIdx++) {
+      const template = RESTAURANT_TEMPLATES[restIdx % RESTAURANT_TEMPLATES.length];
+      const nameSuffix = restIdx >= RESTAURANT_TEMPLATES.length ? ` #${Math.floor(restIdx / RESTAURANT_TEMPLATES.length) + 1}` : '';
+      const finalName = `${template.name}${nameSuffix}`;
+
+      const rid = generateObjectId();
+      restaurantIds.push(rid);
+      restaurantScenarios.push(template.scenario);
+
+      const totalFoodItems = config.foodItems?.count ?? 50;
+      const targetItemsPerRestaurant = Math.max(1, Math.ceil(totalFoodItems / targetRestCount));
+
+      const menuTemplates = MENU_TEMPLATES_BY_CUISINE[template.cuisine[0]] ?? MENU_TEMPLATES_BY_CUISINE['American'];
+      const items = [];
+      for (let i = 0; i < targetItemsPerRestaurant; i++) {
+        const itemTpl = menuTemplates[i % menuTemplates.length];
+        items.push({
+          _id: generateObjectId(),
+          name: `${itemTpl.name} ${i + 1}`,
+          description: `Delicious ${itemTpl.name} prepared with fresh ingredients.`,
+          price: itemTpl.price,
+          category: itemTpl.category,
+          isVegetarian: Math.random() > 0.4,
+          isAvailable: true,
+        });
+      }
+
+      const city = template.city;
+      const baseRating = template.baseRating;
+
+      const IMAGE_POOL = [
+        '1550547660-d9450f859349',
+        '1576521925361-2c5a9dc42c92',
+        '1555396273-367ea4eb4db5',
+        '1466978913421-dad2ebd01d17',
+        '1604908176997-4318b3e0cfe6',
+      ];
+      const BANNER_POOL = [
+        '1570521944256-e7a1ff3c4d46',
+        '1552566626-52f8b828add9',
+        '1517248135467-4c7edcad34c4',
+        '1498654896293-37aacf113fd9',
+      ];
+      const imgId = IMAGE_POOL[restaurantIds.length % IMAGE_POOL.length];
+      const bannerId = BANNER_POOL[restaurantIds.length % BANNER_POOL.length];
+
+      const ownerUser = ownerUsers[ownerIdx % ownerUsers.length];
+      ownerIdx++;
+
+      restaurantDocs.push({
+        _id: rid,
+        ownerId: ownerUser._id,
+        name: finalName,
+        description: `${finalName} - serving the finest ${template.cuisine.join(' & ')} cuisine in ${city}.`,
+        cuisine: template.cuisine,
+        address: randomStreetAddress(city),
+        city,
+        rating: clampRating(baseRating),
+        totalRatings: template.scenario === 'underperformer' ? randomInt(80, 200) : randomInt(150, 500),
+        priceRange: template.priceRange,
+        imageUrl: `https://images.unsplash.com/photo-${imgId}?w=800`,
+        bannerUrl: `https://images.unsplash.com/photo-${bannerId}?w=1200`,
+        tags: template.tags,
+        isOpen: template.isOpen,
+        isFeatured: template.isFeatured,
+        menu: items,
+        deliveryTimeMin: template.deliveryTimeMin,
+        phone: randomPhone(),
+      });
+    }
+
+    logger.info('FactorySeed', 'seed:restaurants:complete', {
+      event: 'seed:restaurants:complete',
+      traceId,
+      data: { count: restaurantDocs.length },
+    });
+  }
+
+  // ── Step 3: Generate Orders ──────────────────────────────────────────────
   const orderDocs: any[] = [];
 
   if (targets.includes('orders') && userIds.length > 0 && restaurantIds.length > 0) {
@@ -776,14 +776,14 @@ export const buildFactorySeedPayload = (
 
   // ── Step 3.5: Generate Deliveries ───────────────────────────────────────
   const deliveryDocs: any[] = [];
-  
-  
+
+
   if (targets.includes('deliveries') && orderDocs.length > 0) {
     logger.info('FactorySeed', 'seed:deliveries:start', { event: 'seed:deliveries:start', traceId });
 
     const eligibleOrders = orderDocs.filter((o) => ['partner_assigned', 'picked_up', 'out_for_delivery', 'nearby', 'delivered', 'completed', 'reviewed'].includes(o.status));
     const availablePartners = targets.includes('users') && partnerDocs.length > 0 ? partnerDocs : [];
-    
+
     if (availablePartners.length === 0) {
       payloadWarnings.push(`Deliveries: Skipped all deliveries because no DeliveryPartners were generated.`);
     } else {
@@ -795,7 +795,7 @@ export const buildFactorySeedPayload = (
         else if (order.status === 'out_for_delivery') deliveryStatus = pick(['out_for_delivery', 'nearby']);
         else if (order.status === 'picked_up') deliveryStatus = 'picked_up';
         else if (order.status === 'partner_assigned') deliveryStatus = pick(['partner_assigned', 'arrived_pickup']);
-        
+
         const pickupLat = 12.9716 + (Math.random() - 0.5) * 0.1;
         const pickupLng = 77.5946 + (Math.random() - 0.5) * 0.1;
         const dropoffLat = pickupLat + (Math.random() - 0.5) * 0.05;
@@ -804,22 +804,22 @@ export const buildFactorySeedPayload = (
         const timestamps: any = {};
         const baseDate = new Date(order.createdAt);
         if (['partner_assigned', 'arrived_pickup', 'picked_up', 'out_for_delivery', 'nearby', 'delivered'].includes(deliveryStatus)) {
-           timestamps.assignedAt = new Date(baseDate.getTime() + 1000 * 60 * 2);
+          timestamps.assignedAt = new Date(baseDate.getTime() + 1000 * 60 * 2);
         }
         if (['picked_up', 'out_for_delivery', 'nearby', 'delivered'].includes(deliveryStatus)) {
-           timestamps.pickedUpAt = new Date(baseDate.getTime() + 1000 * 60 * 15);
+          timestamps.pickedUpAt = new Date(baseDate.getTime() + 1000 * 60 * 15);
         }
         if (deliveryStatus === 'delivered') {
-           timestamps.deliveredAt = new Date(baseDate.getTime() + 1000 * 60 * 45);
+          timestamps.deliveredAt = new Date(baseDate.getTime() + 1000 * 60 * 45);
         }
 
         let distance = 0;
         let eta = 0;
         if (deliveryStatus !== 'delivered') {
-            distance = Math.floor(Math.random() * 5000) + 500;
-            eta = Math.floor(distance / 5);
-            if (deliveryStatus === 'nearby') { distance = 200; eta = 60; }
-            if (deliveryStatus === 'partner_assigned' || deliveryStatus === 'arrived_pickup') { distance += 2000; eta += 400; }
+          distance = Math.floor(Math.random() * 5000) + 500;
+          eta = Math.floor(distance / 5);
+          if (deliveryStatus === 'nearby') { distance = 200; eta = 60; }
+          if (deliveryStatus === 'partner_assigned' || deliveryStatus === 'arrived_pickup') { distance += 2000; eta += 400; }
         }
 
         deliveryDocs.push({
@@ -859,7 +859,7 @@ export const buildFactorySeedPayload = (
     for (let i = 0; i < actualCount; i++) {
       const order = shuffledOrders[i];
       const delivery = deliveryDocs.find(d => d.orderId === order._id);
-      
+
       if (!delivery || !delivery.partnerId) {
         payloadWarnings.push(`Reviews: Skipped review for Order ${order._id} because it has no associated Delivery/Partner.`);
         continue;

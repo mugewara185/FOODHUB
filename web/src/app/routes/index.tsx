@@ -33,10 +33,10 @@ const AppRoutes: React.FC = () => {
         {/* {user?.role.includes('user') && UserRoutes} */}
         {
           user ? (
-            user?.role.includes('user') ? UserRoutes :
-              user?.role.includes('admin') ? AdminRoutes :
-                user?.role.includes('partner') ? PartnerRoutes :
-                  user?.role.includes('owner') ? OwnerRoutes :
+            user?.role[0] === 'user' ? UserRoutes :
+              user?.role[0] === 'admin' ? AdminRoutes :
+                user?.role[0] === 'partner' ? PartnerRoutes :
+                  user?.role[0] === 'owner' ? OwnerRoutes :
                     // user?.role.includes('dev') ? (console.log(' dev routes'), DevRoutes) : 
                     (console.error('No roles found in user'), UserRoutes)
           ) : (
