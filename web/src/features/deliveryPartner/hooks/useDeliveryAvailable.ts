@@ -19,6 +19,8 @@ export const useDeliveryAvailable = () => {
   useEffect(() => {
     if (!isConnected) return;
 
+    socketService.joinAdminFleet();
+
     const handleDeliveryAvailable = (payload: any) => {
       dispatch(assignmentBroadcastReceived(payload));
     };
@@ -27,6 +29,7 @@ export const useDeliveryAvailable = () => {
 
     return () => {
       socketService.offDeliveryAvailable(handleDeliveryAvailable);
+      socketService.leaveAdminFleet();
     };
   }, [isConnected, dispatch]);
 };

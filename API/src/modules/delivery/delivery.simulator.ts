@@ -46,7 +46,7 @@ export async function startDeliverySimulation(deliveryId: string) {
       );
 
       // Speed ~ 25 km/h = 6.9 m/s. Interval is 3s -> ~21m per tick.
-      const stepMeters = 21;
+      const stepMeters = 100;
 
       let nextLng = current[0];
       let nextLat = current[1];
