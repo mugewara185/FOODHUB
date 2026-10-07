@@ -7,6 +7,7 @@
 - Phase 3 — Customer tracking + realtime: Build & Runtime-verified
 - Phase 4 — Partner delivery lifecycle: Route & Runtime-verified
 - Phase 5 — Admin & Polish: API & Runtime-verified
+- Phase 6 — Persistent Notifications: Verified
 
 ## EVIDENCE
 **Backend Integration Verification**
@@ -23,7 +24,38 @@
 - Leaflet/GPS-related frontend state
 - final Admin delivered-order visibility
 
-*(The browser E2E is the final product-level verification.)*
+*(The browser E2E is the final product-level verification. It was completed prior to Phase 6 and was not rerun merely for this notification feature.)*
+
+**Persistent Notifications Verification (Phase 6)**
+- `API/src/modules/notifications/notification.service.ts`
+- persistent MongoDB Notification creation
+- canonical Socket.IO `notification` event
+- customer notifications for key order transitions
+- owner new-order notification
+- partner delivery-assignment notification
+- cancellation notification
+- delivery simulator notification path
+- Redux notification hydration/read/read-all handling
+- removal of frontend-generated duplicate notifications
+- focused persistent-notification integration tests (`API/src/modules/notifications/__tests__/persistent-notification.test.ts`)
+- isolated test database safety guard
+
+Architecture:
+```text
+Domain action
+    ↓
+NotificationService
+    ↓
+MongoDB Notification
+    ↓
+Socket.IO "notification"
+    ↓
+App.tsx
+    ↓
+Redux notificationSlice
+    ↓
+NotificationBell / Toast
+```
 
 ## REMAINING BLOCKERS
 - Seed pipeline plaintext passwords (Auth prerequisite) [DEFERRED BY PROJECT DECISION].
@@ -32,7 +64,8 @@
 - **Build verification:** PASS (`npx tsc --noEmit` & `npm run build` on API & Web)
 - **Backend Integration Verification:** PASS
 - **Browser/Product E2E Verification:** PASS
-- **Last Verified Commit:** `79c0cf268ba6c51092e4861692f7a1e8cb3ea039`
+- **Persistent Notification Verification:** PASS
+- **Last Verified Commit:** `5aa883e643135d135c185cc7251d4f7e50a940f7`
 
 ## HISTORICAL DIAGNOSIS
 
@@ -180,7 +213,7 @@ Do **NOT** touch the following yet:
 - Phase 1 Auth Seeding (Project explicitly deferred this to focus on E2E functionality)
 - Admin Fleet mapping and complex operational visibility tools.
 - Complex review backend logic (ensure basic functionality first).
-- Notification services (FCM/Push).
+- External push notification services (FCM/Push). *(Note: Persistent in-app notifications are COMPLETE).*
 - Stripe/Payment Gateway integrations (continue using mock/bypass for payment).
 - UI/UX polish on the Partner and Admin dashboards.
 
@@ -202,7 +235,9 @@ Validates the React UI, RTK Query / Redux state machines, Socket.IO client trans
 
 ## NEXT PHASE
 
-**Target: Polish & Features (Optional)**
+**Target: Remaining Backlog**
 **Specific Actions:**
 - The Core Product Flow (Phases 2-5) is officially Complete and E2E Browser Verified.
-- Future work may include resolving Phase 1 (Auth Seeding), notifications, payment integrations, or UI polish.
+- Persistent in-app notification architecture (Phase 6) is complete.
+- Phase 1 (Auth Seeding) remains explicitly deferred by project decision.
+- Future work should now be selected from the remaining product/engineering backlog (e.g., payment integrations, UI polish, FCM push notifications).
