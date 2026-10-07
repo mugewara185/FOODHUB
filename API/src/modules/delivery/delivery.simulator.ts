@@ -36,7 +36,7 @@ export async function startDeliverySimulation(deliveryId: string) {
       if (!current) current = [pickup[0] + 0.005, pickup[1] + 0.005]; // Fallback start location
 
       // Logic: Move towards target (pickup if not picked up, dest if picked up)
-      const isPickedUp = ['picked_up', 'on_the_way', 'nearby'].includes(delivery.status);
+      const isPickedUp = ['picked_up', 'out_for_delivery', 'nearby'].includes(delivery.status);
       const target = isPickedUp ? dest : pickup;
 
       // Distance remaining
@@ -76,23 +76,23 @@ export async function startDeliverySimulation(deliveryId: string) {
       const prevStatus = delivery.status;
 
       if (!isPickedUp && newDistance < 10) {
-        delivery.status = 'picked_up';
-        delivery.timestamps.pickedUpAt = new Date();
-        statusChanged = true;
+        if (delivery.status === 'partner_assigned') {
+          delivery.status = 'arrived_pickup';
+          statusChanged = true;
+        } else if (delivery.status === 'arrived_pickup') {
+          delivery.status = 'picked_up';
+          delivery.timestamps.pickedUpAt = new Date();
+          statusChanged = true;
+        }
       } else if (isPickedUp) {
         if (newDistance < 10) {
           delivery.status = 'delivered';
           delivery.timestamps.deliveredAt = new Date();
           partner.status = 'available';
           partner.currentAssignedDelivery = undefined;
+          partner.completedDeliveries = (partner.completedDeliveries || 0) + 1;
           statusChanged = true;
           stopDeliverySimulation(deliveryId);
-
-          const order = await Order.findById(delivery.orderId);
-          if (order) {
-            order.status = 'delivered';
-            await order.save();
-          }
         } else if (newDistance < 500 && delivery.status !== 'nearby') {
           delivery.status = 'nearby';
           statusChanged = true;
@@ -123,23 +123,14 @@ export async function startDeliverySimulation(deliveryId: string) {
         io.to(delivery.orderId.toString()).emit('delivery:status', { ...payload, prevStatus });
         io.to('admin_fleet').emit('delivery:status', { ...payload, prevStatus });
         
-        // Also emit legacy order status for compatibility with old UI if needed
-        io.to(delivery.orderId.toString()).emit('order_status_update', { orderId: delivery.orderId, status: delivery.status });
-
-        const order = await Order.findById(delivery.orderId);
-        if (order) {
-            try {
-              const { notificationService } = require('../notifications/notification.service');
-              await notificationService.createNotification({
-                userId: order.userId.toString(),
-                title: 'Delivery Update',
-                message: `Your order is now ${delivery.status.replace('_', ' ')}`,
-                type: 'info',
-                orderId: delivery.orderId.toString()
-              });
-            } catch (e) {
-              console.error('[simulator] Failed to create delivery notification:', e);
-            }
+        try {
+          const { transitionOrderStatus } = require('../orders/order.service');
+          // Only sync order status if it's one of the canonical mapping states
+          if (['picked_up', 'out_for_delivery', 'delivered'].includes(delivery.status)) {
+            await transitionOrderStatus(delivery.orderId.toString(), delivery.status, { id: 'system', role: 'system' });
+          }
+        } catch (e) {
+          console.error('[simulator] Failed to transition order status:', e);
         }
       }
 

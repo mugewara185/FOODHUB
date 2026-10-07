@@ -86,8 +86,8 @@ NotificationBell / Toast
 - **Backend Integration Verification:** PASS
 - **Browser/Product E2E Verification:** PASS (Historical, not rerun for Phase 8)
 - **Persistent Notification Verification:** PASS
-- **Delivery Simulator Rebuild (Phase 8):** PASS (Build verified, `partner-lifecycle.test.ts` passed locally)
-- **Last Verified Commit:** `3fbb151cf0961d9aa16f0c6254f1cac39877b731`
+- **Delivery Simulator Rebuild (Phase 8):** PASS (Simulator-verified, real simulator loop tested locally)
+- **Last Verified Commit:** `7b36940017e6fd15f822865b14737c7efc9f127a`
 
 ## HISTORICAL DIAGNOSIS
 

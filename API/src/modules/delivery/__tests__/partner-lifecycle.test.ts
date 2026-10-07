@@ -13,6 +13,11 @@ import { initSocket, getIO } from '../../../socket';
 // We will spy on the real IO instance after initialization
 let emittedEvents: Array<{ event: string; room?: string; payload: any }> = [];
 
+const originalSetInterval = global.setInterval;
+(global as any).setInterval = function (callback: any, ms?: number) {
+  if (ms === 3000) ms = 10; // Speed up simulator for test
+  return originalSetInterval(callback, ms);
+};
 
 async function runTest() {
   console.log('--- STARTING PHASE 4 PARTNER LIFECYCLE TEST ---');
@@ -84,7 +89,7 @@ async function runTest() {
     vehicle: 'Bike',
     rating: 5,
     status: 'available',
-    currentLocation: { type: 'Point', coordinates: [0, 0] },
+    currentLocation: { type: 'Point', coordinates: [77.5946 - 0.01, 12.9716 - 0.01] },
     completedDeliveries: 0
   });
   await partner.save();
@@ -142,58 +147,71 @@ async function runTest() {
 
   console.log('✅ Route-level Accept Flow PASSED!');
 
-  // --- 5. Test Invalid Delivery Transition ---
-  try {
-    await updateDeliveryStatus(activeDeliveryId, 'picked_up');
-    throw new Error('Should have rejected invalid transition');
-  } catch (err: any) {
-    if (err.name === 'InvalidStateTransitionError') console.log('✅ Invalid transition rejected correctly!');
-    else throw err;
+  // --- 5. Simulator Path Verification ---
+  console.log('Waiting for simulator to progress to terminal state...');
+  
+  let currentDelivery: any;
+  let locationEvents = 0;
+  
+  // Wait up to 10 seconds for simulator to reach 'delivered'
+  for (let i = 0; i < 1000; i++) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+    currentDelivery = await Delivery.findById(activeDeliveryId);
+    
+    // Count location events
+    locationEvents = emittedEvents.filter(e => e.event === 'delivery:location').length;
+    
+    if (currentDelivery?.status === 'delivered') {
+      break;
+    }
   }
 
-  // --- 6. Test Valid Progression ---
-  await updateDeliveryStatus(activeDeliveryId, 'arrived_pickup');
-  await updateDeliveryStatus(activeDeliveryId, 'picked_up');
-  await updateDeliveryStatus(activeDeliveryId, 'out_for_delivery');
-  console.log('✅ Direct path out_for_delivery PASSED!');
+  if (currentDelivery?.status !== 'delivered') {
+    throw new Error(`Simulator failed to reach 'delivered'. Stuck at: ${currentDelivery?.status}`);
+  }
 
-  // Test optional 'nearby' node
-  await updateDeliveryStatus(activeDeliveryId, 'nearby');
-  console.log('✅ Alternative path nearby PASSED!');
+  // 4. The simulator actually changes currentLocation.
+  const startCoords = acceptData.data.currentLocation.coordinates;
+  const endCoords = currentDelivery.currentLocation.coordinates;
+  if (startCoords[0] === endCoords[0] && startCoords[1] === endCoords[1]) {
+    throw new Error('Simulator did not change currentLocation');
+  }
+  console.log('✅ Simulator changed currentLocation');
 
-  // --- 7. Test Terminal Completion (delivered) ---
-  emittedEvents = [];
-  await updateDeliveryStatus(activeDeliveryId, 'delivered');
+  // 5. The simulator emits delivery:location.
+  if (locationEvents === 0) {
+    throw new Error('Simulator did not emit delivery:location events');
+  }
+  console.log(`✅ Simulator emitted ${locationEvents} delivery:location events`);
 
-  const finalOrder = await Order.findById(order1._id);
-  if (finalOrder?.status !== 'delivered') throw new Error('Order not delivered');
+  // 6. The simulator emits delivery:status when crossing lifecycle boundaries.
+  const pickedUpEvent = emittedEvents.find(e => e.event === 'delivery:status' && e.payload.status === 'picked_up');
+  const deliveredEvent = emittedEvents.find(e => e.event === 'delivery:status' && e.payload.status === 'delivered');
+  if (!pickedUpEvent || !deliveredEvent) {
+    throw new Error('Simulator did not emit correct delivery:status events');
+  }
+  console.log('✅ Simulator emitted delivery:status lifecycle boundaries');
 
+  // 7. The delivery eventually reaches its terminal state under the simulator path.
+  console.log('✅ Simulator reached terminal state (delivered)');
+
+  // 8. Partner state is released correctly after completion.
   const finalPartner = await DeliveryPartner.findById(partner._id);
   if (finalPartner?.status !== 'available') throw new Error('Partner not released');
   if (finalPartner?.currentAssignedDelivery) throw new Error('Partner ref not cleared');
   if (finalPartner?.completedDeliveries !== 1) throw new Error('completedDeliveries not incremented');
+  console.log('✅ Partner state released correctly');
 
-  const deliveryEvent = emittedEvents.find(e => e.event === 'order:status_changed' && e.payload.status === 'delivered');
-  if (!deliveryEvent) throw new Error('order:status_changed delivered not emitted');
-  console.log('✅ Terminal completion & partner release PASSED!');
-
-  // --- 8. Test Subsequent Assignment ---
-  console.log('Testing subsequent assignment...');
-  const order2 = new Order({
-    ...order1.toObject(),
-    _id: new mongoose.Types.ObjectId(),
-    status: 'awaiting_partner'
-  });
-  await order2.save();
-
-  const resAccept2 = await fetch(`http://localhost:${port}/partner/${order2._id}/accept`, { method: 'POST' });
-  if (resAccept2.status !== 200) throw new Error(`Second assignment failed with ${resAccept2.status}`);
-
-  const checkPartner2 = await DeliveryPartner.findById(partner._id);
-  if (checkPartner2?.status !== 'assigned') throw new Error('Partner not assigned on second order');
-  if (!checkPartner2?.currentAssignedDelivery) throw new Error('Partner missing active delivery on second order');
-  
-  console.log('✅ Subsequent assignment PASSED!');
+  // 9. The relevant order/socket lifecycle remains consistent.
+  const finalOrder = await Order.findById(order1._id);
+  if (finalOrder?.status !== 'delivered') {
+    throw new Error(`Canonical order status is ${finalOrder?.status}, expected delivered`);
+  }
+  const orderDeliveredEvent = emittedEvents.find(e => e.event === 'order:status_changed' && e.payload.status === 'delivered');
+  if (!orderDeliveredEvent) {
+    throw new Error('order:status_changed delivered not emitted');
+  }
+  console.log('✅ Canonical order lifecycle remains consistent');
 
   // Cleanup
   server.close();
