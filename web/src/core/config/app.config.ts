@@ -67,25 +67,20 @@ export const appConfig = {
   isDev: IS_DEV,
   isProd: IS_PROD,
   isTest: IS_TEST,
-
   features: {
     analytics: IS_PROD,
   },
-
   api: {
     baseUrl: env.VITE_API_URL,
     socketUrl: env.VITE_SOCKET_URL,
     dataSource: resolveDataSource(),
   },
-
   security: {
     sentryDsn: env.VITE_SENTRY_DSN,
   },
-
   dev: {
     // SECURITY WARNING: MUST BE FALSE IN PRODUCTION
     bypassAuth: IS_DEV && env.VITE_DEV_BYPASS_AUTH,
-
     logger: {
       maxLogs: env.VITE_LOGGER_MAX_LOGS ?? 1000,
       persistLogs: env.VITE_LOGGER_PERSIST_LOGS ?? false,
@@ -110,4 +105,8 @@ if (IS_DEV) {
     "Bypass Auth": appConfig.dev.bypassAuth,
     "Log Level": appConfig.dev.logger.logLevel
   });
+  console.dir({
+    'logger-config': appConfig.dev.logger,
+    'App Config': appConfig,
+  }, { depth: 1 });
 }

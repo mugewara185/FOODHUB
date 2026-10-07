@@ -100,11 +100,11 @@ if (IS_DEV) {
   // Make logger control available globally for debugging
   (window as any).reduxLoggerControl = reduxLoggerControl;
 
-  console.log(
+  REDUX_LOGGER_CONFIG.enabled && console.log(
     '%c[REDUX_LOGGER] Initialized with config:',
     'color: #1976d2; font-weight: bold;',
   );
-  console.table({
+  REDUX_LOGGER_CONFIG.enabled && console.table({
     'Enabled': REDUX_LOGGER_CONFIG.enabled,
     'Log Actions': REDUX_LOGGER_CONFIG.logActions,
     'Log State Changes': REDUX_LOGGER_CONFIG.logStateChanges,
