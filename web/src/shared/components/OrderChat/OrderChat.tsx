@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Paper, Typography, TextField, IconButton, Stack, Avatar } from '@mui/material';
+import { Box, Paper, Typography, TextField, IconButton, Avatar } from '@mui/material';
 import { Send, Person, Storefront, LocalShipping } from '@mui/icons-material';
 import { socketService } from '../../../services/socket';
 import type { OrderChatMessage } from '../../../core/types/socket.events';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { selectLiveTracking, clearLiveTrackingUnreadCount, addLiveTrackingChatMessage } from '../../../features/orders/orderSlice';
 
 interface OrderChatProps {
   orderId: string;
@@ -12,17 +14,31 @@ interface OrderChatProps {
 }
 
 const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, currentUserId, currentUserName }) => {
-  const [messages, setMessages] = useState<OrderChatMessage[]>([]);
+  const [localMessages, setLocalMessages] = useState<OrderChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const dispatch = useAppDispatch();
+  const liveTracking = useAppSelector(selectLiveTracking);
+  
+  const isCustomerReduxActive = currentUserRole === 'user' && liveTracking?.orderId === orderId;
+
+  // Use Redux messages if available, otherwise fallback to local state (for partner/owner in this sprint)
+  const messages = isCustomerReduxActive && liveTracking ? liveTracking.chatMessages : localMessages;
 
   useEffect(() => {
-    // We assume the parent component has already called socketService.subscribeToOrder(orderId) 
-    // or joinOrderRoom. But just to be safe:
+    if (isCustomerReduxActive) {
+      dispatch(clearLiveTrackingUnreadCount());
+    }
+  }, [isCustomerReduxActive, dispatch, messages.length]);
+
+  useEffect(() => {
     socketService.joinOrderRoom(orderId);
 
     const handleNewMessage = (msg: OrderChatMessage) => {
-      setMessages((prev) => [...prev, msg]);
+      if (!isCustomerReduxActive) {
+        setLocalMessages((prev) => [...prev, msg]);
+      }
     };
 
     socketService.onOrderChatMessage(handleNewMessage);
@@ -30,7 +46,7 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
     return () => {
       socketService.offOrderChatMessage(handleNewMessage);
     };
-  }, [orderId]);
+  }, [orderId, isCustomerReduxActive]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

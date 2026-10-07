@@ -20,7 +20,7 @@ import {
   mapPaymentMethod,
   type CreateOrderPayload,
 } from './api/orderApi';
-import { AsyncStatus, NormalizedApiError } from '../../core/types/common';
+import { normalizeError, type AsyncStatus, type NormalizedApiError } from '../../core/utils/asyncState';
 
 // ---------------------------------------------------------------------------
 // State shape
@@ -82,7 +82,7 @@ export interface CheckoutPayload {
 // ---------------------------------------------------------------------------
 
 import { logger } from '../../core/dev/logger';
-import { normalizeError, type AsyncStatus, type NormalizedApiError } from '../../core/utils/asyncState';
+
 
 /**
  * Fetch the authenticated user's order history.
@@ -205,7 +205,7 @@ const orderSlice = createSlice({
       if (state.currentOrder && state.currentOrder.id === orderId) {
         state.currentOrder.status = status;
       }
-      
+
       // Update live tracking if active
       if (state.liveTracking && state.liveTracking.orderId === orderId) {
         state.liveTracking.status = status;

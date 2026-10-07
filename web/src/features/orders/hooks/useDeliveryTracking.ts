@@ -1,4 +1,4 @@
-import { useAppSelector } from '../../../../app/store/hooks';
+import { useAppSelector } from '@app/store/hooks';
 import { selectLiveTracking } from '../orderSlice';
 
 export const useDeliveryTracking = () => {
