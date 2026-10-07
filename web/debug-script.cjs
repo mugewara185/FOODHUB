@@ -1,0 +1,1 @@
+const puppeteer = require('puppeteer'); (async () => { const browser = await puppeteer.launch({headless: 'new'}); const page = await browser.newPage(); await page.goto('http://localhost:5174/restaurants/64e8e50f3c5f4a1b8c1a9905', {waitUntil: 'networkidle0'}); const html = await page.content(); require('fs').writeFileSync('debug.html', html); await browser.close(); })();

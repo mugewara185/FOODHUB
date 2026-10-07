@@ -11,7 +11,7 @@
  */
 
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import type { Order } from '../../core/types';
+import type { Order, Coordinates, DeliveryPartner, OrderChatMessage } from '../../core/types';
 import type { RootState } from '../../app/store';
 import { appConfig } from '../../core/config/app.config';
 import {
@@ -20,14 +20,28 @@ import {
   mapPaymentMethod,
   type CreateOrderPayload,
 } from './api/orderApi';
+import { AsyncStatus, NormalizedApiError } from '../../core/types/common';
 
 // ---------------------------------------------------------------------------
 // State shape
 // ---------------------------------------------------------------------------
 
+export interface LiveTrackingData {
+  orderId: string;
+  status: string;
+  partner: DeliveryPartner | null;
+  location: Coordinates | null;
+  etaSeconds: number;
+  distance: number;
+  chatMessages: OrderChatMessage[];
+  unreadCount: number;
+  lastUpdatedAt: number;
+}
+
 export interface OrderState {
   items: Order[];
   currentOrder: Order | null;
+  liveTracking: LiveTrackingData | null;
   fetchStatus: AsyncStatus;
   createStatus: AsyncStatus;
   cancelStatus: AsyncStatus;
@@ -37,6 +51,7 @@ export interface OrderState {
 const initialState: OrderState = {
   items: [],
   currentOrder: null,
+  liveTracking: null,
   fetchStatus: 'idle',
   createStatus: 'idle',
   cancelStatus: 'idle',
@@ -190,6 +205,57 @@ const orderSlice = createSlice({
       if (state.currentOrder && state.currentOrder.id === orderId) {
         state.currentOrder.status = status;
       }
+      
+      // Update live tracking if active
+      if (state.liveTracking && state.liveTracking.orderId === orderId) {
+        state.liveTracking.status = status;
+      }
+    },
+    setLiveTrackingOrder(state, action: PayloadAction<{ orderId: string; status: string; }>) {
+      if (!state.liveTracking || state.liveTracking.orderId !== action.payload.orderId) {
+        state.liveTracking = {
+          orderId: action.payload.orderId,
+          status: action.payload.status,
+          partner: null,
+          location: null,
+          etaSeconds: 0,
+          distance: 0,
+          chatMessages: [],
+          unreadCount: 0,
+          lastUpdatedAt: Date.now()
+        };
+      } else {
+        state.liveTracking.status = action.payload.status;
+      }
+    },
+    updateLiveTrackingLocation(state, action: PayloadAction<{ location: Coordinates; etaSeconds: number; distance: number }>) {
+      if (state.liveTracking) {
+        state.liveTracking.location = action.payload.location;
+        state.liveTracking.etaSeconds = action.payload.etaSeconds;
+        state.liveTracking.distance = action.payload.distance;
+        state.liveTracking.lastUpdatedAt = Date.now();
+      }
+    },
+    updateLiveTrackingPartner(state, action: PayloadAction<DeliveryPartner>) {
+      if (state.liveTracking) {
+        state.liveTracking.partner = action.payload;
+      }
+    },
+    addLiveTrackingChatMessage(state, action: PayloadAction<{ message: OrderChatMessage; isChatOpen: boolean }>) {
+      if (state.liveTracking && state.liveTracking.orderId === action.payload.message.orderId) {
+        state.liveTracking.chatMessages.push(action.payload.message);
+        if (!action.payload.isChatOpen) {
+          state.liveTracking.unreadCount += 1;
+        }
+      }
+    },
+    clearLiveTrackingUnreadCount(state) {
+      if (state.liveTracking) {
+        state.liveTracking.unreadCount = 0;
+      }
+    },
+    clearLiveTracking(state) {
+      state.liveTracking = null;
     },
   },
   extraReducers: (builder) => {
@@ -268,8 +334,8 @@ const orderSlice = createSlice({
   },
 });
 
-// export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = orderSlice.actions;
-export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = orderSlice.actions;
+// export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally, setLiveTrackingOrder, updateLiveTrackingLocation, updateLiveTrackingPartner, addLiveTrackingChatMessage, clearLiveTrackingUnreadCount, clearLiveTracking } = orderSlice.actions;
+export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally, setLiveTrackingOrder, updateLiveTrackingLocation, updateLiveTrackingPartner, addLiveTrackingChatMessage, clearLiveTrackingUnreadCount, clearLiveTracking } = orderSlice.actions;
 
 // ---------------------------------------------------------------------------
 // Selectors
@@ -277,6 +343,7 @@ export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally } = 
 
 export const selectOrders = (state: RootState) => state.orders.items;
 export const selectCurrentOrder = (state: RootState) => state.orders.currentOrder;
+export const selectLiveTracking = (state: RootState) => state.orders.liveTracking;
 export const selectOrdersLoading = (state: RootState) => state.orders.fetchStatus === 'loading';
 export const selectOrderCreating = (state: RootState) => state.orders.createStatus === 'loading';
 export const selectOrderCancelling = (state: RootState) => state.orders.cancelStatus === 'loading';
@@ -285,3 +352,5 @@ export const selectOrderError = (state: RootState) => state.orders.error;
 export default orderSlice.reducer;
 
 export const selectFetchStatus = (state: RootState) => state.orders.fetchStatus;
+
+

@@ -436,6 +436,7 @@
 //         {/* Page Content */}
 //         <Box sx={{ flexGrow: 1 }}>
 //           <Outlet />
+        <GlobalDeliveryPip />
 //         </Box>
 
 //         {/* Bottom Navigation (Mobile) */}
@@ -525,6 +526,7 @@ import { useAppSelector, useAppDispatch } from '../../app/store';
 import { DevVersionSwitcher } from '../../core/dev/renderer/DevVersionSwitcher';
 import { useDeliveryNotifications } from '../../core/notifications/hooks/useDeliveryNotifications';
 import { NotificationBell } from '../../core/notifications/components/NotificationBell';
+import GlobalDeliveryPip from '../../features/orders/components/tracking/GlobalDeliveryPip';
 
 //cartSelector
 import { selectCartItems } from '../../features/cart/cartSlice';
@@ -726,6 +728,7 @@ const MainLayout: React.FC = () => {
       {/* Main Content */}
       <Box component="main" sx={{ flexGrow: 1 }}>
         <Outlet />
+        <GlobalDeliveryPip />
       </Box>
 
       {/* Bottom Navigation (Mobile) */}

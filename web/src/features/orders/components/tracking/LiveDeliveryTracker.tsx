@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
-import { Box, Paper, Typography, Avatar, Chip, LinearProgress, Grid, Divider, Button, Stack, IconButton } from '@mui/material';
-import { Phone, LocalShipping, LocationOn, AccessTime, CheckCircle, RadioButtonChecked, RadioButtonUnchecked, Person, Star, Minimize, OpenInFull, Cancel } from '@mui/icons-material';
-import type { Coordinates } from '../../../../core/types';
+import React, { useState, useEffect } from 'react';
+import { Box, Paper, Typography, Grid, Chip, LinearProgress, Avatar, Divider, Stack, Button, Dialog, DialogContent } from '@mui/material';
+import { CheckCircle, RadioButtonUnchecked, RadioButtonChecked, Cancel, Star, LocalShipping, LocationOn, AccessTime, Phone, Person, Message } from '@mui/icons-material';
 import { formatDuration } from '../../../../core/utils/location';
 import Map from '../../../../shared/components/maps/Map';
 import { useDeliveryTracking } from '../../hooks/useDeliveryTracking';
-import { DraggableContainer } from '../../../../core/ui/draggable/DraggableContainer';
+import { FALLBACK_RESTAURANT, FALLBACK_CUSTOMER } from '../../hooks/useGlobalDeliveryTracker';
+import OrderChat from '../../../../shared/components/OrderChat/OrderChat';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 interface LiveDeliveryTrackerProps {
   orderId: string;
   orderStatus: string;
-  restaurantLocation: Coordinates;
-  customerLocation: Coordinates;
   rejectionReason?: string;
 }
 
@@ -41,10 +40,29 @@ const statusSteps = [
   { label: 'Delivered', description: 'Order delivered', id: 'delivered' },
 ];
 
-const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, restaurantLocation, customerLocation, rejectionReason }) => {
-  const [isFloating, setIsFloating] = useState(false);
+const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, rejectionReason }) => {
+  const { partner, location, status, etaSeconds, distance, lastUpdatedAt } = useDeliveryTracking();
+  const { user } = useAuth();
   
-  const { partner, location, status, etaSeconds, distance } = useDeliveryTracking(orderId, orderStatus, restaurantLocation, customerLocation);
+  const [liveEta, setLiveEta] = useState(etaSeconds);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => {
+    setLiveEta(etaSeconds);
+  }, [etaSeconds]);
+
+  useEffect(() => {
+    if (etaSeconds <= 0) return;
+    
+    // Update live ETA every second based on last socket update
+    const interval = setInterval(() => {
+      const elapsedSeconds = Math.floor((Date.now() - (lastUpdatedAt || Date.now())) / 1000);
+      const newEta = Math.max(0, etaSeconds - elapsedSeconds);
+      setLiveEta(newEta);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [etaSeconds, lastUpdatedAt]);
 
   const currentStep = statusStepsList.indexOf(status);
   const safeStep = currentStep === -1 ? 0 : currentStep;
@@ -65,36 +83,21 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
   };
 
   const markers = [
-    { id: 'restaurant', type: 'restaurant', position: restaurantLocation, title: 'Restaurant' },
-    { id: 'customer', type: 'customer', position: customerLocation, title: 'You' },
+    { id: 'restaurant', type: 'restaurant', position: FALLBACK_RESTAURANT, title: 'Restaurant' },
+    { id: 'customer', type: 'customer', position: FALLBACK_CUSTOMER, title: 'You' },
   ];
   if (location) markers.push({ id: 'partner', type: 'partner', position: location, title: partner?.name || 'Partner' });
 
-  const mapCenter = location || restaurantLocation;
-  const routeCoordinates = location ? [location, customerLocation] : [restaurantLocation, customerLocation];
+  // Map follows partner if tracking is active
+  const mapCenter = location || FALLBACK_RESTAURANT;
+  const routeCoordinates = location ? [location, FALLBACK_CUSTOMER] : [FALLBACK_RESTAURANT, FALLBACK_CUSTOMER];
 
-  if (isFloating) {
-    return (
-      <DraggableContainer width={300} height={300} storageKey="pip-tracker">
-        <Paper sx={{ width: 300, overflow: 'hidden', borderRadius: 3, boxShadow: 6 }}>
-          <Box sx={{ p: 1.5, bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2" fontWeight={600}>Live Delivery</Typography>
-            <IconButton size="small" sx={{ color: 'white' }} onClick={() => setIsFloating(false)}><OpenInFull fontSize="small" /></IconButton>
-          </Box>
-          <Box sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" fontWeight={600}>Arriving in</Typography>
-              <Typography variant="body2" color="primary.main" fontWeight={800}>{etaSeconds > 0 ? formatDuration(etaSeconds) : '--:--'}</Typography>
-            </Box>
-            <Box sx={{ height: 150, borderRadius: 2, overflow: 'hidden', mb: 2 }}>
-               <Map center={mapCenter} zoom={14} height="100%" markers={markers} routeCoordinates={routeCoordinates} />
-            </Box>
-            <Typography variant="caption" display="block" textAlign="center" fontWeight={600}>{status.replace(/_/g, ' ').toUpperCase()}</Typography>
-          </Box>
-        </Paper>
-      </DraggableContainer>
-    );
-  }
+  const renderEtaText = () => {
+    if (['delivered', 'completed', 'reviewed'].includes(status)) return 'Delivered';
+    if (liveEta > 0) return formatDuration(liveEta);
+    if (location) return 'Calculating...';
+    return 'Waiting for partner...';
+  };
 
   return (
     <Box>
@@ -107,19 +110,24 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
           <Box sx={{ textAlign: 'right', display: 'flex', gap: 2, alignItems: 'center' }}>
             <Box>
               <Typography variant="body2" color="text.secondary">Estimated Arrival</Typography>
-              <Typography variant="h4" color="primary.main" fontWeight={700}>{etaSeconds > 0 ? formatDuration(etaSeconds) : '--:--'}</Typography>
+              <Typography variant="h4" color="primary.main" fontWeight={700}>
+                {renderEtaText()}
+              </Typography>
             </Box>
-            <IconButton onClick={() => setIsFloating(true)} color="primary"><Minimize /></IconButton>
           </Box>
         </Box>
-        <Box sx={{ mt: 3 }}><LinearProgress variant="determinate" value={Math.max(5, (safeStep / (statusStepsList.length - 1)) * 100)} color="primary" sx={{ height: 8, borderRadius: 4 }} /></Box>
+        <Box sx={{ mt: 3 }}>
+          <LinearProgress variant="determinate" value={Math.max(5, (safeStep / (statusStepsList.length - 1)) * 100)} color="primary" sx={{ height: 8, borderRadius: 4 }} />
+        </Box>
       </Paper>
+      
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
           <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400, position: 'relative' }}>
              <Map center={mapCenter} zoom={15} height="100%" markers={markers} routeCoordinates={routeCoordinates} />
           </Paper>
         </Grid>
+        
         <Grid item xs={12} lg={4}>
           <Paper sx={{ p: 3, borderRadius: 3, height: '100%' }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Delivery Partner</Typography>
@@ -129,21 +137,42 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                   <Avatar sx={{ width: 64, height: 64 }}><Person /></Avatar>
                   <Box>
                     <Typography variant="h6" fontWeight={600}>{partner.name}</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><Star sx={{ fontSize: 16, color: 'warning.main' }} /><Typography variant="body2">{partner.rating}</Typography></Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Star sx={{ fontSize: 16, color: 'warning.main' }} />
+                      <Typography variant="body2">{partner.rating}</Typography>
+                    </Box>
                   </Box>
                 </Box>
                 <Divider sx={{ my: 2 }} />
                 <Stack spacing={2}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><LocalShipping color="primary" /><Typography variant="body2">{partner.vehicleType}</Typography></Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><LocationOn color="primary" /><Typography variant="body2">Distance: {Math.round(distance)}m</Typography></Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><AccessTime color="primary" /><Typography variant="body2">ETA: {etaSeconds > 0 ? formatDuration(etaSeconds) : '--:--'}</Typography></Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LocalShipping color="primary" />
+                    <Typography variant="body2">{partner.vehicleType}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <LocationOn color="primary" />
+                    <Typography variant="body2">Distance: {distance > 0 ? `${Math.round(distance)}m` : 'Calculating...'}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AccessTime color="primary" />
+                    <Typography variant="body2">ETA: {renderEtaText()}</Typography>
+                  </Box>
                 </Stack>
                 <Divider sx={{ my: 2 }} />
-                <Stack direction="row" spacing={2}><Button fullWidth variant="contained" startIcon={<Phone />} href={`tel:${partner.phone}`}>Call</Button></Stack>
+                <Stack direction="row" spacing={2}>
+                  <Button fullWidth variant="contained" startIcon={<Phone />} href={`tel:${partner.phone}`}>Call</Button>
+                  <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setIsChatOpen(true)}>Chat</Button>
+                </Stack>
               </>
-            ) : (<Box sx={{ p: 4, textAlign: 'center' }}><Typography color="textSecondary">Waiting for partner assignment...</Typography></Box>)}
+            ) : (
+              <Box sx={{ p: 4, textAlign: 'center' }}>
+                <Typography color="text.secondary">Waiting for partner assignment...</Typography>
+                <Button sx={{ mt: 2 }} variant="outlined" startIcon={<Message />} onClick={() => setIsChatOpen(true)}>Chat with Restaurant</Button>
+              </Box>
+            )}
           </Paper>
         </Grid>
+        
         <Grid item xs={12}>
           <Paper sx={{ p: 3, borderRadius: 3 }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Order Status</Typography>
@@ -198,6 +227,19 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
           </Paper>
         </Grid>
       </Grid>
+      
+      <Dialog open={isChatOpen} onClose={() => setIsChatOpen(false)} maxWidth="sm" fullWidth>
+        <DialogContent sx={{ p: 0 }}>
+          {isChatOpen && user && (
+            <OrderChat 
+              orderId={orderId}
+              currentUserId={user.id}
+              currentUserRole="user"
+              currentUserName={user.name || 'Customer'}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
