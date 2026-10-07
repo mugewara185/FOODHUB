@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -68,6 +68,24 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout, updateProfile, addAddress, removeAddress } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target?.result as string;
+      try {
+        await updateProfile({ avatar: base64 } as any);
+      } catch (err) {
+        console.error('Failed to update avatar:', err);
+      }
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const [activeTab, setActiveTab] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -179,7 +197,9 @@ const Profile: React.FC = () => {
                 >
                   {user?.name?.charAt(0)}
                 </Avatar>
+                <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" hidden />
                 <IconButton
+                  onClick={() => fileInputRef.current?.click()}
                   sx={{
                     position: 'absolute',
                     bottom: 10,

@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { User as UserIcon, Camera } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAppDispatch } from "../../app/store";
-import { setAuthSession } from "../../features/auth/authSlice";
+import { setAuthSession, updateProfileThunk } from "../../features/auth/authSlice";
 import { showToast } from "../../features/ui/uiSlice";
 
 const ProfileHeader: React.FC = () => {
@@ -26,18 +26,16 @@ const ProfileHeader: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const base64String = e.target?.result as string;
       
-      // Update local state directly using setAuthSession (mocking a successful backend response)
       if (user) {
-        const updatedUser = { ...user, avatar: base64String };
-        dispatch(setAuthSession(updatedUser));
-        
-        // Persist to local storage manually to match mock persistSession behavior
-        localStorage.setItem("zom2.auth.session", JSON.stringify(updatedUser));
-        
-        dispatch(showToast({ message: 'Profile picture updated!', type: 'success' }));
+        try {
+          await dispatch(updateProfileThunk({ avatar: base64String })).unwrap();
+          dispatch(showToast({ message: 'Profile picture updated!', type: 'success' }));
+        } catch (err) {
+          dispatch(showToast({ message: 'Failed to update profile picture', type: 'error' }));
+        }
       }
     };
     
