@@ -215,8 +215,9 @@ const FloatingDevConsole: React.FC<FloatingDevConsoleProps> = ({
       <FloatingTrigger
         icon={<Code fontSize="small" sx={{ cursor: "grab" }} />}
         storageKey="devConsolePosition"
-        onClick={() => setIsOpen(true)}
+        onClick={() => setIsOpen(!isOpen)}
         onDoubleClick={() => _setLogConsoleOpen(!_logConsoleOpen)}
+        // onDoubleClick={() => resetPosition()}
         color="warning.main"
         title="Dev Console"
       />
