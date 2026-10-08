@@ -9,7 +9,7 @@ import {
   addLiveTrackingChatMessage
 } from '../orderSlice';
 import { estimateStraightLineETA, calculateDistance } from '@/core/utils/location';
-import type { DeliveryAssignedPayload, DeliveryStatusPayload, DeliveryLocationPayload, OrderChatMessage } from '../../../../core/types/socket.events';
+import type { DeliveryAssignedPayload, DeliveryStatusPayload, DeliveryLocationPayload, OrderChatMessage } from '@/core/types/socket.events';
 import { selectOrders, selectCurrentOrder, fetchOrdersThunk } from '../orderSlice';
 
 export const FALLBACK_RESTAURANT = { lat: 12.9716, lng: 77.5946 };
@@ -114,7 +114,8 @@ export const useGlobalDeliveryTracker = () => {
     return () => {
       socketService.offDeliveryAssigned(handleAssigned);
       socketService.offDeliveryStatus(handleStatus);
-      socketService.offDeliveryLocation(handleLocation);
+      // socketService.offDeliveryLocation(handleLocation);
+      socketService.onDeliveryLocation(handleLocation);
       socketService.offOrderChatMessage(handleChatMessage);
     };
   }, [liveTracking?.orderId, dispatch, isConnected]);

@@ -203,7 +203,7 @@
 //           >
 //             {user?.name?.charAt(0) || <Person />}
 //           </Avatar>
-          
+
 //           <AnimatePresence mode="wait">
 //             {shouldShowText && (
 //               <motion.div
@@ -436,7 +436,7 @@
 //         {/* Page Content */}
 //         <Box sx={{ flexGrow: 1 }}>
 //           <Outlet />
-        <GlobalDeliveryPip />
+<GlobalDeliveryPip />
 //         </Box>
 
 //         {/* Bottom Navigation (Mobile) */}
@@ -491,10 +491,10 @@ import {
   IconButton,
   Typography,
   Badge,
-  
+
   Drawer,
   List,
-  
+
   ListItemIcon,
   ListItemText,
   Divider,
@@ -502,7 +502,7 @@ import {
   Avatar,
   InputBase,
   Paper,
-  
+
   ListItemButton
 } from '@mui/material';
 import {
@@ -559,215 +559,215 @@ const MainLayout: React.FC = () => {
 
   return (
     <>
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Top App Bar */}
-      <AppBar position="sticky" color="primary">
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        {/* Top App Bar */}
+        <AppBar position="sticky" color="primary">
+          <Toolbar>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
 
-          <Typography
-            variant="h6"
-            noWrap
-            component="div"
-            sx={{ flexGrow: 1, cursor: 'pointer' }}
-            onClick={() => navigate('/')}
-          >
-            {APP_NAME}
-          </Typography>
-          
-<DevVersionSwitcher />
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              sx={{ flexGrow: 1, cursor: 'pointer' }}
+              onClick={() => navigate('/')}
+            >
+              {APP_NAME}
+            </Typography>
 
-          {/* Location Selector */}
-          <Button
-            color="inherit"
-            startIcon={<LocationOn />}
-            sx={{ mr: 2 }}
-            onClick={() => navigate('/location')}
-          >
-            <Box sx={{ textAlign: 'left' }}>
-              <Typography variant="caption" sx={{ display: 'block', opacity: 0.8 }}>
-                Deliver to
+            <DevVersionSwitcher />
+
+            {/* Location Selector */}
+            <Button
+              color="inherit"
+              startIcon={<LocationOn />}
+              sx={{ mr: 2 }}
+              onClick={() => navigate('/location')}
+            >
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="caption" sx={{ display: 'block', opacity: 0.8 }}>
+                  Deliver to
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Home • 123 Street
+                </Typography>
+              </Box>
+            </Button>
+
+            <NotificationBell />
+
+            {/* Cart */}
+            <IconButton color="inherit" onClick={() => navigate('/cart')}>
+              <Badge badgeContent={cartItemsCount} color="error">
+                <ShoppingCart />
+              </Badge>
+            </IconButton>
+
+            {/* Profile */}
+            <IconButton
+              onClick={() => navigate('/profile')}
+              sx={{ ml: 2 }}
+            >
+              <Avatar sx={{ width: 32, height: 32 }} src={user?.avatar}>
+                {user?.name?.charAt(0)}
+              </Avatar>
+            </IconButton>
+          </Toolbar>
+
+          {/* Search Bar */}
+          {!isGlobalSearchHidden && (
+            <Box sx={{ px: 2, pb: 2 }}>
+              <Paper
+                component="form"
+                sx={{
+                  p: '2px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: 20,
+                  bgcolor: 'white',
+                }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  navigate('/search');
+                }}
+              >
+                <IconButton type="submit" sx={{ p: '10px' }}>
+                  <SearchIcon />
+                </IconButton>
+                <InputBase
+                  sx={{ ml: 1, flex: 1 }}
+                  placeholder="Search for restaurants or dishes..."
+                  inputProps={{ 'aria-label': 'search food' }}
+                />
+              </Paper>
+            </Box>
+          )}
+        </AppBar>
+
+        {/* Side Drawer */}
+        <Drawer
+          anchor="left"
+          open={drawerOpen}
+          onClose={handleDrawerToggle}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: 280,
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: 'primary.main' }} src={user?.avatar}>
+              {user?.name?.charAt(0) || <Person />}
+            </Avatar>
+            <Box>
+              <Typography variant="body1" fontWeight={600}>
+                {isAuthenticated ? (user?.name || 'User') : 'Guest'}
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Home • 123 Street
+              <Typography variant="body2" color="text.secondary">
+                {isAuthenticated ? (user?.email || '') : 'Not logged in'}
               </Typography>
             </Box>
-          </Button>
+          </Box>
+          <Divider />
+          <List>
+            {menuItems.map((item) => (
+              <ListItemButton
+                key={item.text}
+                onClick={() => {
+                  navigate(item.path);
+                  handleDrawerToggle();
+                }}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            ))}
+          </List>
+          <Divider />
+          <Box sx={{ p: 2 }}>
+            {isAuthenticated ? (
+              <Button
+                variant="contained"
+                color="error"
+                fullWidth
+                startIcon={<Logout />}
+                sx={{ mb: 2 }}
+                onClick={() => {
+                  handleDrawerToggle();
+                  logout();
+                }}
+              >
+                Logout
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                fullWidth
+                startIcon={<Login />}
+                sx={{ mb: 2 }}
+                onClick={() => {
+                  handleDrawerToggle();
+                  navigate('/login');
+                }}
+              >
+                Login / Sign Up
+              </Button>
+            )}
+          </Box>
+        </Drawer>
 
-          <NotificationBell />
+        {/* Main Content */}
+        <Box component="main" sx={{ flexGrow: 1 }}>
+          <Outlet />
+          <GlobalDeliveryPip />
+        </Box>
 
-          {/* Cart */}
-          <IconButton color="inherit" onClick={() => navigate('/cart')}>
-            <Badge badgeContent={cartItemsCount} color="error">
-              <ShoppingCart />
-            </Badge>
-          </IconButton>
-
-          {/* Profile */}
-          <IconButton
-            onClick={() => navigate('/profile')}
-            sx={{ ml: 2 }}
-          >
-            <Avatar sx={{ width: 32, height: 32 }} src={user?.avatar}>
-              {user?.name?.charAt(0)}
-            </Avatar>
-          </IconButton>
-        </Toolbar>
-
-        {/* Search Bar */}
-        {!isGlobalSearchHidden && (
-          <Box sx={{ px: 2, pb: 2 }}>
-            <Paper
-              component="form"
+        {/* Bottom Navigation (Mobile) */}
+        <Box
+          sx={{
+            display: { xs: 'flex', md: 'none' },
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            bgcolor: 'background.paper',
+            borderTop: 1,
+            borderColor: 'divider',
+            zIndex: 1000,
+          }}
+        >
+          {[
+            { icon: <Home />, label: 'Home', path: '/' },
+            { icon: <SearchIcon />, label: 'Search', path: '/search' },
+            { icon: <ShoppingCart />, label: 'Cart', path: '/cart' },
+            { icon: <Person />, label: 'Profile', path: '/profile' },
+          ].map((item) => (
+            <Button
+              key={item.label}
+              fullWidth
+              onClick={() => navigate(item.path)}
               sx={{
-                p: '2px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                borderRadius: 20,
-                bgcolor: 'white',
-              }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                navigate('/search');
+                flexDirection: 'column',
+                py: 1,
+                minWidth: 0,
+                color: 'text.secondary',
               }}
             >
-              <IconButton type="submit" sx={{ p: '10px' }}>
-                <SearchIcon />
-              </IconButton>
-              <InputBase
-                sx={{ ml: 1, flex: 1 }}
-                placeholder="Search for restaurants or dishes..."
-                inputProps={{ 'aria-label': 'search food' }}
-              />
-            </Paper>
-          </Box>
-        )}
-      </AppBar>
-
-      {/* Side Drawer */}
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={handleDrawerToggle}
-        sx={{
-          '& .MuiDrawer-paper': {
-            width: 280,
-            boxSizing: 'border-box',
-          },
-        }}
-      >
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main' }} src={user?.avatar}>
-            {user?.name?.charAt(0) || <Person />}
-          </Avatar>
-          <Box>
-            <Typography variant="body1" fontWeight={600}>
-              {isAuthenticated ? (user?.name || 'User') : 'Guest'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {isAuthenticated ? (user?.email || '') : 'Not logged in'}
-            </Typography>
-          </Box>
-        </Box>
-        <Divider />
-        <List>
-          {menuItems.map((item) => (
-            <ListItemButton
-              key={item.text}
-              onClick={() => {
-                navigate(item.path);
-                handleDrawerToggle();
-              }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
+              {item.icon}
+              <Typography variant="caption">{item.label}</Typography>
+            </Button>
           ))}
-        </List>
-        <Divider />
-        <Box sx={{ p: 2 }}>
-          {isAuthenticated ? (
-            <Button
-              variant="contained"
-              color="error"
-              fullWidth
-              startIcon={<Logout />}
-              sx={{ mb: 2 }}
-              onClick={() => {
-                handleDrawerToggle();
-                logout();
-              }}
-            >
-              Logout
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<Login />}
-              sx={{ mb: 2 }}
-              onClick={() => {
-                handleDrawerToggle();
-                navigate('/login');
-              }}
-            >
-              Login / Sign Up
-            </Button>
-          )}
         </Box>
-      </Drawer>
-
-      {/* Main Content */}
-      <Box component="main" sx={{ flexGrow: 1 }}>
-        <Outlet />
-        <GlobalDeliveryPip />
       </Box>
-
-      {/* Bottom Navigation (Mobile) */}
-      <Box
-        sx={{
-          display: { xs: 'flex', md: 'none' },
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          bgcolor: 'background.paper',
-          borderTop: 1,
-          borderColor: 'divider',
-          zIndex: 1000,
-        }}
-      >
-        {[
-          { icon: <Home />, label: 'Home', path: '/' },
-          { icon: <SearchIcon />, label: 'Search', path: '/search' },
-          { icon: <ShoppingCart />, label: 'Cart', path: '/cart' },
-          { icon: <Person />, label: 'Profile', path: '/profile' },
-        ].map((item) => (
-          <Button
-            key={item.label}
-            fullWidth
-            onClick={() => navigate(item.path)}
-            sx={{
-              flexDirection: 'column',
-              py: 1,
-              minWidth: 0,
-              color: 'text.secondary',
-            }}
-          >
-            {item.icon}
-            <Typography variant="caption">{item.label}</Typography>
-          </Button>
-        ))}
-      </Box>
-    </Box>
     </>
   );
 };
