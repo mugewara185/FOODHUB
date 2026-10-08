@@ -136,13 +136,13 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
       </Paper>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400, position: 'relative' }}>
             <Map center={mapCenter} zoom={15}  markers={markers} routeCoordinates={routeCoordinates} />
           </Paper>
         </Grid>
 
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Paper sx={{ p: 3, borderRadius: 3, height: '100%' }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Delivery Partner</Typography>
             {partner ? (
@@ -187,7 +187,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
           </Paper>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3, borderRadius: 3 }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Order Status</Typography>
             {status === 'rejected' ? (
@@ -209,7 +209,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                   const stepIdx = statusStepsList.indexOf(step.id);
                   const isPassed = stepIdx <= safeStep;
                   return (
-                    <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
+                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }} key={index}>
                       <Box sx={{ p: 2, borderRadius: 2, bgcolor: isPassed ? 'primary.light' : 'grey.50', position: 'relative' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                           {getStatusIcon(stepIdx, safeStep)}
@@ -259,5 +259,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
   );
 };
 export default LiveDeliveryTracker;
+
+
 
 
