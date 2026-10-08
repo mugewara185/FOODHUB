@@ -6,6 +6,7 @@
  */
 
 import type { Order, CartItem, PaymentMethod } from '../../../core/types';
+import type { OrderChatMessage } from '../../../core/types/socket.events';
 import api from '../../../core/utils/api';
 
 // Raw Backend DTO shapes
@@ -37,6 +38,7 @@ interface OrderApiDTO {
   deliveryAddress: string;
   paymentMethod: 'card' | 'upi' | 'wallet' | 'cash_on_delivery' | 'cash';
   note?: string;
+  chatMessages?: OrderChatMessage[];
   createdAt: string;
   updatedAt?: string;
 }

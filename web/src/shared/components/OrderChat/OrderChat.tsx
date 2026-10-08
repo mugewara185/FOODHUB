@@ -4,7 +4,8 @@ import { Send, Person, Storefront, LocalShipping } from '@mui/icons-material';
 import { socketService } from '../../../services/socket';
 import type { OrderChatMessage } from '../../../core/types/socket.events';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { selectLiveTracking, clearLiveTrackingUnreadCount, addLiveTrackingChatMessage } from '../../../features/orders/orderSlice';
+import { selectLiveTracking, clearLiveTrackingUnreadCount, addLiveTrackingChatMessage, setLiveTrackingChatHistory } from '../../../features/orders/orderSlice';
+import api from '../../../core/utils/api';
 
 interface OrderChatProps {
   orderId: string;
@@ -23,6 +24,20 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
   const liveTracking = useAppSelector(selectLiveTracking);
   
   const isCustomerReduxActive = currentUserRole === 'user' && liveTracking?.orderId === orderId;
+
+  useEffect(() => {
+    // Fetch chat history on mount
+    api.get<any>(`/orders/${orderId}/chat`)
+      .then(res => {
+        const history = res.data || [];
+        if (isCustomerReduxActive) {
+          dispatch(setLiveTrackingChatHistory({ orderId, messages: history }));
+        } else {
+          setLocalMessages(history);
+        }
+      })
+      .catch(err => console.error('Failed to fetch chat history', err));
+  }, [orderId, isCustomerReduxActive, dispatch]);
 
   // Use Redux messages if available, otherwise fallback to local state (for partner/owner in this sprint)
   const messages = isCustomerReduxActive && liveTracking ? liveTracking.chatMessages : localMessages;

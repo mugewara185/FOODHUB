@@ -249,6 +249,11 @@ const orderSlice = createSlice({
         }
       }
     },
+    setLiveTrackingChatHistory(state, action: PayloadAction<{ orderId: string; messages: OrderChatMessage[] }>) {
+      if (state.liveTracking && state.liveTracking.orderId === action.payload.orderId) {
+        state.liveTracking.chatMessages = action.payload.messages;
+      }
+    },
     clearLiveTrackingUnreadCount(state) {
       if (state.liveTracking) {
         state.liveTracking.unreadCount = 0;
@@ -334,8 +339,8 @@ const orderSlice = createSlice({
   },
 });
 
-// export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally, setLiveTrackingOrder, updateLiveTrackingLocation, updateLiveTrackingPartner, addLiveTrackingChatMessage, clearLiveTrackingUnreadCount, clearLiveTracking } = orderSlice.actions;
-export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally, setLiveTrackingOrder, updateLiveTrackingLocation, updateLiveTrackingPartner, addLiveTrackingChatMessage, clearLiveTrackingUnreadCount, clearLiveTracking } = orderSlice.actions;
+// export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally, setLiveTrackingOrder, updateLiveTrackingLocation, updateLiveTrackingPartner, addLiveTrackingChatMessage, setLiveTrackingChatHistory, clearLiveTrackingUnreadCount, clearLiveTracking } = orderSlice.actions;
+export const { clearCurrentOrder, clearOrderError, updateOrderStatusLocally, setLiveTrackingOrder, updateLiveTrackingLocation, updateLiveTrackingPartner, addLiveTrackingChatMessage, setLiveTrackingChatHistory, clearLiveTrackingUnreadCount, clearLiveTracking } = orderSlice.actions;
 
 // ---------------------------------------------------------------------------
 // Selectors

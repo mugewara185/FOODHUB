@@ -23,6 +23,15 @@ export interface IOrderItem {
   quantity: number;
 }
 
+export interface IOrderChatMessage {
+  senderId: string;
+  senderRole: string;
+  senderName: string;
+  targetRole: string;
+  message: string;
+  timestamp: string;
+}
+
 export interface IOrder extends Document {
   userId: Types.ObjectId;
   restaurantId: Types.ObjectId;
@@ -34,6 +43,7 @@ export interface IOrder extends Document {
   paymentMethod: 'cash' | 'card' | 'upi';
   paymentStatus: 'pending' | 'completed' | 'failed';
   note?: string;
+  chatMessages: IOrderChatMessage[];
   createdAt: Date;
 }
 
@@ -43,6 +53,15 @@ const orderItemSchema = new Schema<IOrderItem>({
   price: { type: Number, required: true },
   quantity: { type: Number, required: true, min: 1 },
 });
+
+const chatMessageSchema = new Schema<IOrderChatMessage>({
+  senderId: { type: String, required: true },
+  senderRole: { type: String, required: true },
+  senderName: { type: String, required: true },
+  targetRole: { type: String, required: true },
+  message: { type: String, required: true },
+  timestamp: { type: String, required: true },
+}, { _id: false });
 
 const orderSchema = new Schema<IOrder>(
   {
@@ -75,6 +94,7 @@ const orderSchema = new Schema<IOrder>(
     paymentMethod: { type: String, enum: ['cash', 'card', 'upi'], default: 'cash' },
     paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
     note: { type: String },
+    chatMessages: [chatMessageSchema],
   },
   { timestamps: true }
 );

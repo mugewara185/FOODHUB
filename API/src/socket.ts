@@ -31,15 +31,24 @@ export const initSocket = (server: HttpServer) => {
       console.log(`Socket ${socket.id} joined admin fleet room`);
     });
 
-    socket.on('order:chat:send', (payload) => {
+    socket.on('order:chat:send', async (payload) => {
       if (!payload || !payload.orderId || !payload.message || typeof payload.message !== 'string') {
         return;
       }
+      const timestamp = payload.timestamp || new Date().toISOString();
+      const messageToSave = { ...payload, timestamp };
+
+      try {
+        const { Order } = require('./modules/orders/order.model');
+        await Order.findByIdAndUpdate(payload.orderId, {
+          $push: { chatMessages: messageToSave }
+        });
+      } catch (err) {
+        console.error('Failed to save chat message:', err);
+      }
+
       // Broadcast to everyone in the order room, including the sender
-      io.to(payload.orderId).emit('order:chat:message', {
-        ...payload,
-        timestamp: payload.timestamp || new Date().toISOString()
-      });
+      io.to(payload.orderId).emit('order:chat:message', messageToSave);
     });
 
     socket.on('partner:location_updated', async (payload) => {

@@ -19,7 +19,7 @@ const GlobalDeliveryPip: React.FC = () => {
   
   const [isMinimized, setIsMinimized] = useState(false);
 
-  if (!user || user.role[0] !== 'user') return null;
+  if (!user || !user.role || !user.role.includes('user')) return null;
   if (!liveTracking) return null;
 
   const { orderId, status, location, etaSeconds, partner, unreadCount } = liveTracking;

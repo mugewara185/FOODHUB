@@ -146,11 +146,26 @@ export async function getOrderById(req: AuthRequest, res: Response, next: NextFu
     const order = await Order.findById(req.params.id).populate('restaurantId', 'name imageUrl address phone');
     if (!order) throw new AppError('Order not found', 404);
 
-    if (order.userId.toString() !== req.user!.id && !req.user!.roles.includes('admin')) {
+    if (order.userId.toString() !== req.user!.id && !req.user!.roles.includes('admin') && !req.user!.roles.includes('owner') && !req.user!.roles.includes('partner')) {
       throw new AppError('Not authorized to view this order', 403);
     }
 
     sendSuccess({ res, message: 'Order fetched', data: order });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getOrderChat(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const order = await Order.findById(req.params.id).select('chatMessages userId');
+    if (!order) throw new AppError('Order not found', 404);
+
+    if (order.userId.toString() !== req.user!.id && !req.user!.roles.includes('admin') && !req.user!.roles.includes('owner') && !req.user!.roles.includes('partner')) {
+      throw new AppError('Not authorized to view this chat', 403);
+    }
+
+    sendSuccess({ res, message: 'Chat fetched', data: order.chatMessages || [] });
   } catch (err) {
     next(err);
   }

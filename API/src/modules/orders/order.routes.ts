@@ -4,6 +4,7 @@ import {
   getUserOrders,
   getOwnerOrders,
   getOrderById,
+  getOrderChat,
   cancelOrder,
   acceptOrder,
   rejectOrder,
@@ -24,6 +25,7 @@ router.get('/', getUserOrders);
 router.get('/owned', authorize('owner', 'admin'), getOwnerOrders);
 router.get('/all', authorize('admin'), getAllOrders);
 router.get('/:id', getOrderById);
+router.get('/:id/chat', getOrderChat);
 router.patch('/:id/cancel', cancelOrder);
 
 router.patch('/:id/accept',    authorize('owner', 'admin'), acceptOrder);

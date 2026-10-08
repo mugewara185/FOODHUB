@@ -36,7 +36,7 @@ export const useGlobalDeliveryTracker = () => {
   const user = useAppSelector((state: any) => state.auth.user);
 
   useEffect(() => {
-    if (fetchStatus === 'idle' && user && user.role === 'customer') {
+    if (fetchStatus === 'idle' && user && user.role && user.role.includes('user')) {
       dispatch(fetchOrdersThunk());
     }
   }, [fetchStatus, user, dispatch]);
