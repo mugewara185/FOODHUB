@@ -138,7 +138,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
           <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400, position: 'relative' }}>
-            <Map center={mapCenter} zoom={15} height="100%" markers={markers} routeCoordinates={routeCoordinates} />
+            <Map center={mapCenter} zoom={15}  markers={markers} routeCoordinates={routeCoordinates} />
           </Paper>
         </Grid>
 
@@ -180,7 +180,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
               </>
             ) : (
               <Box sx={{ p: 4, textAlign: 'center' }}>
-                <Typography color="text.secondary">Waiting for partner assignment...</Typography>
+                <Typography color="text.secondary">{status === 'pending_owner' ? 'Waiting for restaurant to accept the order' : status === 'awaiting_partner' ? 'Finding a delivery partner...' : 'Waiting for partner assignment...'}</Typography>
                 <Button sx={{ mt: 2 }} variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('owner')}>Chat with Restaurant</Button>
               </Box>
             )}
@@ -259,3 +259,5 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
   );
 };
 export default LiveDeliveryTracker;
+
+

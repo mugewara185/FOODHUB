@@ -300,10 +300,10 @@ const OrderConfirmation: React.FC = () => {
                 color: 'transparent',
               }}
             >
-              Order Placed Successfully!
+              {order.status === 'pending_owner' as any ? 'Order Placed Successfully!' : 'Order Confirmed!'}
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Your order has been confirmed and will be delivered shortly
+              {order.status === 'pending_owner' as any ? 'Waiting for the restaurant to accept your order...' : 'Your order has been confirmed by the restaurant.'}
             </Typography>
           </Box>
         </Fade>
