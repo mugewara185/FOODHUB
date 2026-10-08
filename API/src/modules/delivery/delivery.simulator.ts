@@ -5,6 +5,7 @@ import { getIO } from '../../socket';
 import { Types } from 'mongoose';
 import { Order } from '../orders/order.model';
 import { evaluateRisk } from './risk.engine';
+import { config } from '../../config/env';
 
 const activeSimulators = new Map<string, NodeJS.Timeout>();
 
@@ -46,7 +47,7 @@ export async function startDeliverySimulation(deliveryId: string) {
       );
 
       // Speed ~ 25 km/h = 6.9 m/s. Interval is 3s -> ~21m per tick.
-      const stepMeters = 100;
+      const stepMeters = config.deliverySimulator.stepMeters;
 
       let nextLng = current[0];
       let nextLat = current[1];
@@ -140,7 +141,7 @@ export async function startDeliverySimulation(deliveryId: string) {
     } catch (err) {
       console.error('Simulator error for delivery', deliveryId, err);
     }
-  }, 3000);
+  }, config.deliverySimulator.intervalMs);
 
   activeSimulators.set(deliveryId, timer);
 }

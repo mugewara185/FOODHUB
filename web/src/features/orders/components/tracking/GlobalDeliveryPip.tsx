@@ -7,12 +7,15 @@ import Map from '../../../../shared/components/maps/Map';
 import { formatDuration } from '../../../../core/utils/location';
 import { useGlobalDeliveryTracker, FALLBACK_RESTAURANT, FALLBACK_CUSTOMER } from '../../hooks/useGlobalDeliveryTracker';
 import { useAuth } from '../../../../contexts/AuthContext';
+import { useAppSelector } from '../../../../app/store/hooks';
+import { selectCurrentOrder } from '../../orderSlice';
 
 const GlobalDeliveryPip: React.FC = () => {
   const liveTracking = useGlobalDeliveryTracker();
   const locationPath = useLocation().pathname;
   const navigate = useNavigate();
   const { user } = useAuth();
+  const currentOrder = useAppSelector(selectCurrentOrder);
   
   const [isMinimized, setIsMinimized] = useState(false);
 
@@ -30,11 +33,13 @@ const GlobalDeliveryPip: React.FC = () => {
     return null;
   }
 
-  const mapCenter = location || FALLBACK_RESTAURANT;
-  const routeCoordinates = location ? [location, FALLBACK_CUSTOMER] : [FALLBACK_RESTAURANT, FALLBACK_CUSTOMER];
+  const resLoc = FALLBACK_RESTAURANT;
+  const cusLoc = currentOrder?.deliveryInfo?.coordinates || FALLBACK_CUSTOMER;
+  const mapCenter = location || resLoc;
+  const routeCoordinates = location ? [location, cusLoc] : [resLoc, cusLoc];
   const markers = [
-    { id: 'restaurant', type: 'restaurant', position: FALLBACK_RESTAURANT, title: 'Restaurant' },
-    { id: 'customer', type: 'customer', position: FALLBACK_CUSTOMER, title: 'You' },
+    { id: 'restaurant', type: 'restaurant', position: resLoc, title: 'Restaurant' },
+    { id: 'customer', type: 'customer', position: cusLoc, title: 'You' },
   ];
   if (location) {
     markers.push({ id: 'partner', type: 'partner', position: location, title: partner?.name || 'Partner' });

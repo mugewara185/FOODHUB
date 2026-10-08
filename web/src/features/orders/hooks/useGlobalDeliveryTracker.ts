@@ -1,16 +1,16 @@
-import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { socketService } from '@/services/socket';
-import {
-  selectLiveTracking,
-  setLiveTrackingOrder,
-  updateLiveTrackingLocation,
+import { useEffect, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '../../../../app/store/hooks';
+import { socketService } from '../../../../services/socket';
+import { 
+  selectLiveTracking, 
+  setLiveTrackingOrder, 
+  updateLiveTrackingLocation, 
   updateLiveTrackingPartner,
   addLiveTrackingChatMessage
 } from '../orderSlice';
-import { estimateStraightLineETA, calculateDistance } from '@/core/utils/location';
+import { estimateStraightLineETA, calculateDistance } from '../../../../core/utils/location';
 import type { DeliveryAssignedPayload, DeliveryStatusPayload, DeliveryLocationPayload, OrderChatMessage } from '../../../../core/types/socket.events';
-import { selectOrders } from '../orderSlice';
+import { selectOrders, selectCurrentOrder } from '../orderSlice';
 
 export const FALLBACK_RESTAURANT = { lat: 12.9716, lng: 77.5946 };
 export const FALLBACK_CUSTOMER = { lat: 12.9916, lng: 77.6146 };
@@ -31,20 +31,32 @@ export const useGlobalDeliveryTracker = () => {
   const dispatch = useAppDispatch();
   const liveTracking = useAppSelector(selectLiveTracking);
   const orders = useAppSelector(selectOrders);
+  const currentOrder = useAppSelector(selectCurrentOrder);
 
   // 1. Detect active order and start tracking
   useEffect(() => {
     // Find the first order that is active
     const activeOrder = orders.find(o => activeStatuses.includes(o.status));
-
+    
     if (activeOrder) {
       dispatch(setLiveTrackingOrder({ orderId: activeOrder.id, status: activeOrder.status }));
     }
   }, [orders, dispatch]);
 
+  const [isConnected, setIsConnected] = useState(socketService.isConnected);
+
+  useEffect(() => {
+    setIsConnected(socketService.isConnected);
+    const handleConnection = (status: "connected" | "reconnecting" | "disconnected") => {
+      setIsConnected(status === 'connected');
+    };
+    socketService.onConnectionChange(handleConnection);
+    return () => socketService.offConnectionChange(handleConnection);
+  }, []);
+
   // 2. Manage Socket connection for the active order
   useEffect(() => {
-    if (!liveTracking || !socketService.isConnected) return;
+    if (!liveTracking || !isConnected) return;
 
     const orderId = liveTracking.orderId;
     socketService.joinOrderRoom(orderId);
@@ -56,7 +68,7 @@ export const useGlobalDeliveryTracker = () => {
           name: payload.partnerName,
           phone: payload.partnerPhone,
           vehicleType: 'bike',
-          currentLocation: FALLBACK_RESTAURANT,
+          currentLocation: FALLBACK_RESTAURANT /* will be replaced by actual on map */,
           status: payload.status,
           rating: 4.8,
           completedDeliveries: 420
@@ -73,8 +85,9 @@ export const useGlobalDeliveryTracker = () => {
 
     const handleLocation = (payload: DeliveryLocationPayload) => {
       if (payload.orderId === orderId) {
-        const eta = estimateStraightLineETA(payload.location, FALLBACK_CUSTOMER);
-        const dist = calculateDistance(payload.location, FALLBACK_CUSTOMER);
+        const targetLoc = currentOrder?.deliveryInfo?.coordinates || FALLBACK_CUSTOMER;
+        const eta = estimateStraightLineETA(payload.location, targetLoc);
+        const dist = calculateDistance(payload.location, targetLoc);
         dispatch(updateLiveTrackingLocation({ location: payload.location, etaSeconds: eta, distance: dist }));
       }
     };
@@ -96,7 +109,7 @@ export const useGlobalDeliveryTracker = () => {
       socketService.offDeliveryLocation(handleLocation);
       socketService.offOrderChatMessage(handleChatMessage);
     };
-  }, [liveTracking?.orderId, dispatch]);
+  }, [liveTracking?.orderId, dispatch, isConnected]);
 
   return liveTracking;
 };

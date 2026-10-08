@@ -30,6 +30,10 @@ export const config = {
     investigationsEnabled: process.env.AI_INVESTIGATIONS_ENABLED !== 'false',
     mcpServerPath: process.env.MCP_SERVER_PATH || '',
   },
+  deliverySimulator: {
+    stepMeters: parseInt(process.env.SIMULATOR_STEP_METERS || '100', 10),
+    intervalMs: parseInt(process.env.SIMULATOR_INTERVAL_MS || '3000', 10),
+  }
 };
 
 console.dir(config, { depth: null });

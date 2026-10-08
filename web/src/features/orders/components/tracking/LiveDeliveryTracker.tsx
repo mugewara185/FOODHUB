@@ -4,13 +4,17 @@ import { CheckCircle, RadioButtonUnchecked, RadioButtonChecked, Cancel, Star, Lo
 import { formatDuration } from '../../../../core/utils/location';
 import Map from '../../../../shared/components/maps/Map';
 import { useDeliveryTracking } from '../../hooks/useDeliveryTracking';
-import { FALLBACK_RESTAURANT, FALLBACK_CUSTOMER } from '../../hooks/useGlobalDeliveryTracker';
+import { useAppSelector } from '../../../../app/store/hooks';
+import { selectCurrentOrder } from '../../orderSlice';
+
 import OrderChat from '../../../../shared/components/OrderChat/OrderChat';
 import { useAuth } from '../../../../contexts/AuthContext';
 
 interface LiveDeliveryTrackerProps {
   orderId: string;
   orderStatus: string;
+  restaurantLocation?: Coordinates;
+  customerLocation?: Coordinates;
   rejectionReason?: string;
 }
 
@@ -40,12 +44,13 @@ const statusSteps = [
   { label: 'Delivered', description: 'Order delivered', id: 'delivered' },
 ];
 
-const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, rejectionReason }) => {
+const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, restaurantLocation, customerLocation, rejectionReason }) => {
   const { partner, location, status, etaSeconds, distance, lastUpdatedAt } = useDeliveryTracking();
   const { user } = useAuth();
+  const currentOrder = useAppSelector(selectCurrentOrder);
   
   const [liveEta, setLiveEta] = useState(etaSeconds);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatTarget, setChatTarget] = useState<'owner' | 'partner' | null>(null);
 
   useEffect(() => {
     setLiveEta(etaSeconds);
@@ -82,18 +87,26 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
     return 'info';
   };
 
+  const resLoc = restaurantLocation || { lat: 12.9716, lng: 77.5946 };
+  const cusLoc = customerLocation || { lat: 12.9916, lng: 77.6146 };
   const markers = [
-    { id: 'restaurant', type: 'restaurant', position: FALLBACK_RESTAURANT, title: 'Restaurant' },
-    { id: 'customer', type: 'customer', position: FALLBACK_CUSTOMER, title: 'You' },
+    { id: 'restaurant', type: 'restaurant', position: resLoc, title: 'Restaurant' },
+    { id: 'customer', type: 'customer', position: cusLoc, title: 'You' },
   ];
   if (location) markers.push({ id: 'partner', type: 'partner', position: location, title: partner?.name || 'Partner' });
 
   // Map follows partner if tracking is active
-  const mapCenter = location || FALLBACK_RESTAURANT;
-  const routeCoordinates = location ? [location, FALLBACK_CUSTOMER] : [FALLBACK_RESTAURANT, FALLBACK_CUSTOMER];
+  const mapCenter = location || resLoc;
+  const routeCoordinates = location ? [location, cusLoc] : [resLoc, cusLoc];
 
   const renderEtaText = () => {
-    if (['delivered', 'completed', 'reviewed'].includes(status)) return 'Delivered';
+    if (['delivered', 'completed', 'reviewed'].includes(status)) {
+      if (currentOrder?.createdAt && currentOrder?.updatedAt) {
+        const duration = (new Date(currentOrder.updatedAt).getTime() - new Date(currentOrder.createdAt).getTime()) / 1000;
+        return Delivered in ;
+      }
+      return 'Delivered';
+    }
     if (liveEta > 0) return formatDuration(liveEta);
     if (location) return 'Calculating...';
     return 'Waiting for partner...';
@@ -161,13 +174,13 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                 <Divider sx={{ my: 2 }} />
                 <Stack direction="row" spacing={2}>
                   <Button fullWidth variant="contained" startIcon={<Phone />} href={`tel:${partner.phone}`}>Call</Button>
-                  <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setIsChatOpen(true)}>Chat</Button>
+                  <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('partner')}>Chat</Button>
                 </Stack>
               </>
             ) : (
               <Box sx={{ p: 4, textAlign: 'center' }}>
                 <Typography color="text.secondary">Waiting for partner assignment...</Typography>
-                <Button sx={{ mt: 2 }} variant="outlined" startIcon={<Message />} onClick={() => setIsChatOpen(true)}>Chat with Restaurant</Button>
+                <Button sx={{ mt: 2 }} variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('owner')}>Chat with Restaurant</Button>
               </Box>
             )}
           </Paper>
@@ -228,14 +241,15 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
         </Grid>
       </Grid>
       
-      <Dialog open={isChatOpen} onClose={() => setIsChatOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={!!chatTarget} onClose={() => setChatTarget(null)} maxWidth="sm" fullWidth>
         <DialogContent sx={{ p: 0 }}>
-          {isChatOpen && user && (
+          {chatTarget && user && (
             <OrderChat 
               orderId={orderId}
               currentUserId={user.id}
               currentUserRole="user"
               currentUserName={user.name || 'Customer'}
+              targetRole={chatTarget}
             />
           )}
         </DialogContent>

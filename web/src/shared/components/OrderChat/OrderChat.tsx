@@ -11,9 +11,10 @@ interface OrderChatProps {
   currentUserRole: 'user' | 'owner' | 'partner' | 'admin';
   currentUserId: string;
   currentUserName: string;
+  targetRole?: 'user' | 'owner' | 'partner' | 'admin';
 }
 
-const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, currentUserId, currentUserName }) => {
+const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, currentUserId, currentUserName, targetRole }) => {
   const [localMessages, setLocalMessages] = useState<OrderChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -25,6 +26,13 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
 
   // Use Redux messages if available, otherwise fallback to local state (for partner/owner in this sprint)
   const messages = isCustomerReduxActive && liveTracking ? liveTracking.chatMessages : localMessages;
+
+  const resolvedTargetRole = targetRole || (currentUserRole === 'user' ? 'owner' : 'user');
+
+  const filteredMessages = messages.filter(msg => 
+    (msg.senderRole === currentUserRole && msg.targetRole === resolvedTargetRole) || 
+    (msg.senderRole === resolvedTargetRole && msg.targetRole === currentUserRole)
+  );
 
   useEffect(() => {
     if (isCustomerReduxActive) {
@@ -59,6 +67,7 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
       orderId,
       senderId: currentUserId,
       senderRole: currentUserRole,
+      targetRole: targetRole || (currentUserRole === 'user' ? 'owner' : 'user'),
       senderName: currentUserName,
       message: inputText.trim(),
       timestamp: new Date().toISOString()
@@ -81,17 +90,17 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
       {/* Header */}
       <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
         <Typography variant="subtitle1" fontWeight={700}>Order Support Chat</Typography>
-        <Typography variant="body2" sx={{ opacity: 0.8 }}>Live chat with your {currentUserRole === 'user' ? 'restaurant and driver' : currentUserRole === 'owner' ? 'customer and driver' : 'customer and restaurant'}</Typography>
+        <Typography variant="body2" sx={{ opacity: 0.8 }}>Live chat with {resolvedTargetRole === 'owner' ? 'restaurant' : resolvedTargetRole === 'partner' ? 'driver' : 'customer'}</Typography>
       </Box>
 
       {/* Message List */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'grey.50' }}>
-        {messages.length === 0 ? (
+        {filteredMessages.length === 0 ? (
           <Typography variant="body2" color="text.secondary" align="center" sx={{ my: 'auto' }}>
             No messages yet. Say hello!
           </Typography>
         ) : (
-          messages.map((msg, i) => {
+          filteredMessages.map((msg, i) => {
             const isMe = msg.senderId === currentUserId && msg.senderRole === currentUserRole;
             return (
               <Box key={i} sx={{ display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 1 }}>
