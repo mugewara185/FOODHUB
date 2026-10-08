@@ -10,7 +10,7 @@ import {
 } from '../orderSlice';
 import { estimateStraightLineETA, calculateDistance } from '@/core/utils/location';
 import type { DeliveryAssignedPayload, DeliveryStatusPayload, DeliveryLocationPayload, OrderChatMessage } from '../../../../core/types/socket.events';
-import { selectOrders, selectCurrentOrder } from '../orderSlice';
+import { selectOrders, selectCurrentOrder, fetchOrdersThunk } from '../orderSlice';
 
 export const FALLBACK_RESTAURANT = { lat: 12.9716, lng: 77.5946 };
 export const FALLBACK_CUSTOMER = { lat: 12.9916, lng: 77.6146 };
@@ -32,6 +32,14 @@ export const useGlobalDeliveryTracker = () => {
   const liveTracking = useAppSelector(selectLiveTracking);
   const orders = useAppSelector(selectOrders);
   const currentOrder = useAppSelector(selectCurrentOrder);
+  const fetchStatus = useAppSelector((state: any) => state.orders.fetchStatus);
+  const user = useAppSelector((state: any) => state.auth.user);
+
+  useEffect(() => {
+    if (fetchStatus === 'idle' && user && user.role === 'customer') {
+      dispatch(fetchOrdersThunk());
+    }
+  }, [fetchStatus, user, dispatch]);
 
   // 1. Detect active order and start tracking
   useEffect(() => {
@@ -110,6 +118,10 @@ export const useGlobalDeliveryTracker = () => {
       socketService.offOrderChatMessage(handleChatMessage);
     };
   }, [liveTracking?.orderId, dispatch, isConnected]);
+
+  if (liveTracking && !activeStatuses.includes(liveTracking.status)) {
+    return null;
+  }
 
   return liveTracking;
 };

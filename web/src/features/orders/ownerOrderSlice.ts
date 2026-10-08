@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Order } from '../../core/types';
-import { fetchOwnerQueueThunk, fetchOwnerActiveThunk } from './ownerOrderApi';
+import { fetchOwnerQueueThunk, fetchOwnerActiveThunk, OWNER_ACTIVE_STATUSES } from './ownerOrderApi';
 import { normalizeOrder } from './api/orderApi';
 
 export interface OwnerOrderState {
@@ -44,14 +44,14 @@ const ownerOrderSlice = createSlice({
         // Add to correct list
         if (status === 'pending_owner') {
           state.pendingOrders.unshift(updatedOrder);
-        } else if (status === 'confirmed' || status === 'preparing') {
+        } else if (OWNER_ACTIVE_STATUSES.includes(status)) {
           state.activeOrders.unshift(updatedOrder);
         }
       }
     },
     ownerOrdersFetched(state, action: PayloadAction<Order[]>) {
       state.pendingOrders = action.payload.filter((o) => o.status === 'pending_owner');
-      state.activeOrders = action.payload.filter((o) => o.status === 'confirmed' || o.status === 'preparing');
+      state.activeOrders = action.payload.filter((o) => OWNER_ACTIVE_STATUSES.includes(o.status));
     },
     orderReceived(state, action: PayloadAction<any>) {
       const o = action.payload;

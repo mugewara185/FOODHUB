@@ -23,11 +23,22 @@ export const fetchOwnerQueueThunk = createAsyncThunk<Order[], void>(
   }
 );
 
+export const OWNER_ACTIVE_STATUSES = [
+  'confirmed',
+  'preparing',
+  'ready_for_pickup',
+  'awaiting_partner',
+  'partner_assigned',
+  'picked_up',
+  'out_for_delivery',
+  'nearby'
+];
+
 export const fetchOwnerActiveThunk = createAsyncThunk<Order[], void>(
   'ownerOrders/fetchActive',
   async (_, { dispatch, rejectWithValue }) => {
     try {
-      const orders = await api.get<any[]>('orders/owned?status=confirmed,preparing');
+      const orders = await api.get<any[]>(`orders/owned?status=${OWNER_ACTIVE_STATUSES.join(',')}`);
       return orders.map(normalizeOrder);
     } catch (err: any) {
       return handleThunkError(err, dispatch, rejectWithValue, 'Failed to fetch active orders');
