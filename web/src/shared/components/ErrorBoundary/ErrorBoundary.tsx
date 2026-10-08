@@ -2,6 +2,9 @@ import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Box, Typography, Button, Paper, Alert } from '@mui/material';
 import { Refresh, Home, ArrowBack } from '@mui/icons-material';
 import { logger } from '../../../core/dev/logger';
+// import dotenv from 'dotenv';
+
+// dotenv.config();
 
 interface Props {
   children: ReactNode;

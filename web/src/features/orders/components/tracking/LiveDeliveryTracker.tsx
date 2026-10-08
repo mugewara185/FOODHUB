@@ -9,6 +9,7 @@ import { selectCurrentOrder } from '../../orderSlice';
 
 import OrderChat from '../../../../shared/components/OrderChat/OrderChat';
 import { useAuth } from '../../../../contexts/AuthContext';
+import type { Coordinates } from '@/core/types/location';
 
 interface LiveDeliveryTrackerProps {
   orderId: string;
@@ -48,7 +49,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
   const { partner, location, status, etaSeconds, distance, lastUpdatedAt } = useDeliveryTracking();
   const { user } = useAuth();
   const currentOrder = useAppSelector(selectCurrentOrder);
-  
+
   const [liveEta, setLiveEta] = useState(etaSeconds);
   const [chatTarget, setChatTarget] = useState<'owner' | 'partner' | null>(null);
 
@@ -58,14 +59,14 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
 
   useEffect(() => {
     if (etaSeconds <= 0) return;
-    
+
     // Update live ETA every second based on last socket update
     const interval = setInterval(() => {
       const elapsedSeconds = Math.floor((Date.now() - (lastUpdatedAt || Date.now())) / 1000);
       const newEta = Math.max(0, etaSeconds - elapsedSeconds);
       setLiveEta(newEta);
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [etaSeconds, lastUpdatedAt]);
 
@@ -103,7 +104,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
     if (['delivered', 'completed', 'reviewed'].includes(status)) {
       if (currentOrder?.createdAt && currentOrder?.updatedAt) {
         const duration = (new Date(currentOrder.updatedAt).getTime() - new Date(currentOrder.createdAt).getTime()) / 1000;
-        return Delivered in ;
+        return `Delivered in ${formatDuration(duration)}`;
       }
       return 'Delivered';
     }
@@ -133,14 +134,14 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
           <LinearProgress variant="determinate" value={Math.max(5, (safeStep / (statusStepsList.length - 1)) * 100)} color="primary" sx={{ height: 8, borderRadius: 4 }} />
         </Box>
       </Paper>
-      
+
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
           <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400, position: 'relative' }}>
-             <Map center={mapCenter} zoom={15} height="100%" markers={markers} routeCoordinates={routeCoordinates} />
+            <Map center={mapCenter} zoom={15} height="100%" markers={markers} routeCoordinates={routeCoordinates} />
           </Paper>
         </Grid>
-        
+
         <Grid item xs={12} lg={4}>
           <Paper sx={{ p: 3, borderRadius: 3, height: '100%' }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Delivery Partner</Typography>
@@ -185,7 +186,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
             )}
           </Paper>
         </Grid>
-        
+
         <Grid item xs={12}>
           <Paper sx={{ p: 3, borderRadius: 3 }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>Order Status</Typography>
@@ -230,7 +231,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                 <Button variant="contained" color="success" href={`/orders/${orderId}/review`}>Rate your experience</Button>
               </Box>
             )}
-            
+
             {status === 'reviewed' && (
               <Box sx={{ mt: 4, p: 3, bgcolor: 'grey.100', borderRadius: 2, textAlign: 'center' }}>
                 <Star sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
@@ -240,11 +241,11 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
           </Paper>
         </Grid>
       </Grid>
-      
+
       <Dialog open={!!chatTarget} onClose={() => setChatTarget(null)} maxWidth="sm" fullWidth>
         <DialogContent sx={{ p: 0 }}>
           {chatTarget && user && (
-            <OrderChat 
+            <OrderChat
               orderId={orderId}
               currentUserId={user.id}
               currentUserRole="user"

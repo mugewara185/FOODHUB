@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../../../../app/store/hooks';
-import { socketService } from '../../../../services/socket';
-import { 
-  selectLiveTracking, 
-  setLiveTrackingOrder, 
-  updateLiveTrackingLocation, 
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { socketService } from '@/services/socket';
+import {
+  selectLiveTracking,
+  setLiveTrackingOrder,
+  updateLiveTrackingLocation,
   updateLiveTrackingPartner,
   addLiveTrackingChatMessage
 } from '../orderSlice';
-import { estimateStraightLineETA, calculateDistance } from '../../../../core/utils/location';
+import { estimateStraightLineETA, calculateDistance } from '@/core/utils/location';
 import type { DeliveryAssignedPayload, DeliveryStatusPayload, DeliveryLocationPayload, OrderChatMessage } from '../../../../core/types/socket.events';
 import { selectOrders, selectCurrentOrder } from '../orderSlice';
 
@@ -37,7 +37,7 @@ export const useGlobalDeliveryTracker = () => {
   useEffect(() => {
     // Find the first order that is active
     const activeOrder = orders.find(o => activeStatuses.includes(o.status));
-    
+
     if (activeOrder) {
       dispatch(setLiveTrackingOrder({ orderId: activeOrder.id, status: activeOrder.status }));
     }
