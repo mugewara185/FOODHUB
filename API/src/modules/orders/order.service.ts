@@ -24,7 +24,7 @@ export async function transitionOrderStatus(
     'ready_for_pickup': ['awaiting_partner'],
     'awaiting_partner': ['partner_assigned'],
     'partner_assigned': ['picked_up'],
-    'picked_up': ['out_for_delivery'],
+    'picked_up': ['out_for_delivery', 'delivered'],
     'out_for_delivery': ['delivered'],
     'delivered': ['reviewed'],
   };
@@ -123,6 +123,36 @@ export async function transitionOrderStatus(
   // If transitioning to ready_for_pickup, automatically transition to awaiting_partner
   if (newStatus === 'ready_for_pickup') {
     return transitionOrderStatus(orderId, 'awaiting_partner', actor);
+  }
+
+  // If transitioning to picked_up, update the active Delivery so simulator moves to customer
+  if (newStatus === 'picked_up') {
+    try {
+      const { Delivery } = require('../delivery/delivery.model');
+      const deliveries = await Delivery.find({ orderId: order._id, status: 'arrived_pickup' });
+      for (const d of deliveries) {
+        d.status = 'picked_up';
+        d.timestamps = d.timestamps || {};
+        d.timestamps.pickedUpAt = new Date();
+        await d.save();
+
+        const payload = {
+          deliveryId: d.id,
+          orderId: d.orderId,
+          location: d.currentLocation || { lat: 0, lng: 0 },
+          etaSeconds: d.etaSeconds,
+          distanceRemainingMeters: d.distanceRemainingMeters,
+          status: 'picked_up'
+        };
+        io.to(d.orderId.toString()).emit('delivery:status', { ...payload, prevStatus: 'arrived_pickup' });
+        io.to('admin_fleet').emit('delivery:status', { ...payload, prevStatus: 'arrived_pickup' });
+        if (restaurant?.ownerId) {
+          io.to(restaurant.ownerId.toString()).emit('delivery:status', { ...payload, prevStatus: 'arrived_pickup' });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync delivery status for picked_up', err);
+    }
   }
 
   // If transitioning to awaiting_partner, broadcast delivery:available

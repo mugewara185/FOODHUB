@@ -234,6 +234,8 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  deliveryStatus?: string;
+  partner?: { id: string; name: string; phone: string; };
 }
 
 // ─────────────────────────────────────────────────────────────────────────

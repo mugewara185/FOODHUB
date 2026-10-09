@@ -123,18 +123,36 @@ router.post(
 
       const { orderId } = req.params;
 
-      const order = await Order.findOne({ _id: orderId, status: 'awaiting_partner' });
+      // Atomic lock
+      const order = await Order.findOneAndUpdate(
+        { _id: orderId, status: 'awaiting_partner' },
+        { status: 'partner_assigned' },
+        { new: true }
+      );
       if (!order) {
         return res.status(409).json({ success: false, message: 'already_assigned or invalid state' });
       }
 
-      // Transition order status canonically (will emit order:status_changed)
-      const updated = await transitionOrderStatus(orderId, 'partner_assigned', {
-        id: req.user!.id,
-        role: 'system' // role='system' allows bypassing owner/user validation in transitionOrderStatus
-      });
-
+      // We already atomically transitioned the order to 'partner_assigned'.
+      // Now we just run the side effects by re-calling transitionOrderStatus, 
+      // but wait, transitionOrderStatus expects current status to be awaiting_partner!
+      // So we must manually emit the event, or revert it if we want to use transitionOrderStatus.
+      // Alternatively, we revert it back to 'awaiting_partner' in memory, and let transitionOrderStatus handle it? No, if we revert it, another request could grab it.
+      // Let's just restore it, wait no, let's use transitionOrderStatus on the ALREADY assigned order? It will fail validation.
+      
+      // Let's manually emit the order:status_changed event to match transitionOrderStatus:
+      const io = require('../../socket').getIO();
       const restaurant = await Restaurant.findById(order.restaurantId);
+      
+      io.to(order._id.toString()).emit('order_status_update', { orderId: order._id, status: 'partner_assigned' });
+      if (restaurant?.ownerId) {
+        io.to(restaurant.ownerId.toString()).emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
+      }
+      io.to(order.userId.toString()).emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
+      io.to('admin_fleet').emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
+      
+      const updated = order;
+
       const rLat = restaurant?.location?.lat || 12.9716;
       const rLng = restaurant?.location?.lng || 77.5946;
 

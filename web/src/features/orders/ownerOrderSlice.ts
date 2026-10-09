@@ -61,6 +61,16 @@ const ownerOrderSlice = createSlice({
           state.pendingOrders.unshift(order);
         }
       }
+    },
+    deliveryStatusChanged(
+      state,
+      action: PayloadAction<{ orderId: string; status: string }>
+    ) {
+      const { orderId, status } = action.payload;
+      const order = state.activeOrders.find(o => o.id === orderId) || state.pendingOrders.find(o => o.id === orderId);
+      if (order) {
+        order.deliveryStatus = status;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -94,5 +104,5 @@ const ownerOrderSlice = createSlice({
   }
 });
 
-export const { orderStatusChanged, ownerOrdersFetched, orderReceived } = ownerOrderSlice.actions;
+export const { orderStatusChanged, ownerOrdersFetched, orderReceived, deliveryStatusChanged } = ownerOrderSlice.actions;
 export default ownerOrderSlice.reducer;

@@ -120,8 +120,33 @@ export async function getOwnerOrders(req: AuthRequest, res: Response, next: Next
       statuses = parsedStatuses;
     }
 
-    const orders = await Order.find({ restaurantId: restaurant._id, status: { $in: statuses } })
-      .sort({ createdAt: -1 });
+    let orders = await Order.find({ restaurantId: restaurant._id, status: { $in: statuses } })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Attach active delivery micro-state to order DTOs
+    const activeOrderIds = orders.filter((o: any) => ['partner_assigned', 'picked_up', 'out_for_delivery'].includes(o.status)).map((o: any) => o._id);
+    if (activeOrderIds.length > 0) {
+      const { Delivery } = require('../delivery/delivery.model');
+      const { DeliveryPartner } = require('../delivery/delivery-partner.model');
+      const deliveries = await Delivery.find({ orderId: { $in: activeOrderIds }, status: { $ne: 'delivered' } }).lean();
+      
+      const partnerIds = deliveries.map((d: any) => d.partnerId);
+      const partners = await DeliveryPartner.find({ _id: { $in: partnerIds } }).lean();
+
+      orders = orders.map((order: any) => {
+        const delivery = deliveries.find((d: any) => d.orderId.toString() === order._id.toString());
+        if (delivery) {
+          const partner = partners.find((p: any) => p._id.toString() === delivery.partnerId.toString());
+          return {
+            ...order,
+            deliveryStatus: delivery.status,
+            partner: partner ? { id: partner._id, name: partner.name, phone: partner.phone } : undefined
+          };
+        }
+        return order;
+      });
+    }
 
     sendSuccess({ res, message: 'Owner orders fetched', data: orders });
   } catch (err) {
@@ -247,6 +272,16 @@ export async function markReady(req: AuthRequest, res: Response, next: NextFunct
   try {
     const updatedOrder = await transitionOrderStatus(req.params.id, 'ready_for_pickup', { id: req.user!.id, role: getActorRole(req) });
     sendSuccess({ res, message: 'Order marked as ready', data: updatedOrder });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function markPickedUp(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    // Note: The UI calls this to confirm handoff. Order becomes picked_up.
+    const updatedOrder = await transitionOrderStatus(req.params.id, 'picked_up', { id: req.user!.id, role: getActorRole(req) });
+    sendSuccess({ res, message: 'Order picked up and handoff confirmed', data: updatedOrder });
   } catch (err) {
     next(err);
   }

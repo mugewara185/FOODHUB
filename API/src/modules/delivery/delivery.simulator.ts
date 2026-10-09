@@ -80,11 +80,9 @@ export async function startDeliverySimulation(deliveryId: string) {
         if (delivery.status === 'partner_assigned') {
           delivery.status = 'arrived_pickup';
           statusChanged = true;
-        } else if (delivery.status === 'arrived_pickup') {
-          delivery.status = 'picked_up';
-          delivery.timestamps.pickedUpAt = new Date();
-          statusChanged = true;
         }
+        // Do not automatically transition to picked_up. 
+        // Owner must manually confirm handoff to change status to picked_up.
       } else if (isPickedUp) {
         if (newDistance < 10) {
           delivery.status = 'delivered';
@@ -120,9 +118,27 @@ export async function startDeliverySimulation(deliveryId: string) {
       io.to(delivery.orderId.toString()).emit('delivery:location', payload);
       io.to('admin_fleet').emit('delivery:location', payload);
 
+      let ownerIdStr = '';
+      try {
+        const order = await Order.findById(delivery.orderId);
+        if (order) {
+          const { Restaurant } = require('../restaurants/restaurant.model');
+          const restaurant = await Restaurant.findById(order.restaurantId);
+          if (restaurant?.ownerId) {
+            ownerIdStr = restaurant.ownerId.toString();
+            io.to(ownerIdStr).emit('delivery:location', payload);
+          }
+        }
+      } catch (e) {
+        // Ignore
+      }
+
       if (statusChanged) {
         io.to(delivery.orderId.toString()).emit('delivery:status', { ...payload, prevStatus });
         io.to('admin_fleet').emit('delivery:status', { ...payload, prevStatus });
+        if (ownerIdStr) {
+          io.to(ownerIdStr).emit('delivery:status', { ...payload, prevStatus });
+        }
         
         try {
           const { transitionOrderStatus } = require('../orders/order.service');

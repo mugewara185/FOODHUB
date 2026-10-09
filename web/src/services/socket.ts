@@ -214,6 +214,14 @@ class SocketService {
     this.socket?.off("order_status_update", callback);
   }
 
+  onDeliveryStatusChanged(callback: (data: any) => void) {
+    this.socket?.on("delivery:status", callback);
+  }
+
+  offDeliveryStatusChanged(callback?: (data: any) => void) {
+    this.socket?.off("delivery:status", callback);
+  }
+
   onOrderStatusChanged(callback: (data: any) => void) {
     this.socket?.on("order:status_changed", callback);
   }

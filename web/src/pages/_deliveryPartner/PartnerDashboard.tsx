@@ -102,7 +102,10 @@ const PartnerDashboard: React.FC = () => {
         >
           <Box sx={{ position: 'relative', zIndex: 1 }}>
             <Typography variant="h6" fontWeight={700} gutterBottom>
-              Active Delivery
+              {currentOrder.status === 'partner_assigned' ? 'Accepted — Heading to restaurant' :
+               currentOrder.status === 'arrived_pickup' ? 'Partner Arrived — Awaiting owner handoff' :
+               currentOrder.status === 'picked_up' ? 'Customer-bound' :
+               currentOrder.status === 'out_for_delivery' ? 'Customer-bound (On the way)' : 'Active Delivery'}
             </Typography>
             <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} md={8}>

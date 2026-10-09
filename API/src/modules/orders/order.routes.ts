@@ -10,6 +10,7 @@ import {
   rejectOrder,
   markPreparing,
   markReady,
+  markPickedUp,
   createOrderSchema,
   getAllOrders
 } from './order.controller';
@@ -32,5 +33,6 @@ router.patch('/:id/accept',    authorize('owner', 'admin'), acceptOrder);
 router.patch('/:id/reject',    authorize('owner', 'admin'), rejectOrder);
 router.patch('/:id/preparing', authorize('owner', 'admin'), markPreparing);
 router.patch('/:id/ready',     authorize('owner', 'admin'), markReady);
+router.patch('/:id/picked_up', authorize('owner', 'admin'), markPickedUp);
 
 export default router;

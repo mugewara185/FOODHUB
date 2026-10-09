@@ -158,6 +158,13 @@ async function runTest() {
     await new Promise(resolve => setTimeout(resolve, 10));
     currentDelivery = await Delivery.findById(activeDeliveryId);
     
+    if (currentDelivery?.status === 'arrived_pickup' && !(global as any).handoffConfirmed) {
+      (global as any).handoffConfirmed = true;
+      console.log('Simulating owner handoff confirmation...');
+      const { transitionOrderStatus } = require('../../orders/order.service');
+      await transitionOrderStatus(order1._id.toString(), 'picked_up', { id: 'sys', role: 'system' });
+    }
+
     // Count location events
     locationEvents = emittedEvents.filter(e => e.event === 'delivery:location').length;
     
@@ -166,6 +173,7 @@ async function runTest() {
     }
   }
 
+  await new Promise(r => setTimeout(r, 500));
   if (currentDelivery?.status !== 'delivered') {
     throw new Error(`Simulator failed to reach 'delivered'. Stuck at: ${currentDelivery?.status}`);
   }

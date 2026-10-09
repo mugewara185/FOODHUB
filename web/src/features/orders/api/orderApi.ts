@@ -41,6 +41,8 @@ interface OrderApiDTO {
   chatMessages?: OrderChatMessage[];
   createdAt: string;
   updatedAt?: string;
+  deliveryStatus?: string;
+  partner?: { id: string; name: string; phone: string; };
 }
 
 // Normalization helpers
@@ -83,6 +85,8 @@ export const normalizeOrder = (dto: OrderApiDTO): Order => ({
   },
   createdAt: dto.createdAt,
   updatedAt: dto.updatedAt ?? dto.createdAt,
+    deliveryStatus: dto.deliveryStatus,
+    partner: dto.partner,
 });
 
 // Request mapping

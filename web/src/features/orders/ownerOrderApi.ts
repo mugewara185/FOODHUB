@@ -30,8 +30,7 @@ export const OWNER_ACTIVE_STATUSES = [
   'awaiting_partner',
   'partner_assigned',
   'picked_up',
-  'out_for_delivery',
-  'nearby'
+  'out_for_delivery'
 ];
 
 export const fetchOwnerActiveThunk = createAsyncThunk<Order[], void>(
@@ -90,6 +89,18 @@ export const markReadyThunk = createAsyncThunk<void, string>(
       dispatch(showToast({ message: 'Order marked as ready', type: 'success' }));
     } catch (err: any) {
       return handleThunkError(err, dispatch, rejectWithValue, 'Failed to mark order as ready');
+    }
+  }
+);
+
+export const confirmHandoffThunk = createAsyncThunk<void, string>(
+  'ownerOrders/confirmHandoff',
+  async (orderId, { dispatch, rejectWithValue }) => {
+    try {
+      await api.patch<any>(`orders/${orderId}/picked_up`);
+      dispatch(showToast({ message: 'Order handoff confirmed', type: 'success' }));
+    } catch (err: any) {
+      return handleThunkError(err, dispatch, rejectWithValue, 'Failed to confirm handoff');
     }
   }
 );

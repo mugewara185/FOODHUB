@@ -12,7 +12,8 @@ import {
   acceptOrderThunk, 
   rejectOrderThunk, 
   markPreparingThunk, 
-  markReadyThunk 
+  markReadyThunk,
+  confirmHandoffThunk
 } from '../../features/orders/ownerOrderApi';
 import { Button, Stack } from '@mui/material';
 import OrderChat from '../../shared/components/OrderChat/OrderChat';
@@ -92,6 +93,20 @@ const OwnerDashboard: React.FC = () => {
         return (
           <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'center' }}>
             <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', mr: 2 }}>Waiting for partner</Typography>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
+          </Stack>
+        );
+      case 'partner_assigned':
+        return (
+          <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'center' }}>
+            {order.deliveryStatus === 'arrived_pickup' ? (
+              <>
+                <Chip size="small" color="error" label="Partner Arrived — Awaiting Handoff" sx={{ mr: 2, animation: 'pulse 2s infinite' }} />
+                <Button size="small" variant="contained" color="primary" onClick={() => dispatch(confirmHandoffThunk(order.id))}>Confirm Handoff</Button>
+              </>
+            ) : (
+              <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', mr: 2 }}>Partner is on the way</Typography>
+            )}
             <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
           </Stack>
         );
