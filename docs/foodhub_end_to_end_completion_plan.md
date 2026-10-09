@@ -94,10 +94,11 @@ NotificationBell / Toast
   - Browser/E2E verification: RUNTIME VERIFIED
 
   **Currently Verified (Phase 8):**
-  - Owner dashboard actions
+  - Owner dashboard actions (Accept, Map Tracking)
   - Partner delivery:available flow
-  - Partner acceptance
-  - Active delivery socket tracking
+  - Partner acceptance (Transaction Safe)
+  - Active delivery socket tracking (Shared map for Owner and Customer)
+  - Handoff Verification Invariants (Owner auth, Delivery state)
   - Customer tracking integration
   - useDeliverySocket listener stability
   - TypeScript build

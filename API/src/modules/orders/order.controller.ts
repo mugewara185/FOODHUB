@@ -8,6 +8,7 @@ import { AppError } from '../../shared/middleware/errorHandler';
 import { sendSuccess } from '../../shared/utils/response';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
 import { getIO } from '../../socket';
+import { Delivery } from '../delivery/delivery.model';
 
 import { assignDelivery, releaseDeliveryForOrder } from '../delivery/delivery.service';
 
@@ -279,10 +280,32 @@ export async function markReady(req: AuthRequest, res: Response, next: NextFunct
 
 export async function markPickedUp(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    // Note: The UI calls this to confirm handoff. Order becomes picked_up.
+    const order = await Order.findById(req.params.id);
+    if (!order) return next(new AppError('Order not found', 404));
+
+    if (order.status !== 'partner_assigned') {
+      return next(new AppError(`Order is not ready for handoff (current status: ${order.status})`, 400));
+    }
+
+    // Explicitly verify ownership here before the Delivery checks, though transitionOrderStatus would also check.
+    const restaurant = await Restaurant.findById(order.restaurantId);
+    if (req.user!.roles?.includes('owner') && (!restaurant || restaurant.ownerId?.toString() !== req.user!.id)) {
+      return next(new AppError('Not authorized to manage this restaurant', 403));
+    }
+
+    const activeDelivery = await Delivery.findOne({ orderId: order._id, status: { $ne: 'delivered' } });
+    if (!activeDelivery) {
+      return next(new AppError('No active delivery found for this order', 400));
+    }
+    if (activeDelivery.status !== 'arrived_pickup') {
+      return next(new AppError(`Partner has not arrived yet (delivery status: ${activeDelivery.status})`, 400));
+    }
+
+    // All invariants passed, delegate to the core state machine
     const updatedOrder = await transitionOrderStatus(req.params.id, 'picked_up', { id: req.user!.id, role: getActorRole(req) });
     sendSuccess({ res, message: 'Order picked up and handoff confirmed', data: updatedOrder });
   } catch (err) {
+    console.error('markPickedUp Error:', err);
     next(err);
   }
 }

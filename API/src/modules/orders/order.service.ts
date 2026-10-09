@@ -4,6 +4,7 @@ import { Restaurant } from '../restaurants/restaurant.model';
 import { AppError } from '../../shared/middleware/errorHandler';
 import { getIO } from '../../socket';
 import { DeliveryPartner } from '../delivery/delivery-partner.model';
+import { Delivery } from '../delivery/delivery.model';
 import { emitDeliveryAvailable } from '../delivery/delivery.events';
 
 export async function transitionOrderStatus(
@@ -128,7 +129,6 @@ export async function transitionOrderStatus(
   // If transitioning to picked_up, update the active Delivery so simulator moves to customer
   if (newStatus === 'picked_up') {
     try {
-      const { Delivery } = require('../delivery/delivery.model');
       const deliveries = await Delivery.find({ orderId: order._id, status: 'arrived_pickup' });
       for (const d of deliveries) {
         d.status = 'picked_up';

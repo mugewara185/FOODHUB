@@ -4,6 +4,7 @@ import { DeliveryPartner } from './delivery-partner.model';
 import { protect, authorize } from '../../shared/middleware/auth.middleware';
 import { toLatLng } from '../../utils/geo';
 import { Order } from '../orders/order.model';
+import { getIO } from '../../socket';
 import { transitionOrderStatus } from '../orders/order.service';
 import { emitDeliveryAssigned } from './delivery.events';
 import { Restaurant } from '../restaurants/restaurant.model';
@@ -111,6 +112,7 @@ router.post(
   protect,
   authorize('partner'),
   async (req: Request, res: Response, next: NextFunction) => {
+    let session;
     try {
       const partner = await DeliveryPartner.findOne({ userId: req.user!.id });
       if (!partner) {
@@ -123,36 +125,41 @@ router.post(
 
       const { orderId } = req.params;
 
-      // Atomic lock
-      const order = await Order.findOneAndUpdate(
-        { _id: orderId, status: 'awaiting_partner' },
-        { status: 'partner_assigned' },
-        { new: true }
-      );
+      const mongoose = require('mongoose');
+      session = await mongoose.startSession();
+      
+      let order;
+      try {
+        session.startTransaction();
+        order = await Order.findOneAndUpdate(
+          { _id: orderId, status: 'awaiting_partner' },
+          { status: 'partner_assigned' },
+          { new: true, session }
+        );
+      } catch (err: any) {
+        if (err.codeName === 'IllegalOperation') {
+          // Standalone DB fallback for tests
+          session.endSession();
+          session = null;
+          order = await Order.findOneAndUpdate(
+            { _id: orderId, status: 'awaiting_partner' },
+            { status: 'partner_assigned' },
+            { new: true }
+          );
+        } else {
+          throw err;
+        }
+      }
+
       if (!order) {
+        if (session) {
+          await session.abortTransaction();
+          session.endSession();
+        }
         return res.status(409).json({ success: false, message: 'already_assigned or invalid state' });
       }
 
-      // We already atomically transitioned the order to 'partner_assigned'.
-      // Now we just run the side effects by re-calling transitionOrderStatus, 
-      // but wait, transitionOrderStatus expects current status to be awaiting_partner!
-      // So we must manually emit the event, or revert it if we want to use transitionOrderStatus.
-      // Alternatively, we revert it back to 'awaiting_partner' in memory, and let transitionOrderStatus handle it? No, if we revert it, another request could grab it.
-      // Let's just restore it, wait no, let's use transitionOrderStatus on the ALREADY assigned order? It will fail validation.
-      
-      // Let's manually emit the order:status_changed event to match transitionOrderStatus:
-      const io = require('../../socket').getIO();
-      const restaurant = await Restaurant.findById(order.restaurantId);
-      
-      io.to(order._id.toString()).emit('order_status_update', { orderId: order._id, status: 'partner_assigned' });
-      if (restaurant?.ownerId) {
-        io.to(restaurant.ownerId.toString()).emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
-      }
-      io.to(order.userId.toString()).emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
-      io.to('admin_fleet').emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
-      
-      const updated = order;
-
+      const restaurant = session ? await Restaurant.findById(order.restaurantId).session(session) : await Restaurant.findById(order.restaurantId);
       const rLat = restaurant?.location?.lat || 12.9716;
       const rLng = restaurant?.location?.lng || 77.5946;
 
@@ -164,26 +171,43 @@ router.post(
 
       // Create a Delivery record
       const delivery = new Delivery({
-        orderId: updated._id,
+        orderId: order._id,
         partnerId: partner._id,
         status: 'partner_assigned',
         pickupLocation: { type: 'Point', coordinates: pickupCoords },
         destinationLocation: { type: 'Point', coordinates: destCoords },
         currentLocation: { type: 'Point', coordinates: startCoords }
       });
-      await delivery.save();
+      if (session) await delivery.save({ session });
+      else await delivery.save();
 
       partner.status = 'assigned';
       partner.currentAssignedDelivery = delivery._id as any;
       partner.currentLocation = { type: 'Point', coordinates: startCoords };
-      await partner.save();
+      
+      if (session) await partner.save({ session });
+      else await partner.save();
+
+      if (session) {
+        await session.commitTransaction();
+        session.endSession();
+      }
+
+      // Emit events only after successful commit
+      const io = getIO();
+      io.to(order._id.toString()).emit('order_status_update', { orderId: order._id, status: 'partner_assigned' });
+      if (restaurant?.ownerId) {
+        io.to(restaurant.ownerId.toString()).emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
+      }
+      io.to(order.userId.toString()).emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
+      io.to('admin_fleet').emit('order:status_changed', { orderId: order._id, status: 'partner_assigned', actorRole: 'system' });
 
       emitDeliveryAssigned({
         deliveryId: delivery._id.toString(),
-        orderId: updated._id.toString(),
+        orderId: order._id.toString(),
         partnerId: partner._id.toString(),
         partnerUserId: partner.userId.toString(),
-        customerUserId: updated.userId.toString(),
+        customerUserId: order.userId.toString(),
         partnerName: partner.name || 'Partner',
         partnerPhone: partner.phone || '9999999999',
         status: 'partner_assigned'
@@ -193,6 +217,11 @@ router.post(
 
       return res.json({ success: true, data: delivery });
     } catch (error) {
+      if (session) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      console.error('Accept Error:', error);
       next(error);
     }
   }

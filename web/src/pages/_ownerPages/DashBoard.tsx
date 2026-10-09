@@ -5,7 +5,7 @@ import {
   Alert, CircularProgress, Dialog, DialogContent
 } from '@mui/material';
 import {
-  ShoppingBag, Restaurant, Star, CheckCircle, Schedule, Chat
+  ShoppingBag, Restaurant, Star, CheckCircle, Schedule, Chat, LocationOn
 } from '@mui/icons-material';
 import { useAppSelector, useAppDispatch } from '@app/store/hooks';
 import { 
@@ -17,6 +17,7 @@ import {
 } from '../../features/orders/ownerOrderApi';
 import { Button, Stack } from '@mui/material';
 import OrderChat from '../../shared/components/OrderChat/OrderChat';
+import LiveDeliveryTracker from '../../features/orders/components/tracking/LiveDeliveryTracker';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -54,6 +55,7 @@ const OwnerDashboard: React.FC = () => {
   const { user } = useAppSelector((state: any) => state.auth);
   
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
+  const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
 
   const pendingCount = pendingOrders?.length || 0;
   const activeCount = activeOrders?.length || 0;
@@ -107,6 +109,7 @@ const OwnerDashboard: React.FC = () => {
             ) : (
               <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', mr: 2 }}>Partner is on the way</Typography>
             )}
+            <Button size="small" variant="outlined" color="primary" startIcon={<LocationOn />} onClick={() => setTrackingOrderId(order.id)}>Track</Button>
             <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
           </Stack>
         );
@@ -272,6 +275,17 @@ const OwnerDashboard: React.FC = () => {
               currentUserId={user.id}
               currentUserRole="owner"
               currentUserName={user.name || 'Owner'}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!trackingOrderId} onClose={() => setTrackingOrderId(null)} maxWidth="md" fullWidth>
+        <DialogContent sx={{ p: 2, height: '80vh' }}>
+          {trackingOrderId && (
+            <LiveDeliveryTracker 
+              orderId={trackingOrderId}
+              orderStatus="partner_assigned"
             />
           )}
         </DialogContent>
