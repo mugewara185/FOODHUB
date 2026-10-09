@@ -51,7 +51,7 @@ export const useDeliverySocket = (role: 'customer' | 'partner' | 'admin' | 'owne
     return () => {
       socketService.offDeliveryAssigned(handleAssigned);
       socketService.offDeliveryStatus(handleStatus);
-      (socketService as any).socket?.off('delivery:location', handleLocation);
+      socketService.offDeliveryLocation(handleLocation);
       
       if (role === 'admin') {
         socketService.leaveAdminFleet();

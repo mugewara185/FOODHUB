@@ -101,7 +101,9 @@ NotificationBell / Toast
   - Handoff Verification Invariants (Owner auth, Delivery state)
   - Customer tracking integration
   - Delivery rollback logic implemented and verified against partial failures (explicit consistency compensation for standalone MongoDB).
-  - useDeliverySocket listener stability
+  - useDeliverySocket listener stability (Memory leaks and duplicate subscriptions resolved)
+  - Owner Tracker Isolation (Owner modal correctly scopes to active orderId without reading unrelated customer global state).
+  - Consistent Deterministic GPS Demo (Partner, Customer, and Owner all synchronize to identical GeoJSON destination coordinates natively derived from backend offsets).
   - TypeScript build
   - Frontend production build
 

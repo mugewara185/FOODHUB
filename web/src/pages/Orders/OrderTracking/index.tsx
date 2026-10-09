@@ -26,9 +26,10 @@ const OrderTracking: React.FC = () => {
     );
   }
 
-  // Fallback coords
-  const restaurantLocation = { lat: 19.1136, lng: 72.8697 };
-  const customerLocation = currentOrder.deliveryInfo?.coordinates || { lat: 19.0760, lng: 72.8777 };
+  // Fallback coords if real one missing
+  const restaurantLocation = { lat: 12.9716, lng: 77.5946 };
+  // The backend uses restaurant + 0.02 for demo destination
+  const customerLocation = currentOrder.deliveryInfo?.coordinates || { lat: restaurantLocation.lat + 0.02, lng: restaurantLocation.lng + 0.02 };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>

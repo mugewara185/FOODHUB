@@ -171,6 +171,10 @@ class SocketService {
     this.socket?.on("delivery:location", callback);
   }
 
+  offDeliveryLocation(callback?: (payload: DeliveryLocationPayload) => void) {
+    this.socket?.off("delivery:location", callback);
+  }
+
   onPartnerLocationUpdated(
     callback: (payload: PartnerLocationUpdatedPayload) => void,
   ) {

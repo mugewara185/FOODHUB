@@ -45,8 +45,63 @@ const statusSteps = [
   { label: 'Delivered', description: 'Order delivered', id: 'delivered' },
 ];
 
+import { socketService } from '../../../../services/socket';
+
+const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
+  const globalState = useDeliveryTracking();
+  const [location, setLocation] = useState<Coordinates | null>(globalState.location);
+  const [partner, setPartner] = useState<any>(globalState.partner);
+  const [status, setStatus] = useState<string>(globalState.status === 'created' ? initialStatus : globalState.status);
+  const [etaSeconds, setEtaSeconds] = useState(globalState.etaSeconds || 0);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(globalState.lastUpdatedAt || Date.now());
+
+  useEffect(() => {
+    if (!orderId) return;
+    
+    // Always sync with global state if it matches our order
+    if (globalState && (globalState as any).orderId === orderId) {
+      setLocation(globalState.location);
+      setPartner(globalState.partner);
+      setStatus(globalState.status);
+      setEtaSeconds(globalState.etaSeconds);
+    }
+    
+    const handleLoc = (p: any) => {
+      if (p.orderId === orderId) {
+        setLocation(p.location);
+        setEtaSeconds(p.etaSeconds || 0);
+        setLastUpdatedAt(Date.now());
+      }
+    };
+    const handleStatus = (p: any) => {
+      if (p.orderId === orderId) {
+        setStatus(p.status);
+        setLastUpdatedAt(Date.now());
+      }
+    };
+    const handleAssigned = (p: any) => {
+      if (p.orderId === orderId) {
+        setPartner({ name: p.partnerName, phone: p.partnerPhone });
+        setLastUpdatedAt(Date.now());
+      }
+    };
+
+    socketService.onDeliveryLocation(handleLoc);
+    socketService.onDeliveryStatus(handleStatus);
+    socketService.onDeliveryAssigned(handleAssigned);
+
+    return () => {
+      socketService.offDeliveryLocation(handleLoc);
+      socketService.offDeliveryStatus(handleStatus);
+      socketService.offDeliveryAssigned(handleAssigned);
+    };
+  }, [orderId, globalState]);
+
+  return { partner, location, status, etaSeconds, distance: globalState.distance, lastUpdatedAt };
+};
+
 const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, restaurantLocation, customerLocation, rejectionReason }) => {
-  const { partner, location, status, etaSeconds, distance, lastUpdatedAt } = useDeliveryTracking();
+  const { partner, location, status, etaSeconds, distance, lastUpdatedAt } = useLocalDeliveryTracking(orderId, orderStatus);
   const { user } = useAuth();
   const currentOrder = useAppSelector(selectCurrentOrder);
 
@@ -89,7 +144,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
   };
 
   const resLoc = restaurantLocation || { lat: 12.9716, lng: 77.5946 };
-  const cusLoc = customerLocation || { lat: 12.9916, lng: 77.6146 };
+  const cusLoc = customerLocation || { lat: resLoc.lat + 0.02, lng: resLoc.lng + 0.02 };
   const markers = [
     { id: 'restaurant', type: 'restaurant', position: resLoc, title: 'Restaurant' },
     { id: 'customer', type: 'customer', position: cusLoc, title: 'You' },

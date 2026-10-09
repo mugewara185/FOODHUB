@@ -13,7 +13,7 @@ import type { DeliveryAssignedPayload, DeliveryStatusPayload, DeliveryLocationPa
 import { selectOrders, selectCurrentOrder, fetchOrdersThunk } from '../orderSlice';
 
 export const FALLBACK_RESTAURANT = { lat: 12.9716, lng: 77.5946 };
-export const FALLBACK_CUSTOMER = { lat: 12.9916, lng: 77.6146 };
+export const FALLBACK_CUSTOMER = { lat: 12.9716 + 0.02, lng: 77.5946 + 0.02 };
 
 export const activeStatuses = [
   'pending_owner',
@@ -114,8 +114,7 @@ export const useGlobalDeliveryTracker = () => {
     return () => {
       socketService.offDeliveryAssigned(handleAssigned);
       socketService.offDeliveryStatus(handleStatus);
-      // socketService.offDeliveryLocation(handleLocation);
-      socketService.onDeliveryLocation(handleLocation);
+      socketService.offDeliveryLocation(handleLocation);
       socketService.offOrderChatMessage(handleChatMessage);
     };
   }, [liveTracking?.orderId, dispatch, isConnected]);

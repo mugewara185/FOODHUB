@@ -117,6 +117,14 @@ export async function startDeliverySimulation(deliveryId: string) {
 
       io.to(delivery.orderId.toString()).emit('delivery:location', payload);
       io.to('admin_fleet').emit('delivery:location', payload);
+      if (delivery.partnerId) {
+        try {
+          const partner = await DeliveryPartner.findById(delivery.partnerId);
+          if (partner && partner.userId) {
+            io.to(partner.userId.toString()).emit('delivery:location', payload);
+          }
+        } catch(e) {}
+      }
 
       let ownerIdStr = '';
       try {
@@ -138,6 +146,14 @@ export async function startDeliverySimulation(deliveryId: string) {
         io.to('admin_fleet').emit('delivery:status', { ...payload, prevStatus });
         if (ownerIdStr) {
           io.to(ownerIdStr).emit('delivery:status', { ...payload, prevStatus });
+        }
+        if (delivery.partnerId) {
+          try {
+            const partner = await DeliveryPartner.findById(delivery.partnerId);
+            if (partner && partner.userId) {
+              io.to(partner.userId.toString()).emit('delivery:status', { ...payload, prevStatus });
+            }
+          } catch(e) {}
         }
         
         try {
