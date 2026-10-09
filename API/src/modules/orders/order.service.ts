@@ -59,6 +59,7 @@ export async function transitionOrderStatus(
   }
 
   // 5. Sets order.status = newStatus
+  const prevStatus = order.status;
   order.status = newStatus;
   
   // 6. Saves the order
@@ -152,6 +153,10 @@ export async function transitionOrderStatus(
       }
     } catch (err) {
       console.error('Failed to sync delivery status for picked_up', err);
+      // Rollback order status to previous
+      order.status = prevStatus;
+      await order.save();
+      throw new AppError('Failed to sync delivery status. Order state rolled back.', 500);
     }
   }
 

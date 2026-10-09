@@ -128,7 +128,9 @@ router.post(
   protect,
   authorize('partner'),
   async (req: Request, res: Response, next: NextFunction) => {
-    let session;
+    let session: any;
+    let order: any;
+    let delivery: any;
     try {
       const partner = await DeliveryPartner.findOne({ userId: req.user!.id });
       if (!partner) {
@@ -144,7 +146,6 @@ router.post(
       const mongoose = require('mongoose');
       session = await mongoose.startSession();
       
-      let order;
       try {
         session.startTransaction();
         order = await Order.findOneAndUpdate(
@@ -186,7 +187,7 @@ router.post(
           : [rLng - 0.01, rLat - 0.01];
 
       // Create a Delivery record
-      const delivery = new Delivery({
+      delivery = new Delivery({
         orderId: order._id,
         partnerId: partner._id,
         status: 'partner_assigned',
@@ -236,6 +237,9 @@ router.post(
       if (session) {
         await session.abortTransaction();
         session.endSession();
+      } else {
+        if (order) await Order.findByIdAndUpdate(order._id, { status: 'awaiting_partner' });
+        if (delivery && delivery._id) await Delivery.findByIdAndDelete(delivery._id);
       }
       console.error('Accept Error:', error);
       next(error);

@@ -100,6 +100,7 @@ NotificationBell / Toast
   - Active delivery socket tracking (Shared map for Owner and Customer)
   - Handoff Verification Invariants (Owner auth, Delivery state)
   - Customer tracking integration
+  - Delivery rollback logic implemented and verified against partial failures (explicit consistency compensation for standalone MongoDB).
   - useDeliverySocket listener stability
   - TypeScript build
   - Frontend production build

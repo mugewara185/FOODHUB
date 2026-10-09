@@ -98,6 +98,7 @@ export async function updateDeliveryStatus(
     }
   }
 
+  const prevStatus = delivery.status;
   assertValidTransition(delivery.status, newStatus);
   delivery.status = newStatus;
 
@@ -107,11 +108,18 @@ export async function updateDeliveryStatus(
   await delivery.save();
 
   if (['picked_up', 'out_for_delivery', 'delivered'].includes(newStatus)) {
-    await transitionOrderStatus(
-      delivery.orderId.toString(),
-      newStatus as any,
-      { id: 'system', role: 'system' }
-    );
+    try {
+      await transitionOrderStatus(
+        delivery.orderId.toString(),
+        newStatus as any,
+        { id: 'system', role: 'system' }
+      );
+    } catch (err) {
+      console.error('Failed to transition order status, rolling back delivery', err);
+      delivery.status = prevStatus;
+      await delivery.save();
+      throw err;
+    }
   }
 
   // Emit status change via type-safe emitter

@@ -372,9 +372,12 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(acceptAssignmentThunk.rejected, (state, action) => {
       state.isLoading = false;
-      state.availableAssignments = state.availableAssignments.filter(
-        (a) => a.orderId !== action.meta.arg.orderId
-      );
+      const errorMsg = action.payload as string;
+      if (errorMsg === 'already_assigned or invalid state' || errorMsg?.includes('already_assigned')) {
+        state.availableAssignments = state.availableAssignments.filter(
+          (a) => a.orderId !== action.meta.arg.orderId
+        );
+      }
     });
 
     // rejectAssignmentThunk

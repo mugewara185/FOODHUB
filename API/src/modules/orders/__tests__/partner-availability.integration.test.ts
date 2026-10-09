@@ -11,9 +11,9 @@ import jwt from 'jsonwebtoken';
 import { config } from '../../../config/env';
 
 function generateToken(id: string, role: string): string {
-  return jwt.sign({ id, role }, config.jwt.secret, {
+  return jwt.sign({ id, role }, config.jwt.secret as jwt.Secret, {
     expiresIn: config.jwt.expiresIn,
-  });
+  } as jwt.SignOptions);
 }
 
 describe('Partner Availability & Hydration Integration', () => {
@@ -22,19 +22,19 @@ describe('Partner Availability & Hydration Integration', () => {
   let restaurant: any;
   let partner: any;
   let ownerUser: any;
+  let createdOrder: any;
 
   beforeAll(async () => {
-    const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/FOODHUB3_TEST';
-    await mongoose.connect(uri);
+    const uri = process.env.MONGODB_URI || config.mongoUri || 'mongodb://127.0.0.1:27017/FOODHUB3_TEST';
+    if (!uri.toLowerCase().includes('test')) {
+      throw new Error(`ABORT: Database URI does not appear to be a test database. Refusing to run tests on: ${uri}`);
+    }
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(uri);
+    }
 
-    await User.deleteMany({});
-    await Order.deleteMany({});
-    await DeliveryPartner.deleteMany({});
-    await Restaurant.deleteMany({});
-    await Delivery.deleteMany({});
-
-    ownerUser = await User.create({ name: 'Owner', email: 'owner2@test.com', password: 'password', roles: ['owner'] });
-    partnerUser = await User.create({ name: 'Partner', email: 'partner2@test.com', password: 'password', roles: ['partner'] });
+    ownerUser = await User.create({ name: 'Owner', email: `owner2-${Date.now()}@test.com`, password: 'password', roles: ['owner'] });
+    partnerUser = await User.create({ name: 'Partner', email: `partner2-${Date.now()}@test.com`, password: 'password', roles: ['partner'] });
     partnerToken = generateToken(partnerUser._id, 'partner');
 
     restaurant = await Restaurant.create({
@@ -58,11 +58,16 @@ describe('Partner Availability & Hydration Integration', () => {
   });
 
   afterAll(async () => {
+    if (ownerUser) await User.findByIdAndDelete(ownerUser._id);
+    if (partnerUser) await User.findByIdAndDelete(partnerUser._id);
+    if (restaurant) await Restaurant.findByIdAndDelete(restaurant._id);
+    if (partner) await DeliveryPartner.findByIdAndDelete(partner._id);
+    if (createdOrder) await Order.findByIdAndDelete(createdOrder._id);
     await mongoose.disconnect();
   });
 
   it('Case 1: /me returns awaiting_partner orders if partner is available', async () => {
-    const order = await Order.create({
+    createdOrder = await Order.create({
       userId: partnerUser._id,
       restaurantId: restaurant._id,
       restaurantName: 'Test Rest',
@@ -78,8 +83,9 @@ describe('Partner Availability & Hydration Integration', () => {
     
     expect(res.status).toBe(200);
     expect(res.body.data.availableAssignments).toBeDefined();
-    expect(res.body.data.availableAssignments.length).toBe(1);
-    expect(res.body.data.availableAssignments[0].orderId).toBe(order._id.toString());
+    expect(res.body.data.availableAssignments.length).toBeGreaterThanOrEqual(1);
+    const hasOrder = res.body.data.availableAssignments.some((a: any) => a.orderId === createdOrder._id.toString());
+    expect(hasOrder).toBe(true);
   });
 
   it('Case 2: /me does not return orders if partner is offline', async () => {
