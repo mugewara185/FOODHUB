@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch } from '../../../app/store';
 import { socketService } from '../../../services/socket';
-import { assignmentBroadcastReceived } from '../deliveryPartnerSlice';
+import { assignmentBroadcastReceived, fetchPartnerStateThunk } from '../deliveryPartnerSlice';
 
 export const useDeliveryAvailable = () => {
   const dispatch = useAppDispatch();
@@ -19,7 +19,8 @@ export const useDeliveryAvailable = () => {
   useEffect(() => {
     if (!isConnected) return;
 
-    socketService.joinAdminFleet();
+    // Fetch initial/reconnect state (including available assignments)
+    dispatch(fetchPartnerStateThunk());
 
     const handleDeliveryAvailable = (payload: any) => {
       dispatch(assignmentBroadcastReceived(payload));
@@ -29,7 +30,6 @@ export const useDeliveryAvailable = () => {
 
     return () => {
       socketService.offDeliveryAvailable(handleDeliveryAvailable);
-      socketService.leaveAdminFleet();
     };
   }, [isConnected, dispatch]);
 };

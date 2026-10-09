@@ -95,8 +95,8 @@ NotificationBell / Toast
 
   **Currently Verified (Phase 8):**
   - Owner dashboard actions (Accept, Map Tracking)
-  - Partner delivery:available flow
-  - Partner acceptance (Transaction Safe)
+  - Partner delivery:available flow (Real-time Socket & Initial Hydration)
+  - Partner acceptance (Transaction Safe & Stale Order Removal)
   - Active delivery socket tracking (Shared map for Owner and Customer)
   - Handoff Verification Invariants (Owner auth, Delivery state)
   - Customer tracking integration

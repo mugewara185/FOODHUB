@@ -262,7 +262,25 @@ const deliveryPartnerSlice = createSlice({
       if (typeof p.isOnline === 'boolean') state.isOnline = p.isOnline;
       if (p.currentLocation) state.currentLocation = p.currentLocation;
       if (p.activeAssignment !== undefined) state.activeAssignment = p.activeAssignment;
-      if (Array.isArray(p.availableAssignments)) state.availableAssignments = p.availableAssignments;
+      if (Array.isArray(p.availableAssignments)) {
+        state.availableAssignments = p.availableAssignments.map((ap: any) => ({
+          deliveryId: ap.orderId,
+          orderId: ap.orderId,
+          restaurant: ap.restaurantName || 'Restaurant',
+          restaurantImage: '',
+          customer: ap.customerName || 'Customer',
+          pickupLocation: { lat: 0, lng: 0 },
+          dropoffLocation: { lat: 0, lng: 0 },
+          pickupAddress: ap.restaurantAddress || 'Restaurant Address',
+          dropAddress: typeof ap.deliveryAddress === 'string' ? ap.deliveryAddress : (ap.deliveryAddress?.street || 'Delivery Address'),
+          distance: '3 km',
+          estimatedTime: '15 mins',
+          amount: ap.totalAmount || 0,
+          priority: 'medium',
+          status: 'partner_assigned',
+          items: ap.items || []
+        }));
+      }
       if (Array.isArray(p.history)) state.history = p.history;
       if (p.stats) state.stats = { ...state.stats, ...p.stats };
     });
@@ -352,8 +370,11 @@ const deliveryPartnerSlice = createSlice({
         (a) => a.orderId !== orderId
       );
     });
-    builder.addCase(acceptAssignmentThunk.rejected, (state) => {
+    builder.addCase(acceptAssignmentThunk.rejected, (state, action) => {
       state.isLoading = false;
+      state.availableAssignments = state.availableAssignments.filter(
+        (a) => a.orderId !== action.meta.arg.orderId
+      );
     });
 
     // rejectAssignmentThunk

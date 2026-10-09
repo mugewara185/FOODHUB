@@ -32,6 +32,19 @@ router.get(
         status: { $ne: 'delivered' },
       });
 
+      let availableAssignments: any[] = [];
+      if (partner.status === 'available') {
+        const orders = await Order.find({ status: 'awaiting_partner' }).populate('restaurantId', 'name');
+        availableAssignments = orders.map((order: any) => ({
+          orderId: order._id.toString(),
+          restaurantName: order.restaurantId?.name || 'Restaurant',
+          deliveryAddress: order.deliveryAddress,
+          totalAmount: order.totalAmount,
+          items: order.items,
+          createdAt: order.createdAt
+        }));
+      }
+
       res.json({
         success: true,
         data: {
@@ -43,6 +56,7 @@ router.get(
           status: partner.status,
           isOnline: partner.status === 'available' || partner.status === 'on_delivery',
           currentLocation: partner.currentLocation ? toLatLng(partner.currentLocation) : null,
+          availableAssignments,
           activeAssignment: activeDelivery
             ? {
               deliveryId: activeDelivery._id.toString(),
@@ -63,6 +77,8 @@ router.get(
     }
   }
 );
+
+
 
 /**
  * Update the authenticated partner's availability.
