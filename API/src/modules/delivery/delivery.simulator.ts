@@ -106,6 +106,11 @@ export async function startDeliverySimulation(deliveryId: string) {
             partner.status = 'available';
             partner.currentAssignedDelivery = undefined;
             statusChanged = true;
+          } else {
+            // We lost the race to another tick or process; the delivery is already delivered.
+            // Halt simulation and abort this tick to prevent saving stale state.
+            stopDeliverySimulation(deliveryId);
+            return;
           }
           
           stopDeliverySimulation(deliveryId);
