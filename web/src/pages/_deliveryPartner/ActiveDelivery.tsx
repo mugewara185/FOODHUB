@@ -75,10 +75,14 @@ console.log('ActiveDelivery render: activeAssignment.status=', activeAssignment?
 
   const { connectionStatus } = useDeliverySocket('partner', {
     onLocation: (payload) => {
-      dispatch(partnerLocationReceived({ lat: payload.location.lat, lng: payload.location.lng }));
+      if (activeAssignment && payload.orderId === activeAssignment.orderId) {
+        dispatch(partnerLocationReceived({ lat: payload.location.lat, lng: payload.location.lng }));
+      }
     },
     onStatus: (payload) => {
-      dispatch(deliveryStatusChangedReceived({ deliveryId: payload.deliveryId, status: payload.status as any }));
+      if (activeAssignment && payload.deliveryId === activeAssignment.deliveryId) {
+        dispatch(deliveryStatusChangedReceived({ deliveryId: payload.deliveryId, status: payload.status as any }));
+      }
     }
   });
 

@@ -157,7 +157,7 @@ export async function startDeliverySimulation(deliveryId: string) {
         }
         
         try {
-          const { transitionOrderStatus } = require('../orders/order.service');
+          const { transitionOrderStatus } = await import('../orders/order.service');
           // Only sync order status if it's one of the canonical mapping states
           if (['picked_up', 'out_for_delivery', 'delivered'].includes(delivery.status)) {
             await transitionOrderStatus(delivery.orderId.toString(), delivery.status, { id: 'system', role: 'system' });

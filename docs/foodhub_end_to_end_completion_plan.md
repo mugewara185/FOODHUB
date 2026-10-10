@@ -91,21 +91,16 @@ NotificationBell / Toast
   - TypeScript verification: PASS
   - Frontend build: PASS
   - Socket-event integration: PASS
-  - Browser/E2E verification: RUNTIME VERIFIED
+  - Simulator Deterministic Integration Tests: PASS (`API/src/modules/delivery/__tests__/simulator-handoff.integration.test.ts`)
+  - Browser/E2E verification: PARTIAL (Server integration verified via integration tests. True browser/runtime E2E via Puppeteer requires full GUI verification suite not executed here).
 
-  **Currently Verified (Phase 8):**
-  - Owner dashboard actions (Accept, Map Tracking)
-  - Partner delivery:available flow (Real-time Socket & Initial Hydration)
-  - Partner acceptance (Transaction Safe & Stale Order Removal)
-  - Active delivery socket tracking (Shared map for Owner and Customer)
-  - Handoff Verification Invariants (Owner auth, Delivery state)
-  - Customer tracking integration
-  - Delivery rollback logic implemented and verified against partial failures (explicit consistency compensation for standalone MongoDB).
-  - useDeliverySocket listener stability (Memory leaks and duplicate subscriptions resolved)
-  - Owner Tracker Isolation (Owner modal correctly scopes to active orderId without reading unrelated customer global state).
-  - Consistent Deterministic GPS Demo (Partner, Customer, and Owner all synchronize to identical GeoJSON destination coordinates natively derived from backend offsets).
-  - TypeScript build
-  - Frontend production build
+  **Currently Verified (Phase 8 Final Gate):**
+  - ActiveDelivery screen explicitly filters `delivery:status` and `delivery:location` payloads, rejecting events whose `orderId` or `deliveryId` do not match the active assignment.
+  - Owner tracker isolation: `useLocalDeliveryTracking` dependencies safely decoupled; it no longer tears down or reconnects listeners repeatedly when the unrelated global tracking object resets.
+  - Simulated `arrived_pickup` rigorously tested: Arrival no longer triggers automatic pickup. Only an explicit owner confirmation API call advances the state to `picked_up`.
+  - Terminal completion (`delivered`) tested: Partner is released, delivery finishes correctly, and double completion is blocked.
+  - Consistent Deterministic GPS Demo natively synchronizes map paths.
+  - TypeScript builds cleanly for backend and frontend.
 
 - **Cross-Domain Socket Chat (Phase 9):**
   - Implemented: PASS

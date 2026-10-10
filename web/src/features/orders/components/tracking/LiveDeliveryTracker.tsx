@@ -57,15 +57,7 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
 
   useEffect(() => {
     if (!orderId) return;
-    
-    // Always sync with global state if it matches our order
-    if (globalState && (globalState as any).orderId === orderId) {
-      setLocation(globalState.location);
-      setPartner(globalState.partner);
-      setStatus(globalState.status);
-      setEtaSeconds(globalState.etaSeconds);
-    }
-    
+
     const handleLoc = (p: any) => {
       if (p.orderId === orderId) {
         setLocation(p.location);
@@ -95,7 +87,24 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
       socketService.offDeliveryStatus(handleStatus);
       socketService.offDeliveryAssigned(handleAssigned);
     };
-  }, [orderId, globalState]);
+  }, [orderId]);
+
+  // Sync with global state separately to avoid rebinding sockets
+  useEffect(() => {
+    if (globalState && (globalState as any).orderId === orderId) {
+      setLocation(globalState.location);
+      setPartner(globalState.partner);
+      setStatus(globalState.status);
+      setEtaSeconds(globalState.etaSeconds);
+    }
+  }, [
+    orderId,
+    (globalState as any).orderId,
+    globalState.location,
+    globalState.partner,
+    globalState.status,
+    globalState.etaSeconds
+  ]);
 
   return { partner, location, status, etaSeconds, distance: globalState.distance, lastUpdatedAt };
 };
