@@ -85,12 +85,29 @@ export async function startDeliverySimulation(deliveryId: string) {
         // Owner must manually confirm handoff to change status to picked_up.
       } else if (isPickedUp) {
         if (newDistance < 10) {
-          delivery.status = 'delivered';
-          delivery.timestamps.deliveredAt = new Date();
-          partner.status = 'available';
-          partner.currentAssignedDelivery = undefined;
-          partner.completedDeliveries = (partner.completedDeliveries || 0) + 1;
-          statusChanged = true;
+          // Attempt atomic status transition on Delivery to prevent concurrent ticks from double-completing
+          const updatedDelivery = await Delivery.findOneAndUpdate(
+            { _id: delivery._id, status: { $ne: 'delivered' } },
+            { $set: { status: 'delivered', 'timestamps.deliveredAt': new Date() } },
+            { new: true }
+          );
+          
+          if (updatedDelivery) {
+            delivery.status = 'delivered';
+            // Use atomic update to prevent race conditions causing lost increments
+            await DeliveryPartner.updateOne(
+              { _id: partner._id },
+              { 
+                $set: { status: 'available', currentAssignedDelivery: null },
+                $inc: { completedDeliveries: 1 }
+              }
+            );
+            // Update local partner object to reflect the atomic change for subsequent logic
+            partner.status = 'available';
+            partner.currentAssignedDelivery = undefined;
+            statusChanged = true;
+          }
+          
           stopDeliverySimulation(deliveryId);
         } else if (newDistance < 500 && delivery.status !== 'nearby') {
           delivery.status = 'nearby';
@@ -101,8 +118,13 @@ export async function startDeliverySimulation(deliveryId: string) {
         }
       }
 
-      await delivery.save();
-      await partner.save();
+      if (delivery.status !== 'delivered') {
+        await delivery.save();
+      }
+      // Skip saving partner if we just atomically updated it and no other fields changed
+      if (delivery.status !== 'delivered') {
+        await partner.save();
+      }
 
       // Emit events
       const io = getIO();

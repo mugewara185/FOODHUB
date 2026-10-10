@@ -38,10 +38,18 @@ describe('Deterministic Simulator & Handoff Integration', () => {
       await mongoose.connect(uri);
     }
 
-    // Initialize mock socket IO so emit calls don't crash
+    // Initialize mock socket IO so emit calls don't crash and we can assert payloads
     const server = require('http').createServer(app);
     initSocket(server);
-    vi.spyOn(getIO(), 'to').mockReturnValue({ emit: vi.fn() } as any);
+    
+    // We need a stable mock that we can query later
+    const emitMock = vi.fn();
+    const toMock = vi.fn().mockReturnValue({ emit: emitMock });
+    vi.spyOn(getIO(), 'to').mockImplementation(toMock);
+    
+    // Store globally to use in tests
+    (global as any).emitMock = emitMock;
+    (global as any).toMock = toMock;
 
     // Create owner
     ownerUser = new User({ _id: new mongoose.Types.ObjectId(), name: 'Sim Owner', email: 'simowner@test.com', password: 'hash_password', roles: ['owner'] });
@@ -133,6 +141,14 @@ describe('Deterministic Simulator & Handoff Integration', () => {
   });
 
   it('2. Simulator approaches restaurant and halts at arrived_pickup without auto-pickup', async () => {
+    // Note initial coords
+    const initialDelivery = await Delivery.findById(deliveryId);
+    const initialCoords = initialDelivery!.currentLocation.coordinates;
+    
+    // Clear mock
+    (global as any).emitMock.mockClear();
+    (global as any).toMock.mockClear();
+
     // Fast forward enough ticks to reach restaurant (Distance goes < 10m)
     for(let i=0; i<40; i++) {
       await vi.advanceTimersByTimeAsync(5000);
@@ -141,8 +157,30 @@ describe('Deterministic Simulator & Handoff Integration', () => {
     const delivery = await Delivery.findById(deliveryId);
     expect(delivery!.status).toBe('arrived_pickup');
     
+    const newCoords = delivery!.currentLocation.coordinates;
+    expect(newCoords[0]).not.toBe(initialCoords[0]); // Coordinates must have moved
+    
+    // Check destination tolerance for pickup
+    const destCoords = delivery!.pickupLocation.coordinates;
+    expect(Math.abs(newCoords[0] - destCoords[0])).toBeLessThan(0.001); // Basically there
+
     const order = await Order.findById(createdOrder._id);
     expect(order!.status).toBe('partner_assigned'); // Order should remain partner_assigned until owner handoff!
+    
+    // Verify socket emission explicitly
+    expect((global as any).toMock).toHaveBeenCalledWith(createdOrder._id.toString());
+    expect((global as any).toMock).toHaveBeenCalledWith(partnerUser._id.toString());
+    
+    const emitCalls = (global as any).emitMock.mock.calls;
+    const locationEmit = [...emitCalls].reverse().find((call: any) => call[0] === 'delivery:location');
+    expect(locationEmit).toBeDefined();
+    expect(locationEmit[1].orderId.toString()).toBe(createdOrder._id.toString());
+    expect(locationEmit[1]).toMatchObject({
+      deliveryId: deliveryId,
+      status: 'arrived_pickup'
+    });
+    expect(locationEmit[1].location).toHaveProperty('lat');
+    expect(locationEmit[1].location).toHaveProperty('lng');
   });
 
   it('3. Owner handoff transitions both to picked_up and allows travel to destination', async () => {
@@ -160,6 +198,10 @@ describe('Deterministic Simulator & Handoff Integration', () => {
   });
 
   it('4. Simulator reaches destination, marks delivered, and releases partner safely', async () => {
+    // Clear mock
+    (global as any).emitMock.mockClear();
+    (global as any).toMock.mockClear();
+
     // Fast forward to destination
     for(let i=0; i<100; i++) {
       await vi.advanceTimersByTimeAsync(5000);
@@ -171,18 +213,35 @@ describe('Deterministic Simulator & Handoff Integration', () => {
     const order = await Order.findById(createdOrder._id);
     expect(order!.status).toBe('delivered');
 
+    // Assert final destination coordinates match customer destination deterministic fallback
+    const finalCoords = delivery!.currentLocation.coordinates;
+    const destCoords = delivery!.destinationLocation.coordinates;
+    expect(Math.abs(finalCoords[0] - destCoords[0])).toBeLessThan(0.001);
+
     const updatedPartner = await DeliveryPartner.findById(partner._id);
     expect(updatedPartner!.status).toBe('available');
     expect(updatedPartner!.completedDeliveries).toBe(1);
     
-    // Attempt double completion via API (There is no endpoint for owner to mark delivered, so just check 404)
+    // Verify socket emission explicitly
+    const emitCalls = (global as any).emitMock.mock.calls;
+    const statusEmit = [...emitCalls].reverse().find((call: any) => call[0] === 'delivery:status' && call[1].status === 'delivered');
+    expect(statusEmit).toBeDefined();
+    
+    // Test simulator double execution idempotency directly
+    // This calls the simulator logic again manually since timers might be halted
+    // But since it's "delivered", the simulator should just return.
     const res = await request(app)
       .patch(`/api/orders/${createdOrder._id}/delivered`)
       .set('Authorization', `Bearer ${ownerToken}`);
     
-    expect(res.status).toBe(404); 
+    expect(res.status).toBe(404); // Verifying no backdoor exists
+    
+    // Ensure simulator idempotency holds if run again
+    for(let i=0; i<5; i++) {
+      await vi.advanceTimersByTimeAsync(5000);
+    }
     
     const finalPartner = await DeliveryPartner.findById(partner._id);
-    expect(finalPartner!.completedDeliveries).toBe(1); // Still 1
+    expect(finalPartner!.completedDeliveries).toBe(1); // Still 1, no double counting
   });
 });
