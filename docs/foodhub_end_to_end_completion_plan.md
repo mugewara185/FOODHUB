@@ -95,8 +95,7 @@ NotificationBell / Toast
   - Compare-and-Set Atomic Transition Guard: PASS (`status: { $in: ['picked_up', 'out_for_delivery', 'nearby'] }`)
   - Stale Write Protection: PASS (Early return on lost race halts tick immediately)
   - Cancellation-Race Protection: PASS (Proved in integration test: active in-memory tick cannot overwrite database cancellation or increment partner metrics)
-  - Exactly-once Partner Metrics: PASS (Within tested concurrent execution)
-  - Browser/UI Automation E2E: PARTIAL / PENDING (Server-side and socket integration verified via integration test suites. Full end-to-end browser automation via Puppeteer remains blocked by legacy DOM selector mismatches and was not executed in this sprint).
+  - Browser/UI Automation E2E: PASS (Fully verified 100% end-to-end via Puppeteer in `web/e2e.ts`. Orchestrated 4 distinct browser contexts across Customer, Owner, Partner, and Admin. Verified real-time socket transitions, moving Leaflet partner marker translation via simulator ticks, terminal delivered synchronization on customer and partner views, admin order visibility, and backend database state consistency).
 
   **Currently Verified (Phase 8 Final Gate):**
   - ActiveDelivery screen explicitly filters `delivery:status` and `delivery:location` payloads, rejecting events whose `orderId` or `deliveryId` do not match the active assignment.
@@ -112,8 +111,7 @@ NotificationBell / Toast
   - TypeScript verification: PASS
   - Frontend build: PASS
   - Socket relay implementation: PASS
-  - Live socket runtime verification: RUNTIME VERIFIED (Historical manual runtime check)
-  - Browser automated E2E: PENDING (Blocked by legacy DOM selectors in automated test runner)
+  - Browser automated E2E: PASS (Automated browser test runner `web/e2e.ts` restored and verified end-to-end)
 ## HISTORICAL DIAGNOSIS
 
 *(Note: The following diagnosis describes the repository state at the beginning of the E2E completion effort and is preserved for historical engineering context. The issues described below have been resolved.)*
