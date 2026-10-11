@@ -126,7 +126,7 @@ describe('Simulator Concurrency and Terminal State Integration', () => {
     const promise1 = new Promise(resolve => releaseTick1 = resolve);
     const promise2 = new Promise(resolve => releaseTick2 = resolve);
 
-    vi.spyOn(Delivery, 'findById').mockImplementation((async (id: any) => {
+    const findByIdSpy = vi.spyOn(Delivery, 'findById').mockImplementation((async (id: any) => {
       if (id.toString() === deliveryId.toString()) {
         findByIdCalls++;
         if (findByIdCalls === 1) await promise1;
@@ -170,7 +170,7 @@ describe('Simulator Concurrency and Terminal State Integration', () => {
     const outForDeliveryEmits = emitCalls.filter((call: any) => call[0] === 'delivery:status' && call[1].status === 'out_for_delivery');
     expect(outForDeliveryEmits.length).toBe(0); // The stale tick must NOT have emitted a stale status
 
-    vi.spyOn(Delivery, 'findById').mockRestore();
+    findByIdSpy.mockRestore();
   });
 
   it('Test B: Cancellation race does not revive delivery', async () => {
@@ -200,38 +200,97 @@ describe('Simulator Concurrency and Terminal State Integration', () => {
     const updatedPartner = await DeliveryPartner.findById(partner._id);
     const deliveryId2 = updatedPartner!.currentAssignedDelivery!.toString();
 
-    // Force overlap
-    let findByIdCalls = 0;
-    let releaseTick1: any;
-    const promise1 = new Promise(resolve => releaseTick1 = resolve);
+    // Transition order and delivery to picked_up and place at destination so the tick will attempt completion
+    await Order.findByIdAndUpdate(order2._id, { status: 'picked_up' });
+    await Delivery.findByIdAndUpdate(deliveryId2, { status: 'picked_up' });
+    const delivery2 = await Delivery.findById(deliveryId2);
+    delivery2!.currentLocation = delivery2!.destinationLocation; // Exactly at destination
+    await delivery2!.save();
 
-    const originalFindById = Delivery.findById;
-    vi.spyOn(Delivery, 'findById').mockImplementation((async (id: any) => {
-      if (id.toString() === deliveryId2.toString()) {
-        findByIdCalls++;
-        if (findByIdCalls === 1) await promise1;
+    const partnerBefore = await DeliveryPartner.findById(partner._id);
+    const initialCompleted = partnerBefore!.completedDeliveries;
+
+    // Spy on Delivery.findOneAndUpdate to verify that the tick genuinely attempts the terminal transition
+    const findOneAndUpdateSpy = vi.spyOn(Delivery, 'findOneAndUpdate');
+
+    // Deterministic barriers:
+    // 1. barrierReady resolves when the tick has read and captured the active delivery snapshot.
+    // 2. barrierPromise pauses the tick while holding that stale snapshot in memory.
+    let onBarrierReady: any;
+    const barrierReady = new Promise((resolve) => { onBarrierReady = resolve; });
+    let releaseBarrier: any;
+    const barrierPromise = new Promise((resolve) => { releaseBarrier = resolve; });
+    let captured = false;
+
+    const findByIdSpyB = vi.spyOn(Delivery, 'findById').mockImplementation((async (id: any) => {
+      if (id.toString() === deliveryId2 && !captured) {
+        captured = true;
+        // Read and capture the active delivery document from the database
+        const activeDoc = await Delivery.findOne({ _id: id });
+        onBarrierReady(); // Notify test that active document is captured in memory
+        await barrierPromise; // Pause execution holding the active snapshot
+        return activeDoc;
       }
       return Delivery.findOne({ _id: id });
     }) as any);
 
-    // Advance timer so a tick gets stuck reading
-    await vi.advanceTimersByTimeAsync(3000);
+    (global as any).emitMock.mockClear();
 
-    // Now CANCEL the delivery from the outside
+    // Trigger the simulator tick
+    const tickTimerPromise = vi.advanceTimersByTimeAsync(3000);
+
+    // Wait deterministically for the tick to read and capture the active snapshot
+    await barrierReady;
+
+    // Concurrently cancel the delivery and order in the database while the tick is holding its active snapshot
     await Delivery.findByIdAndUpdate(deliveryId2, { status: 'cancelled' });
     await Order.findByIdAndUpdate(order2._id, { status: 'cancelled' });
 
-    // Release the tick
-    releaseTick1();
+    // Verify the database is now cancelled before releasing the tick
+    const intermediateDelivery = await Delivery.findOne({ _id: deliveryId2 });
+    expect(intermediateDelivery!.status).toBe('cancelled');
+
+    // Release the tick to force it through the terminal-transition attempt
+    releaseBarrier();
+    await tickTimerPromise;
 
     vi.useRealTimers();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 150));
     vi.useFakeTimers();
 
-    // Verify it didn't overwrite the cancellation!
-    const finalDelivery = await Delivery.findById(deliveryId2);
-    expect(finalDelivery!.status).toBe('cancelled'); // Stale save did not overwrite!
+    // Assert that the terminal transition was genuinely attempted with the valid-source-states filter
+    expect(findOneAndUpdateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: new mongoose.Types.ObjectId(deliveryId2),
+        status: { $in: ['picked_up', 'out_for_delivery', 'nearby'] },
+      }),
+      expect.anything(),
+      expect.anything()
+    );
 
-    vi.spyOn(Delivery, 'findById').mockRestore();
+    // Assert that the database remains cancelled (was not revived to delivered or out_for_delivery)
+    const finalDelivery = await Delivery.findOne({ _id: deliveryId2 });
+    expect(finalDelivery!.status).toBe('cancelled');
+
+    // Assert that completion metrics were not incremented
+    const finalPartner = await DeliveryPartner.findById(partner._id);
+    expect(finalPartner!.completedDeliveries).toBe(initialCompleted);
+
+    // Assert that no false 'delivered' status event was emitted for order2
+    const emitCalls = (global as any).emitMock.mock.calls;
+    const deliveredEmits = emitCalls.filter(
+      (call: any) => call[0] === 'delivery:status' && 
+                     call[1]?.orderId?.toString() === order2._id.toString() && 
+                     call[1]?.status === 'delivered'
+    );
+    expect(deliveredEmits.length).toBe(0);
+
+    // Assert that timer does not continue running and reviving the cancelled delivery
+    await vi.advanceTimersByTimeAsync(15000);
+    const postTimerDelivery = await Delivery.findOne({ _id: deliveryId2 });
+    expect(postTimerDelivery!.status).toBe('cancelled');
+
+    findByIdSpyB.mockRestore();
+    findOneAndUpdateSpy.mockRestore();
   });
 });

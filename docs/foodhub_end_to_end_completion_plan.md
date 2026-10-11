@@ -82,23 +82,28 @@ NotificationBell / Toast
 - Seed pipeline plaintext passwords (Auth prerequisite) [DEFERRED BY PROJECT DECISION].
 
 ## VERIFICATION
-- **Build verification:** TypeScript verification PASS (`npx tsc --noEmit`).
+- **Build verification:** TypeScript verification PASS (`npm run build` in API and web).
 - **Backend Integration Verification:** PASS
-- **Browser/Product E2E Verification:** PASS (Historical, not rerun for Phase 8)
+  - Deterministic Simulator Handoff Tests (`API/src/modules/delivery/__tests__/simulator-handoff.integration.test.ts`): PASS
+  - Simulator Concurrency & Terminal-State Safety Tests (`API/src/modules/delivery/__tests__/simulator-concurrency.integration.test.ts`): PASS
 - **Persistent Notification Verification:** PASS
-- **Delivery Simulator Rebuild & Dashboard Integration (Phase 8):**
+- **Delivery Simulator Rebuild & Concurrency Hardening (Phase 8):**
   - Implemented: PASS
   - TypeScript verification: PASS
   - Frontend build: PASS
   - Socket-event integration: PASS
-  - Simulator Deterministic Integration Tests: PASS (`API/src/modules/delivery/__tests__/simulator-handoff.integration.test.ts`)
-  - Browser/E2E verification: PARTIAL (Server integration verified via integration tests. True browser/runtime E2E via Puppeteer requires full GUI verification suite not executed here).
+  - Compare-and-Set Atomic Transition Guard: PASS (`status: { $in: ['picked_up', 'out_for_delivery', 'nearby'] }`)
+  - Stale Write Protection: PASS (Early return on lost race halts tick immediately)
+  - Cancellation-Race Protection: PASS (Proved in integration test: active in-memory tick cannot overwrite database cancellation or increment partner metrics)
+  - Exactly-once Partner Metrics: PASS (Within tested concurrent execution)
+  - Browser/UI Automation E2E: PARTIAL / PENDING (Server-side and socket integration verified via integration test suites. Full end-to-end browser automation via Puppeteer remains blocked by legacy DOM selector mismatches and was not executed in this sprint).
 
   **Currently Verified (Phase 8 Final Gate):**
   - ActiveDelivery screen explicitly filters `delivery:status` and `delivery:location` payloads, rejecting events whose `orderId` or `deliveryId` do not match the active assignment.
   - Owner tracker isolation: `useLocalDeliveryTracking` dependencies safely decoupled; it no longer tears down or reconnects listeners repeatedly when the unrelated global tracking object resets.
   - Simulated `arrived_pickup` rigorously tested: Arrival no longer triggers automatic pickup. Only an explicit owner confirmation API call advances the state to `picked_up`.
   - Terminal completion (`delivered`) tested: Partner is released, delivery finishes correctly, and double completion is blocked.
+  - Cancellation invariant tested: Stale in-memory active snapshot cannot overwrite cancellation or increment metrics.
   - Consistent Deterministic GPS Demo natively synchronizes map paths.
   - TypeScript builds cleanly for backend and frontend.
 
@@ -107,13 +112,8 @@ NotificationBell / Toast
   - TypeScript verification: PASS
   - Frontend build: PASS
   - Socket relay implementation: PASS
-  - Live socket runtime verification: RUNTIME VERIFIED
-  - Browser/E2E verification: RUNTIME VERIFIED
-
-  **Remaining:**
-  - Browser/E2E verification
-
-- **Last Verified Commit:** `36554d485e9444858cc01f7ac0c4cd101ccb3f36`
+  - Live socket runtime verification: RUNTIME VERIFIED (Historical manual runtime check)
+  - Browser automated E2E: PENDING (Blocked by legacy DOM selectors in automated test runner)
 ## HISTORICAL DIAGNOSIS
 
 *(Note: The following diagnosis describes the repository state at the beginning of the E2E completion effort and is preserved for historical engineering context. The issues described below have been resolved.)*

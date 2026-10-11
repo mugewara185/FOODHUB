@@ -86,8 +86,9 @@ export async function startDeliverySimulation(deliveryId: string) {
       } else if (isPickedUp) {
         if (newDistance < 10) {
           // Attempt atomic status transition on Delivery to prevent concurrent ticks from double-completing
+          // or reviving cancelled/invalid deliveries. Only legitimate non-terminal in-transit states can transition to delivered.
           const updatedDelivery = await Delivery.findOneAndUpdate(
-            { _id: delivery._id, status: { $ne: 'delivered' } },
+            { _id: delivery._id, status: { $in: ['picked_up', 'out_for_delivery', 'nearby'] } },
             { $set: { status: 'delivered', 'timestamps.deliveredAt': new Date() } },
             { new: true }
           );
@@ -107,7 +108,7 @@ export async function startDeliverySimulation(deliveryId: string) {
             partner.currentAssignedDelivery = undefined;
             statusChanged = true;
           } else {
-            // We lost the race to another tick or process; the delivery is already delivered.
+            // We lost the race to another tick or process; the delivery is already delivered or cancelled.
             // Halt simulation and abort this tick to prevent saving stale state.
             stopDeliverySimulation(deliveryId);
             return;
