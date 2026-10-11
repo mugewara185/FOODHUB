@@ -7,13 +7,15 @@ const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://
 
 describe('Dev Seed Controller - Fixed User Hashing', () => {
   beforeAll(async () => {
-    await mongoose.connect(mongoUri);
-    // Ensure clean state
-    await User.deleteMany({});
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect(mongoUri);
+    }
+    // Ensure clean state for test emails
+    await User.deleteMany({ email: { $in: ['admin@foodhub.dev', 'random@test.com', 'keepme@test.com', 'deleteme@test.com'] } });
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await User.deleteMany({ email: { $in: ['admin@foodhub.dev', 'random@test.com', 'keepme@test.com', 'deleteme@test.com'] } });
   });
 
   const fixedUserId = new mongoose.Types.ObjectId().toString();
@@ -138,5 +140,102 @@ describe('Dev Seed Controller - Fixed User Hashing', () => {
 
     isMatch = await adminUser!.comparePassword('devdev');
     expect(isMatch).toBe(true);
+  });
+
+  test('CASE 3: Safety guard rejects clearFirst when unauthorized or on non-test DB', async () => {
+    // Save original env
+    const origEnv = process.env.NODE_ENV;
+    const origAllow = process.env.ALLOW_DESTRUCTIVE_SEED;
+    process.env.NODE_ENV = 'development';
+    delete process.env.ALLOW_DESTRUCTIVE_SEED;
+
+    let statusCode = 200;
+    let respData: any = null;
+    const res = {
+      status: (code: number) => {
+        statusCode = code;
+        return res;
+      },
+      json: (data: any) => {
+        respData = data;
+      }
+    };
+
+    const req = {
+      headers: {}, // no x-allow-destructive-seed
+      body: {
+        collections: [
+          {
+            modelName: 'User',
+            clearFirst: true,
+            documents: []
+          }
+        ]
+      }
+    };
+
+    await seedFactoryData(req as any, res as any, () => {});
+
+    expect(statusCode).toBe(403);
+    expect(respData.success).toBe(false);
+    expect(respData.message).toContain('Destructive clearFirst rejected');
+
+    // Restore env
+    process.env.NODE_ENV = origEnv;
+    if (origAllow) process.env.ALLOW_DESTRUCTIVE_SEED = origAllow;
+  });
+
+  test('CASE 4: Scoped deletion via deleteIds removes only targeted records', async () => {
+    // Insert two users
+    const userToKeep = await User.create({
+      email: 'keepme@test.com',
+      name: 'Keep Me',
+      password: 'password',
+      roles: ['user']
+    });
+    const userToDelete = await User.create({
+      email: 'deleteme@test.com',
+      name: 'Delete Me',
+      password: 'password',
+      roles: ['user']
+    });
+
+    let statusCode = 200;
+    let respData: any = null;
+    const res = {
+      status: (code: number) => {
+        statusCode = code;
+        return res;
+      },
+      json: (data: any) => {
+        respData = data;
+      }
+    };
+
+    const req = {
+      body: {
+        collections: [
+          {
+            modelName: 'User',
+            deleteIds: [userToDelete._id.toString()],
+            documents: []
+          }
+        ]
+      }
+    };
+
+    await seedFactoryData(req as any, res as any, () => {});
+
+    expect(statusCode).toBe(201);
+    expect(respData.success).toBe(true);
+
+    const deletedCheck = await User.findById(userToDelete._id);
+    expect(deletedCheck).toBeNull();
+
+    const keptCheck = await User.findById(userToKeep._id);
+    expect(keptCheck).not.toBeNull();
+
+    // Clean up
+    await User.deleteOne({ _id: userToKeep._id });
   });
 });

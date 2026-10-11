@@ -9,8 +9,8 @@
 - Phase 5 — Admin & Polish: API & Runtime-verified
 - Phase 6 — Persistent Notifications: Verified
 - Phase 7 — Customer Profile: Verified
-- Phase 8 — Live Tracking Demo & Dashboard Integration: Verified
-- Phase 9 — Cross-domain socket chat: Implemented & Build-verified
+- Phase 8 — Live Tracking Demo & Concurrency Hardening: Verified
+- Phase 9 — Cross-domain Socket Chat & Safety Hardening: Runtime-verified (Two-way Socket.IO chat exchange verified across Customer & Owner browsers)
 
 ## EVIDENCE
 **Backend Integration Verification**
@@ -106,12 +106,17 @@ NotificationBell / Toast
   - Consistent Deterministic GPS Demo natively synchronizes map paths.
   - TypeScript builds cleanly for backend and frontend.
 
-- **Cross-Domain Socket Chat (Phase 9):**
+- **Cross-Domain Socket Chat & Hardened E2E Verification (Phase 9):**
   - Implemented: PASS
   - TypeScript verification: PASS
   - Frontend build: PASS
   - Socket relay implementation: PASS
-  - Browser automated E2E: PASS (Automated browser test runner `web/e2e.ts` restored and verified end-to-end)
+  - Dedicated Test DB Safety Guard: PASS (Backend fail-closed guard rejecting destructive actions on non-test DBs; verified via `API/src/modules/dev/__tests__/dev.seed.test.ts`)
+  - Scoped Fixtures & Zero Collection Wiping: PASS (Deterministic `deleteIds`/`deleteFilter` cleanup; zero blanket `clearFirst: true`)
+  - Two-Way Realtime UI Chat Verification: PASS (Verified in browser: Customer sends message → Owner receives via Socket.IO; Owner sends reply → Customer receives via Socket.IO)
+  - Strict Partner Marker Movement: PASS (Isolated Leaflet partner icon `img[src*="3209865"]` and tracked distinct 3D CSS coordinate translations)
+  - Admin Isolated Row & Route Integrity: PASS (Eliminated `path="/*"` route hijacking; verified Admin isolated order row reaches `Delivered`)
+  - Browser automated E2E: PASS (Automated browser test runner `web/e2e.ts` verified with 100% green checkmarks across 4 actors)
 ## HISTORICAL DIAGNOSIS
 
 *(Note: The following diagnosis describes the repository state at the beginning of the E2E completion effort and is preserved for historical engineering context. The issues described below have been resolved.)*

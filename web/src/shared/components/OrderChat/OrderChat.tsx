@@ -29,7 +29,7 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
     // Fetch chat history on mount
     api.get<any>(`/orders/${orderId}/chat`)
       .then(res => {
-        const history = res.data || [];
+        const history = Array.isArray(res) ? res : (res?.data || []);
         if (isCustomerReduxActive) {
           dispatch(setLiveTrackingChatHistory({ orderId, messages: history }));
         } else {

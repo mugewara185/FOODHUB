@@ -1,6 +1,14 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Order } from '../../core/types';
-import { fetchOwnerQueueThunk, fetchOwnerActiveThunk, OWNER_ACTIVE_STATUSES } from './ownerOrderApi';
+import { 
+  fetchOwnerQueueThunk, 
+  fetchOwnerActiveThunk, 
+  acceptOrderThunk, 
+  markPreparingThunk, 
+  markReadyThunk, 
+  confirmHandoffThunk, 
+  OWNER_ACTIVE_STATUSES 
+} from './ownerOrderApi';
 import { normalizeOrder } from './api/orderApi';
 
 export interface OwnerOrderState {
@@ -17,37 +25,34 @@ const initialState: OwnerOrderState = {
   error: null,
 };
 
+function applyStatusChange(state: OwnerOrderState, orderId: string, status: string) {
+  let orderToMove = state.pendingOrders.find((o) => o.id === orderId);
+  if (!orderToMove) {
+    orderToMove = state.activeOrders.find((o) => o.id === orderId);
+  }
+
+  state.pendingOrders = state.pendingOrders.filter((o) => o.id !== orderId);
+  state.activeOrders = state.activeOrders.filter((o) => o.id !== orderId);
+
+  if (orderToMove) {
+    const updatedOrder = { ...orderToMove, status: status as any };
+    if (status === 'pending_owner') {
+      state.pendingOrders.unshift(updatedOrder);
+    } else if (OWNER_ACTIVE_STATUSES.includes(status)) {
+      state.activeOrders.unshift(updatedOrder);
+    }
+  }
+}
+
 const ownerOrderSlice = createSlice({
   name: 'ownerOrders',
   initialState,
   reducers: {
     orderStatusChanged(
       state,
-      action: PayloadAction<{ orderId: string; status: Order['status']; actorRole: string }>
+      action: PayloadAction<{ orderId: string; status: Order['status']; actorRole?: string }>
     ) {
-      const { orderId, status } = action.payload;
-
-      // Find the order to move/remove
-      let orderToMove = state.pendingOrders.find((o) => o.id === orderId);
-      if (!orderToMove) {
-        orderToMove = state.activeOrders.find((o) => o.id === orderId);
-      }
-
-      // Remove from both lists
-      state.pendingOrders = state.pendingOrders.filter((o) => o.id !== orderId);
-      state.activeOrders = state.activeOrders.filter((o) => o.id !== orderId);
-
-      if (orderToMove) {
-        // Update its status
-        const updatedOrder = { ...orderToMove, status };
-        
-        // Add to correct list
-        if (status === 'pending_owner') {
-          state.pendingOrders.unshift(updatedOrder);
-        } else if (OWNER_ACTIVE_STATUSES.includes(status)) {
-          state.activeOrders.unshift(updatedOrder);
-        }
-      }
+      applyStatusChange(state, action.payload.orderId, action.payload.status);
     },
     ownerOrdersFetched(state, action: PayloadAction<Order[]>) {
       state.pendingOrders = action.payload.filter((o) => o.status === 'pending_owner');
@@ -100,6 +105,20 @@ const ownerOrderSlice = createSlice({
     builder.addCase(fetchOwnerActiveThunk.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload as string;
+    });
+
+    // Action thunks optimistic updates
+    builder.addCase(acceptOrderThunk.fulfilled, (state, action) => {
+      applyStatusChange(state, action.meta.arg, 'confirmed');
+    });
+    builder.addCase(markPreparingThunk.fulfilled, (state, action) => {
+      applyStatusChange(state, action.meta.arg, 'preparing');
+    });
+    builder.addCase(markReadyThunk.fulfilled, (state, action) => {
+      applyStatusChange(state, action.meta.arg, 'ready_for_pickup');
+    });
+    builder.addCase(confirmHandoffThunk.fulfilled, (state, action) => {
+      applyStatusChange(state, action.meta.arg, 'picked_up');
     });
   }
 });

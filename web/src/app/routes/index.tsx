@@ -16,20 +16,9 @@ const AppRoutes: React.FC = () => {
     <>
       <RouteLogger />
       <Routes>
-        <Route
-          path="/*"
-          element={
-            user?.role.includes('owner')
-              ? <Navigate to="/owner" replace />
-              : user?.role.includes('admin')
-                ? <Navigate to="/admin" replace />
-                : user?.role.includes('partner')
-                  ? <Navigate to="/partner" replace />
-                  // : user?.role.includes('dev')
-                  //   ? <Navigate to="/dev" replace />
-                  : <Navigate to="/" replace />
-          }
-        />
+        {user?.role?.includes('owner') && <Route path="/" element={<Navigate to="/owner" replace />} />}
+        {user?.role?.includes('admin') && <Route path="/" element={<Navigate to="/admin" replace />} />}
+        {user?.role?.includes('partner') && <Route path="/" element={<Navigate to="/partner" replace />} />}
         {/* {user?.role.includes('user') && UserRoutes} */}
         {
           user ? (

@@ -14,12 +14,34 @@ import { emitDeliveryAssigned } from '../delivery/delivery.events';
 // Types
 interface SeedCollectionPayload {
   modelName: string;
-  documents: any[];
+  documents?: any[];
   clearFirst?: boolean;
+  deleteIds?: string[];
+  deleteFilter?: Record<string, any>;
 }
 
 interface FactorySeedPayload {
   collections: SeedCollectionPayload[];
+}
+
+export function getConnectedDbInfo() {
+  const dbName = mongoose.connection.db?.databaseName || mongoose.connection.name || '';
+  const isDedicatedTestDb = /test|e2e/i.test(dbName);
+  return { dbName, isDedicatedTestDb };
+}
+
+export async function getDbInfo(req: Request, res: Response) {
+  const { dbName, isDedicatedTestDb } = getConnectedDbInfo();
+  res.json({
+    success: true,
+    data: {
+      databaseName: dbName,
+      isDedicatedTestDb,
+      host: mongoose.connection.host,
+      nodeEnv: config.nodeEnv,
+      readyState: mongoose.connection.readyState
+    }
+  });
 }
 
 export async function seedFactoryData(req: Request, res: Response, next: NextFunction) {
@@ -29,7 +51,7 @@ export async function seedFactoryData(req: Request, res: Response, next: NextFun
     }
 
     const { collections, warnings: clientWarnings = [] } = req.body as {
-      collections: { modelName: string; documents: any[]; clearFirst?: boolean }[];
+      collections: SeedCollectionPayload[];
       warnings?: string[];
     };
 
@@ -37,12 +59,29 @@ export async function seedFactoryData(req: Request, res: Response, next: NextFun
       return res.status(400).json({ success: false, message: 'Invalid payload. collections array required.' });
     }
 
+    const { dbName, isDedicatedTestDb } = getConnectedDbInfo();
+
+    // Explicit Safety Guard: destructive clearFirst must fail-closed unless active DB is demonstrably a test/e2e DB
+    const hasClearFirst = collections.some(c => c.clearFirst === true);
+    if (hasClearFirst) {
+      const currentEnv = process.env.NODE_ENV || config.nodeEnv;
+      const isExplicitlyAuthorized = (currentEnv === 'test' || process.env.ALLOW_DESTRUCTIVE_SEED === 'true' || req.headers['x-allow-destructive-seed'] === 'true');
+      if (!isDedicatedTestDb || !isExplicitlyAuthorized) {
+        console.warn(`[seed:guard:blocked] clearFirst rejected against database '${dbName}'. Dedicated test DB and explicit authorization required.`);
+        return res.status(403).json({
+          success: false,
+          message: `Destructive clearFirst rejected: active database '${dbName}' is not a dedicated test/e2e database or destructive operation is unauthorized. Operation aborted to protect application data.`,
+          data: { dbName, isDedicatedTestDb, isExplicitlyAuthorized }
+        });
+      }
+    }
+
     const seedStart = Date.now();
     const results: Record<string, any> = {};
     const errors: string[] = [];
 
     for (const collection of collections) {
-      const { modelName, documents, clearFirst } = collection;
+      const { modelName, documents = [], clearFirst, deleteIds, deleteFilter } = collection;
       const Model = mongoose.models[modelName];
 
       if (!Model) {
@@ -54,6 +93,10 @@ export async function seedFactoryData(req: Request, res: Response, next: NextFun
 
       if (clearFirst) {
         await Model.deleteMany({});
+      } else if (deleteIds && Array.isArray(deleteIds) && deleteIds.length > 0) {
+        await Model.deleteMany({ _id: { $in: deleteIds } });
+      } else if (deleteFilter && typeof deleteFilter === 'object' && Object.keys(deleteFilter).length > 0) {
+        await Model.deleteMany(deleteFilter);
       }
 
       let inserted = 0;

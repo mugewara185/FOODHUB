@@ -146,8 +146,8 @@ const OrdersList: React.FC = () => {
   );
 
   const filteredOrders = orders.filter((o) => {
-    const matchesSearch = o.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          o.restaurantName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (o.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (o.restaurantName || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
