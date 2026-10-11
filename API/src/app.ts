@@ -22,11 +22,24 @@ import './modules/notifications/notification.model';
 import './modules/delivery/delivery-partner.model';
 import './modules/delivery/delivery.model';
 
+import { isOriginAllowed } from './config/corsOrigin';
+
 const app = express();
 
 // Security & parsing
 app.use(helmet());
-app.use(cors({ origin: config.clientUrl, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -35,8 +48,8 @@ if (config.nodeEnv !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Health check
-app.get('/api/health', (_req, res) => {
+// Health check (root and /api paths)
+app.get(['/health', '/api/health'], (_req, res) => {
   res.json({ success: true, message: 'API is running', timestamp: new Date().toISOString() });
 });
 

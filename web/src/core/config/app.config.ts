@@ -5,7 +5,7 @@ import type { LogLevel } from "../dev/logger";
 const envSchema = z.object({
   MODE: z.enum(['development', 'production', 'test']).default('development'),
   VITE_API_URL: z.string().url().or(z.string().startsWith('/')).default('/api'),
-  VITE_DATA_SOURCE: z.enum(['mock', 'api']).default('mock'),
+  VITE_DATA_SOURCE: z.enum(['mock', 'api']).optional(),
   VITE_DEV_BYPASS_AUTH: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
   VITE_SENTRY_DSN: z.string().optional().default(''),
   VITE_SOCKET_URL: z.string().url().or(z.string().length(0).transform(() => undefined)).optional(),
@@ -25,7 +25,7 @@ const envSchema = z.object({
 const rawEnv = {
   MODE: import.meta.env.MODE,
   VITE_API_URL: import.meta.env.VITE_API_URL,
-  VITE_DATA_SOURCE: import.meta.env.VITE_DATA_SOURCE,
+  VITE_DATA_SOURCE: import.meta.env.VITE_DATA_SOURCE || (import.meta.env.MODE === 'production' ? 'api' : 'mock'),
   VITE_DEV_BYPASS_AUTH: import.meta.env.VITE_DEV_BYPASS_AUTH,
   VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
   VITE_SOCKET_URL: import.meta.env.VITE_SOCKET_URL,
@@ -59,7 +59,21 @@ const resolveDataSource = (): 'mock' | 'api' => {
     const local = localStorage.getItem('DEV_DATA_SOURCE');
     if (local === 'mock' || local === 'api') return local;
   }
-  return env.VITE_DATA_SOURCE;
+  return env.VITE_DATA_SOURCE || (IS_PROD ? 'api' : 'mock');
+};
+
+const resolveSocketUrl = (): string | undefined => {
+  if (env.VITE_SOCKET_URL) return env.VITE_SOCKET_URL;
+  // If VITE_API_URL is an absolute HTTP/HTTPS URL, derive the socket origin from it
+  if (env.VITE_API_URL && /^https?:\/\//i.test(env.VITE_API_URL)) {
+    try {
+      const url = new URL(env.VITE_API_URL);
+      return url.origin;
+    } catch {
+      // fallback
+    }
+  }
+  return undefined;
 };
 
 export const appConfig = {
@@ -72,7 +86,7 @@ export const appConfig = {
   },
   api: {
     baseUrl: env.VITE_API_URL,
-    socketUrl: env.VITE_SOCKET_URL,
+    socketUrl: resolveSocketUrl(),
     dataSource: resolveDataSource(),
   },
   security: {

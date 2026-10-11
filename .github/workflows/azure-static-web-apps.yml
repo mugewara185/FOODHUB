@@ -32,6 +32,10 @@ jobs:
           output_location: "dist"
           api_location: ""
           skip_api_build: true
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || secrets.VITE_API_URL }}
+          VITE_SOCKET_URL: ${{ vars.VITE_SOCKET_URL || secrets.VITE_SOCKET_URL }}
+          VITE_DATA_SOURCE: api
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

@@ -1,16 +1,18 @@
 # FoodHub End-to-End Completion Plan
 
 ## CURRENT STATUS
-- Overall E2E: 100% (All implementation phases complete and fully E2E runtime verified)
-- Phase 1 — Data/Auth prerequisites: [Deferred]
-- Phase 2 — API contract integrity: Build & Runtime-verified
-- Phase 3 — Customer tracking + realtime: Build & Runtime-verified
-- Phase 4 — Partner delivery lifecycle: Route & Runtime-verified
-- Phase 5 — Admin & Polish: API & Runtime-verified
-- Phase 6 — Persistent Notifications: Verified
-- Phase 7 — Customer Profile: Verified
-- Phase 8 — Live Tracking Demo & Concurrency Hardening: Verified
-- Phase 9 — Cross-domain Socket Chat & Safety Hardening: Runtime-verified (Two-way Socket.IO chat exchange verified across Customer & Owner browsers)
+- **Core Order Lifecycle (Local Environment):** 100% E2E runtime verified across Customer, Owner, Partner, and Admin.
+- **Hosted Deployment Readiness:** Deployment Ready (Code & Blueprint configured; hosted runtime pending external provisioning).
+- Phase 1 — Data/Auth prerequisites: [Deferred for test automation via bypass; real JWT auth active for production].
+- Phase 2 — API contract integrity: Build, Runtime & E2E-verified.
+- Phase 3 — Customer tracking + realtime: Build, Runtime & E2E-verified.
+- Phase 4 — Partner delivery lifecycle: Build, Runtime & E2E-verified.
+- Phase 5 — Admin & Polish: Build, Runtime & E2E-verified.
+- Phase 6 — Persistent Notifications: Build, Runtime & Integration-verified.
+- Phase 7 — Customer Profile: Build, Runtime & Integration-verified.
+- Phase 8 — Live Tracking Demo & Concurrency Hardening: Build, Runtime & E2E-verified.
+- Phase 9 — Cross-domain Socket Chat & E2E Safety Hardening: Build, Runtime & E2E-verified.
+- Phase 10 — Deployment Readiness (Azure SWA + Render): Code & Build-verified; Pending Cloud Provisioning.
 
 ## EVIDENCE
 **Backend Integration Verification**
@@ -117,6 +119,16 @@ NotificationBell / Toast
   - Strict Partner Marker Movement: PASS (Isolated Leaflet partner icon `img[src*="3209865"]` and tracked distinct 3D CSS coordinate translations)
   - Admin Isolated Row & Route Integrity: PASS (Eliminated `path="/*"` route hijacking; verified Admin isolated order row reaches `Delivered`)
   - Browser automated E2E: PASS (Automated browser test runner `web/e2e.ts` verified with 100% green checkmarks across 4 actors)
+
+- **Deployment Readiness — Azure Static Web Apps & Render (Phase 10):**
+  - Backend Build Verification: PASS (`npm run build` in `API` generates compiled `dist/server.js`)
+  - Frontend Production Build Verification: PASS (`npm run build` in `web` compiles 15,975 modules via Vite)
+  - Compiled Production Server Runtime Verification: PASS (`node dist/server.js` boots with `PORT=5050`, binds correctly, connects to DB, and returns HTTP 200 on `/health` and `/api/health`)
+  - Integration Test Suite: PASS (`npm run test -- src/modules/delivery/__tests__/simulator-concurrency.integration.test.ts src/modules/delivery/__tests__/simulator-handoff.integration.test.ts src/modules/dev/__tests__/dev.seed.test.ts` passes 11/11 tests)
+  - Security & Credential Masking: PASS (Sanitized `console.dir` in `API/src/config/env.ts` masks MongoDB connection string and JWT secret; dev seed endpoints return HTTP 403 in production)
+  - CORS Origin Resolution: PASS (Flexible multi-origin resolver in `API/src/config/corsOrigin.ts` handles comma-separated origins and Azure Static Web Apps domains for both HTTP and Socket.IO)
+  - Frontend Production Configuration: PASS (Production data source defaults to `api`; `socketUrl` automatically falls back to origin of `baseUrl` when omitted; `staticwebapp.config.json` excludes `/api/*` from SPA fallback and blocks `/dev/*` with 404)
+  - Hosted Infrastructure Status: PENDING (Cloud provisioning required on Azure Static Web Apps and Render; public URLs not yet assigned)
 ## HISTORICAL DIAGNOSIS
 
 *(Note: The following diagnosis describes the repository state at the beginning of the E2E completion effort and is preserved for historical engineering context. The issues described below have been resolved.)*
@@ -285,16 +297,14 @@ Validates the React UI, RTK Query / Redux state machines, Socket.IO client trans
 
 ## NEXT PHASE
 
-**Target: Dashboard UI Integration Complete**
-**Specific Actions Completed:**
-- Integrated frontend map components with `delivery:location` socket events via `useDeliverySocket`.
-- Bound `delivery:status` and `order:status_changed` to UI overlays and global Redux slices.
-- `ActiveDelivery.tsx` now listens to real events instead of local GPS simulator.
-- `OwnerDashboard` is fully real-time responsive via `OwnerLayout`.
-- Customer `Orders` page has embedded tracking access and updates dynamically.
+**Target: First Hosted Order Lifecycle Verification**
+**Prerequisites Completed (Phase 10):**
+- Azure Static Web Apps build and routing configuration hardened (SPA fallback, edge 404 for `/dev/*`, build env variables forwarded).
+- Render web service blueprint (`render.yaml`) created with production build & start commands, health checks, and environment configurations.
+- API security and CORS origin handling hardened to allow multi-origin matching (`CLIENT_URL`) and credential masking.
+- Backend production runtime (`node dist/server.js`) verified with dual health checks (`/health` and `/api/health`).
 
-**Next Steps (Future Work):**
-- Fix Auth Seeding (Plaintext passwords)
-- External push notification services (FCM/Push)
-- Stripe/Payment Gateway integrations
-- UI/UX polish on the Partner and Admin dashboards
+**Exact Remaining User Actions for Public Cloud Deployment:**
+1. **Azure Static Web Apps:** Connect GitHub repository, configure GitHub Secret `AZURE_STATIC_WEB_APPS_API_TOKEN`, and configure GitHub Repository Variable `VITE_API_URL` to point to the Render API endpoint (e.g. `https://foodhub-api.onrender.com/api`).
+2. **Render:** Create Web Service using `render.yaml` blueprint or manual setup, configure `MONGO_URI` (MongoDB Atlas connection string) and `CLIENT_URL` (the assigned Azure Static Web Apps URL).
+3. **Verify Hosted Lifecycle:** Run the end-to-end customer → owner → partner → customer flow against the deployed hosted URL.

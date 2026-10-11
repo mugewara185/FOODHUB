@@ -31,9 +31,9 @@ class SocketService {
     }
 
     this.socket = io(
-      appConfig.api.socketUrl || "",
+      appConfig.api.socketUrl || (typeof window !== "undefined" ? window.location.origin : ""),
       {
-        transports: ["websocket"],
+        transports: ["websocket", "polling"],
       },
     );
 

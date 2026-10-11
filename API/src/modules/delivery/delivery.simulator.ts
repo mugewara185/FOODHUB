@@ -89,7 +89,13 @@ export async function startDeliverySimulation(deliveryId: string) {
           // or reviving cancelled/invalid deliveries. Only legitimate non-terminal in-transit states can transition to delivered.
           const updatedDelivery = await Delivery.findOneAndUpdate(
             { _id: delivery._id, status: { $in: ['picked_up', 'out_for_delivery', 'nearby'] } },
-            { $set: { status: 'delivered', 'timestamps.deliveredAt': new Date() } },
+            { 
+              $set: { 
+                status: 'delivered', 
+                'timestamps.deliveredAt': new Date(),
+                'currentLocation.coordinates': [nextLng, nextLat]
+              } 
+            },
             { new: true }
           );
           

@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: foodhub-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: API
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false
+      - key: AI_ENABLED
+        value: "false"
+      - key: SIMULATOR_STEP_METERS
+        value: "100"
+      - key: SIMULATOR_INTERVAL_MS
+        value: "3000"

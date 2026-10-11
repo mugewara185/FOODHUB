@@ -36,4 +36,19 @@ export const config = {
   }
 };
 
-console.dir(config, { depth: null });
+// Mask credentials for production safe logging
+if (config.nodeEnv !== 'test') {
+  const sanitizedConfig = {
+    ...config,
+    mongoUri: config.mongoUri ? config.mongoUri.replace(/:([^:@]+)@/, ':****@') : '',
+    jwt: {
+      ...config.jwt,
+      secret: config.jwt.secret ? '****' : '',
+    },
+    ai: {
+      ...config.ai,
+      apiKey: config.ai.apiKey ? '****' : '',
+    }
+  };
+  console.dir(sanitizedConfig, { depth: null });
+}

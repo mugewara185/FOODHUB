@@ -1,13 +1,22 @@
 import { Server } from 'socket.io';
 import { Server as HttpServer } from 'http';
 
+import { isOriginAllowed } from './config/corsOrigin';
+
 let io: Server;
 
 export const initSocket = (server: HttpServer) => {
   io = new Server(server, {
     cors: {
-      origin: '*', // Adjust for production
-      methods: ['GET', 'POST', 'PATCH']
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`CORS blocked for socket origin: ${origin}`));
+        }
+      },
+      methods: ['GET', 'POST', 'PATCH'],
+      credentials: true
     }
   });
 

@@ -31,6 +31,9 @@ export function getConnectedDbInfo() {
 }
 
 export async function getDbInfo(req: Request, res: Response) {
+  if (config.nodeEnv === 'production' || process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Dev endpoint disabled in production' });
+  }
   const { dbName, isDedicatedTestDb } = getConnectedDbInfo();
   res.json({
     success: true,
