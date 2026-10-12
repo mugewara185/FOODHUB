@@ -28,18 +28,18 @@ const app = express();
 
 // Security & parsing
 app.use(helmet());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (isOriginAllowed(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked for origin: ${origin}`));
-      }
-    },
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       if (isOriginAllowed(origin)) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error(`CORS blocked for origin: ${origin}`));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
