@@ -16,8 +16,8 @@ const AppRoutes: React.FC = () => {
     <>
       <RouteLogger />
       <Routes>
-        {user?.role?.includes('owner') && <Route path="/" element={<Navigate to="/owner" replace />} />}
         {user?.role?.includes('admin') && <Route path="/" element={<Navigate to="/admin" replace />} />}
+        {user?.role?.includes('owner') && <Route path="/" element={<Navigate to="/owner" replace />} />}
         {user?.role?.includes('partner') && <Route path="/" element={<Navigate to="/partner" replace />} />}
         {/* {user?.role.includes('user') && UserRoutes} */}
         {
@@ -26,13 +26,15 @@ const AppRoutes: React.FC = () => {
               user?.role[0] === 'admin' ? AdminRoutes :
                 user?.role[0] === 'partner' ? PartnerRoutes :
                   user?.role[0] === 'owner' ? OwnerRoutes :
-                    // user?.role.includes('dev') ? (console.log(' dev routes'), DevRoutes) : 
-                    (console.error('No roles found in user'), UserRoutes)
+                    user?.role[0] === 'dev' ? DevRoutes :
+                      // user?.role.includes('dev') ? (console.log(' dev routes'), DevRoutes) : 
+                      (console.error('No roles found in user'), UserRoutes)
           ) : (
             console.log('%cuser is not defined', 'color:red; font-weight:bold'),
             UserRoutes
           )
         }
+        <Route path="*" element={<Navigate to="/" replace />} />
         {/* {
           user ? (console.log('%crcba navigating to user routes', 'color:green; font-weight:bold'),
             user?.role.includes('user') ? (console.log(' user routes'), UserRoutes) :
