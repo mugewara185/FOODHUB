@@ -19,6 +19,7 @@ const AppRoutes: React.FC = () => {
         {user?.role?.includes('admin') && <Route path="/" element={<Navigate to="/admin" replace />} />}
         {user?.role?.includes('owner') && <Route path="/" element={<Navigate to="/owner" replace />} />}
         {user?.role?.includes('partner') && <Route path="/" element={<Navigate to="/partner" replace />} />}
+        {user?.role?.includes('dev') && <Route path="/" element={<Navigate to="/dev" replace />} />}
         {/* {user?.role.includes('user') && UserRoutes} */}
         {
           user ? (

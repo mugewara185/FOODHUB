@@ -85,7 +85,7 @@ export const appConfig = {
     analytics: IS_PROD,
   },
   api: {
-    baseUrl: env.VITE_API_URL,
+    baseUrl: env.VITE_API_URL || 'http://localhost:1000/api',
     socketUrl: resolveSocketUrl(),
     dataSource: resolveDataSource(),
   },
