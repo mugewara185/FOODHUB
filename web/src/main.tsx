@@ -36,15 +36,16 @@ const TheApp = (
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {IS_DEV ? (
-      <LoggerProvider>
-        <DevProvider>
-          {TheApp}
-        </DevProvider>
-      </LoggerProvider>
+    {/* {IS_DEV ? ( */}
+    (
+    <LoggerProvider>
+      <DevProvider>
+        {TheApp}
+      </DevProvider>
+    </LoggerProvider>
     ) : (
-      TheApp
-    )}
+    TheApp
+    )
   </React.StrictMode>
 );
 
