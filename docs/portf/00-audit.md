@@ -74,6 +74,8 @@ Evidence key: **[S]** source-inspected · **[R]** runtime-checked (SSR script) �
 
 ### 3.2 Production-visible dev artefacts
 
+> **Showcase Philosophy Note (Reconciled):** FoodHub is an engineering portfolio laboratory for recruiters and technical evaluators. Developer tooling, dynamic component version switching (`DevVersionRenderer`), mock/API toggles, and diagnostic logs are intentional engineering capabilities to be preserved and demonstrated, rather than hidden. D-02 refers to raw scratch placeholder text (such as `"add more components here..."`), while intentional showcase badges and `DevVersionSwitcher` are valid portfolio features. Similarly, D-22's component version swapping is safe client-side behavior demonstrating architecture flexibility, not a security vulnerability.
+
 **D-02 — Dev badges render for every visitor** [S][B] — *High (credibility)*
 - `HeroCompact.tsx` L77-94: unconditional Chip `"⚡ Development Mode - _V_ Renderer"` (L80).
 - `Home_V.tsx` L129-138: unconditional Chip `"add more components here..."` + `Code` icon.

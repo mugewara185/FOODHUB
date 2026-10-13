@@ -18,7 +18,7 @@ An implementer must never write "verified" without naming the level reached and 
 | Slice | Unit | Component | Integration (API/Supertest) | Typecheck | Build | Runtime (browser/screenshot) | E2E |
 |---|---|---|---|---|---|---|---|
 | S00 | R (characterization) | – | – | R | R | R (baseline screenshots, or mark NEEDS VERIFICATION) | – |
-| S01 | R | O | **R** (register role, validation, no-log) | R | R + bundle `findstr` | R (prod preview, `/dev` absent) | O |
+| S01 | R | O | **R** (register role, validation, no-log, destructive ops guard) | R | R | R (prod preview: register secured, switcher interactive) | O |
 | S02 | – | R | – | R | R | R | O |
 | S03 | O | R | – | R | R | **R** (card heights at 5 widths) | – |
 | S04 | R | R | – | R | R | R | O |
@@ -48,7 +48,6 @@ npx vitest run                                  # new tests green; no new failur
 npx tsc -p tsconfig.app.json --noEmit           # count `error TS` <= 1244, none new in touched files
 npx vite build --outDir ..\scratch-dist --emptyOutDir
 findstr /m /c:"Sarah Johnson" /c:"FIRST50" /c:"pravatar" /c:"images.unsplash.com" ..\scratch-dist\assets\*.js
-findstr /m /c:"FRAMEWORK_" /c:"DEV_RENDERER_GUIDE" ..\scratch-dist\assets\*.js
 cd ..\API
 npm test                                         # requires Mongo test DB — mark NOT RUN if unavailable
 ```
@@ -60,7 +59,7 @@ npm test                                         # requires Mongo test DB — ma
 | Slice | Must prove |
 |---|---|
 | S00 | Baseline screenshots at 360/768/1280 (Home + listing); characterization tests for restaurantApi & restaurantSlice green; D-01/D-02/D-09/D-15 confirmed in runtime |
-| S01 | `POST /auth/register` with `roles:['admin']` yields a customer; validation actually replaces `req.body` (S-01); no token/body/user logging; prod build has no `/dev` route and ignores `localStorage` DevContext overrides |
+| S01 | `POST /auth/register` with `roles:['admin']` yields a customer; validation actually replaces `req.body` (S-01); no token/body/user logging; `/api/dev/*` destructive ops locked to test DB; DevVersionSwitcher and `/dev` explorer remain functional and safely isolated |
 | S03 | Cards equal height per row at 320/768/1024/1440; no Grid "removed prop" warnings in touched files |
 | S04 | `parse(serialize(x))` round-trip; `"30-40 min"` matches `time=40`; Back restores filters; `/search?q=` redirects |
 | S05 | Forbidden-text lint on rendered Home DOM; cuisine counts equal store data; real add-to-cart changes cart state |

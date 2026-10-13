@@ -7,30 +7,31 @@ Self-contained. Repo `FoodHub` (`mugewara185/Zom2`), branch `dev/development`, b
 | Complexity | **M** |
 | Backend dependency | **No** for the default scope. Live role demo accounts are **BLOCKED on a decision** ([../04-open-questions.md](../04-open-questions.md) Q1) and excluded here |
 | Verification target | component, build, runtime |
-| Depends on | **SLICE-01 merged** (no visitor entry may ship while registration can mint roles / dev UI leaks) |
+| Depends on | **SLICE-01 merged** (no visitor entry may ship while registration can mint privileged roles or log credentials) |
 | Unblocks | S08 (journey) |
 
 ## Goal / user-visible outcome
-A first-time visitor lands on Home, sees an honest "Take the tour" entry, and opens `/tour`: a guided page that explains FoodHub's four experiences (customer, owner, delivery partner, admin) with **real, working deep links only where a public/authenticated-customer route exists**, and clearly-labelled *recorded* media for the rest. No credentials are shown, no auto-login, nothing pretends to be live that is not.
+A first-time visitor lands on Home, sees an honest "Take the tour" entry, and opens `/tour`: a guided page that explains FoodHub's multi-role user experiences (customer, owner, delivery partner, admin) AND engineering showcase features (component versioning architecture, diagnostic tooling, mock/API switching, and `/dev` explorer). Features have **real, working deep links where public/showcase routes exist**, and clearly-labelled *recorded* media for authenticated backend-guarded role flows. No private credentials are shown, no auto-login, nothing pretends to be live that is not.
 
 ## Why it matters
-The app has no visitor/demo concept (audit §9) and each role has its own mutually exclusive route tree (`routes/index.tsx` L24-37: `user.role[0]`), so a single login cannot "tour" every role. The honest, safe way to show owner/partner/admin experiences without weakening auth is recorded walkthroughs; the customer journey can be live.
+The app has no visitor/demo concept (audit §9) and each role has its own mutually exclusive route tree (`routes/index.tsx` L24-37: `user.role[0]`), so a single login cannot "tour" every role. The honest, safe way to show owner/partner/admin experiences without weakening auth is recorded walkthroughs; the customer journey and engineering showcase journeys can be live. Demonstrating both consumer flows and technical architecture fulfills FoodHub's primary identity as a high-impact portfolio showcase.
 
 ## In scope
 1. Typed content config `web/src/features/tour/tourSteps.ts`:
    ```ts
-   export type TourStep = { id: string; role: 'customer'|'owner'|'partner'|'admin'; title: string; summary: string;
+   export type TourStep = { id: string; role: 'customer'|'owner'|'partner'|'admin'|'engineering'; title: string; summary: string;
      mode: 'live'|'recorded'; cta?: { label: string; to: string }; media?: { src: string; alt: string; kind: 'image'|'video' } };
    ```
-   Customer steps (`mode:'live'`, public routes verified in `UserRoutes.tsx` L36-54): browse `/restaurants`; search `/search`? **No** — `/search` is mock-driven (D-18) until S04/S05 fix it; include only after S04. Restaurant detail: link to `/restaurants` (do not hard-code an id). Sign up `/signup` (creates a `user` role account — true after S01). Cart/checkout/orders/tracking: describe, link `/login` (guarded routes redirect there).
-   Owner/partner/admin steps: `mode:'recorded'`, `media` optional. **Only include a step if its media file exists** under `web/public/tour/`. Capturing media is a manual task (record against a local seeded env; blur/replace any personal data). If no media exist yet, render role cards as text-only with the label "Walkthrough media coming soon" **removed** — i.e. omit the role until media exists, or describe only features verified in README "Portfolio Demo" and `OwnerRoutes`/`AdminRoutes` (owner: queue/active real; menu/analytics/etc. are `ComingSoon` — **do not claim them**).
-2. Page `web/src/pages/Tour/index.tsx` (MUI only, existing theme): stepper/cards grouped by role, each with Live/Recorded chip, one primary CTA, `SafeImage` for media.
+   Customer steps (`mode:'live'`, public routes verified in `UserRoutes.tsx` L36-54): browse `/restaurants`; search `/search` (linked after S04 fixes). Restaurant detail: link to `/restaurants`. Sign up `/signup` (creates a `user` role account). Cart/checkout/orders/tracking: describe, link `/login` (guarded routes redirect there).
+   Engineering showcase steps (`mode:'live'`): highlight dynamic component version switching (`DevVersionRenderer`), client state inspection, mock/API toggles, and read-only component tree viewer (`/dev`).
+   Owner/partner/admin steps: `mode:'recorded'`, `media` optional. **Only include a step if its media file exists** under `web/public/tour/`. Capturing media is a manual task (record against a local seeded env; blur/replace any personal data). If no media exist yet, render role cards as text-only with the label "Walkthrough media coming soon" **removed** — i.e. omit the role until media exists, or describe only features verified in README "Portfolio Demo" and `OwnerRoutes`/`AdminRoutes`.
+2. Page `web/src/pages/Tour/index.tsx` (MUI only, existing theme): stepper/cards grouped by role/domain, each with Live/Recorded chip, primary CTA, `SafeImage` for media.
 3. Route: add `<Route path="tour" element={<Tour />} />` inside the public block of `web/src/app/routes/domain/UserRoutes.tsx` (after L46). Only the `UserRoutes` tree renders it (owner/admin/partner sessions don't see it — intentional).
 4. Entry points: (a) Home hero secondary button "Take the tour" → `/tour` in `HeroCompact.tsx` (additive; S07 will restyle it — keep it a standalone `<Button component={RouterLink} to="/tour">`), (b) drawer item in `MainLayout.tsx` `menuItems` (L546-554) "Tour".
 5. Accessibility/SEO basics: one `<h1>`, landmarks, link text meaningful, media with alt.
 
 ## Out of scope
-Demo role accounts or any credential display/auto-login (Q1); a "visitor mode" auth state; simulators in production; a guided overlay/coach-mark library (new dependency); `/dev` anything.
+Demo role accounts or credential display/auto-login (Q1); simulating live backend mutations for unauthenticated users; coach-mark overlay library (new dependency).
 
 ## Files to inspect/touch
 Touch: new `web/src/features/tour/tourSteps.ts`, `web/src/features/tour/tourSteps.test.ts`, `web/src/pages/Tour/index.tsx`, `web/src/pages/Tour/Tour.test.tsx`, `web/src/app/routes/domain/UserRoutes.tsx`, `web/src/shared/layout/MainLayout.tsx` (menu), `web/src/features/home/components/hero/HeroCompact.tsx`, optional `web/public/tour/*`.
@@ -46,7 +47,7 @@ New public route `/tour`. No Redux state. Links are plain `react-router-dom` lin
 `MainLayout`, `SafeImage`, MUI theme, `RouterLink`, `appConfig` (not needed). Pattern for static config: other `*_V` feature folders.
 
 ## Tests to add/update
-- `tourSteps.test.ts`: every `cta.to` ∈ allow-list `['/restaurants','/signup','/login','/']`; every `recorded` step with `media` points to a path that exists under `public/tour` (use `fs.existsSync` in the test); no step text contains "demo account", "password", "admin@", "credentials".
+- `tourSteps.test.ts`: every `cta.to` ∈ allow-list `['/restaurants','/signup','/login','/','/dev']`; every `recorded` step with `media` points to a path that exists under `public/tour` (use `fs.existsSync` in the test); no step text contains "demo account", "password", "admin@", "credentials".
 - `Tour.test.tsx` (MemoryRouter): renders h1, one Live/Recorded chip per step, CTA hrefs correct.
 - Route test: `/tour` renders without auth.
 
@@ -66,4 +67,4 @@ Visitor window: Home → "Take the tour" → each CTA → back. Repeat at 360/76
 Remove the route + links; page is self-contained. Risk: merge conflict with S07 in `HeroCompact` — keep the edit minimal. Risk: tempting to add "try as admin" → forbidden here.
 
 ## Security / authorization notes
-No auth changes. Do not add a guest role/token, do not publish credentials, do not enable `VITE_DEV_BYPASS_AUTH`, do not expose `/dev`. If Q1 is later approved, it needs its own slice with: dedicated demo accounts in a separate demo DB, rotated credentials, rate limiting, server-enforced read-only behaviour for destructive actions (not client flags).
+No auth changes. Do not add an unauthenticated privileged role/token, do not publish private credentials, do not enable `VITE_DEV_BYPASS_AUTH`. (Note: read-only `/dev` architecture exploration is an intentional showcase feature, not an auth bypass). If Q1 is later approved, it needs its own slice with: dedicated demo accounts in a separate demo DB, rotated credentials, rate limiting, server-enforced read-only behaviour for destructive actions (not client flags).

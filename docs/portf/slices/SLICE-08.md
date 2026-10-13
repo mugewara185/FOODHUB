@@ -11,10 +11,10 @@ Self-contained. Repo `FoodHub` (`mugewara185/Zom2`), branch `dev/development`, b
 | Unblocks | Portfolio publication |
 
 ## Goal / user-visible outcome
-Prove (with executed commands, not assumptions) that the finished product matches the claims in the README: a visitor can go Home → tour → filtered listing → restaurant → add to cart → login redirect on any viewport, no dev surface or fabricated content ships, and no security regression was introduced. Update the docs/CI so what is written is true.
+Prove (with executed commands, not assumptions) that the finished product matches the claims in the README: a visitor can go Home → tour → filtered listing → restaurant → add to cart → login redirect on any viewport, no fabricated content ships, intentional developer showcase features function smoothly and safely, and no security regression was introduced. Update the docs/CI so what is written is true.
 
 ## Why it matters
-Baseline: 5 failing unit tests of 38, 1,244 tsc errors, a 2.5 MB main chunk shipping dev docs, README that says "not yet live", and CI that deploys different branches and runs no tests. Without a final pass, earlier slices cannot be trusted together.
+Baseline: 5 failing unit tests of 38, 1,244 tsc errors, a 2.5 MB main chunk, README that says "not yet live", and CI that deploys different branches and runs no tests. Without a final pass, earlier slices cannot be trusted together.
 
 ## In scope
 
@@ -29,24 +29,24 @@ Baseline: 5 failing unit tests of 38, 1,244 tsc errors, a 2.5 MB main chunk ship
 > Do **not** use `tsc --incremental false` (TS6379 on composite projects). Build to a scratch `--outDir`; never leave `dist/` tracked changes.
 
 ### B. Visitor journey (runtime; Playwright if S08 opts in, otherwise manual checklist with screenshots)
-1. `/` → Home renders; no console errors; no dev chips.
-2. Home → "Take the tour" (`/tour`, S02) renders each role walkthrough without login.
+1. `/` → Home renders; no console errors; polished showcase presentation.
+2. Home → "Take the tour" (`/tour`, S02) renders role walkthroughs and engineering showcase highlights without login.
 3. Home → cuisine card → `/restaurants?cuisine=X` shows only X, chip visible, URL shareable (open in a new tab → same state).
 4. Search `?q=` and the hero search both land on the listing with results; browser Back restores previous filters.
 5. "Show more" reaches the end; counts truthful (S06).
 6. Open `/restaurants/:id` → add item → cart reflects it → `/checkout` while logged out → redirected to `/login` and returns after login (check the existing `from`/redirect behaviour; NEEDS VERIFICATION U-10).
 7. Menu highlight Add on Home → same cart; adding from a second restaurant asks for confirmation.
-8. Repeat 1-4 at 320 / 768 / 1440 px.
+8. Component Version Switcher (`DevVersionSwitcher`): toggling component versions updates UI seamlessly.
+9. Repeat 1-4 at 320 / 768 / 1440 px.
 
 ### C. Security boundary checklist (each item has an explicit pass/fail line in the PR notes)
 - [ ] `POST /api/auth/register` with `roles:['admin']` (and `role`, `isAdmin`, `walletBalance` if present in the model) **cannot** create a privileged user (S-01) — Supertest/curl against a local API.
 - [ ] Login/register request bodies and user documents, and bearer tokens, are not logged (`grep -n "console.log" API/src/modules/auth API/src/shared/middleware` shows none of body/user/token) (S-02/S-03).
 - [ ] Login regex injection: email `.*` does not match another account (S-05).
-- [ ] Production build: `/dev`, `/dev/*` and `DevVersionSwitcher` absent; `localStorage` keys used by `DevContext` set manually have no effect in a **production preview** (`npx vite preview`) (D-22, S-04).
-- [ ] `findstr /m /c:"FRAMEWORK_" /c:"DEV_RENDERER_GUIDE" /c:"HOME_FILE_STRUCTURE" web\dist\assets\*.js` → no matches (dev docs not shipped). Use `findstr`, **not** PowerShell `Select-String` over the bundles (too slow).
-- [ ] `findstr /m /c:"VITE_DEV_BYPASS_AUTH" ...`: bypass compiled out in production (`import.meta.env.DEV` guard) — and `web/.env` decision (Q6) applied.
-- [ ] `/api/dev/*` returns 403/404 with `NODE_ENV=production` **and** is unreachable without a secret/guard if S01 added one.
-- [ ] Forbidden-content scan of the production bundle for the default routes: `Sarah Johnson`, `FIRST50`, `pravatar`, `images.unsplash.com`, `Quick Commerce`, `2500+`.
+- [ ] Showcase safety: `DevVersionSwitcher` functions smoothly and safely allows evaluators to test component versions; `/dev` routes render read-only component explorers and architecture documentation without exposing mutating admin APIs.
+- [ ] Client bypass protection: unauthenticated visitors cannot bypass backend role guards to perform administrative mutations; `web/.env` decision (Q6) applied.
+- [ ] Destructive backend endpoints: `/api/dev/*` operations (reset/seed) return 403 on non-test DBs and cannot accidentally wipe database collections.
+- [ ] Forbidden-content scan of the production bundle for default consumer routes: `Sarah Johnson`, `FIRST50`, `pravatar`, `images.unsplash.com`, `Quick Commerce`, `2500+`.
 - [ ] Role route trees: a `customer` token cannot open owner/admin pages (manual: log in as customer, visit `/admin`, `/owner`).
 
 ### D. Optional E2E

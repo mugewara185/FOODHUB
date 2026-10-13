@@ -9,20 +9,21 @@
 3. No invented endpoints/fields/metrics. Where data is absent, use the **honest fallback** written into the slice (remove, rename, truthfully label client-side, or mark BLOCKED).
 4. Each slice ships and verifies on its own (own tests, own manual check, own rollback).
 5. Security first: S01 precedes anything that invites visitors.
+6. **Showcase Architecture & Developer Tooling**: FoodHub is primarily an engineering portfolio and demonstration application. Development tooling, observability, mock/API switching, component version switching (`DevVersionRenderer`), and architectural explorers are intentional showcase capabilities. Distinguish **showcase visibility** (keep safe tools discoverable) from **security/authorization/secret protection** (prevent privilege escalation, eliminate credential logging, guard destructive operations).
 
 ## 2. Ordered slices
 
 | # | ID | Title | User-visible outcome | Depends on | Size | Backend? | Verification target |
 |---|---|---|---|---|---|---|---|
 | 0 | [SLICE-00](slices/SLICE-00.md) | Baseline capture & safety net | Nothing changes for users; evidence + characterization tests exist | — | S | no | unit, build, runtime (screenshots) |
-| 1 | [SLICE-01](slices/SLICE-01.md) | Production safety gate | No dev chips/switcher/overrides in prod; no self-assigned roles; no credential logs | S00 | M | **yes (required)** | unit, integration (API), build, runtime |
-| 2 | [SLICE-02](slices/SLICE-02.md) | Visitor showcase & guided tour | A visitor sees an honest "Explore FoodHub" entry and a guided tour with real public deep links | S01 | M | no (decision U/B-04) | component, build, runtime |
+| 1 | [SLICE-01](slices/SLICE-01.md) | Production safety gate | Hardened security boundaries (no role escalation, no credential logs, safe dev endpoints) while preserving showcase dev tooling | S00 | M | **yes (required)** | unit, integration (API), build, runtime |
+| 2 | [SLICE-02](slices/SLICE-02.md) | Visitor showcase & guided tour | A visitor sees an honest "Explore FoodHub" entry and a guided tour of customer flow and engineering architecture | S01 | M | no (decision U/B-04) | component, build, runtime |
 | 3 | [SLICE-03](slices/SLICE-03.md) | Layout foundation: Grid v7, uniform restaurant card, SafeImage | Restaurant cards form a true responsive grid with identical geometry and graceful image fallback | S00 | M | no | unit, component, build, runtime |
 | 4 | [SLICE-04](slices/SLICE-04.md) | Listing contract: URL ↔ Redux ↔ filters/search | Home CTAs land on a correctly filtered listing; URLs are shareable; search/filter/pagination correct | S03 | L | no | unit, component, integration, runtime |
 | 5 | [SLICE-05](slices/SLICE-05.md) | Home truthfulness: data provenance & CTAs | Every Home number/offer/dish/review is real or removed; every CTA does something real | S03, S04 | L | no (B-01/B-02 fallbacks) | unit, component, runtime |
 | 6 | [SLICE-06](slices/SLICE-06.md) | Batch loading & listing polish | "Show more" batches, truthful counts, polished loading/empty/error states | S04 | M | optional (B-03) | unit, component, runtime |
-| 7 | [SLICE-07](slices/SLICE-07.md) | Home visual redesign & responsive polish | Lively, consistent, responsive Home on real imagery and data | S03, S05 | L | no | component, build, runtime |
-| 8 | [SLICE-08](slices/SLICE-08.md) | Regression & portfolio acceptance | Full visitor journey, responsiveness, security boundaries verified and documented | S01-S07 | M | no | E2E/runtime, build |
+| 7 | [SLICE-07](slices/SLICE-07.md) | Home visual redesign & responsive polish | Lively, consistent, responsive Home on real imagery and data, retaining deliberate discovery of technical capabilities | S03, S05 | L | no | component, build, runtime |
+| 8 | [SLICE-08](slices/SLICE-08.md) | Regression & portfolio acceptance | Full visitor journey, responsiveness, and security boundary verification | S01-S07 | M | no | E2E/runtime, build |
 
 ### Dependency graph
 ```mermaid
@@ -44,7 +45,7 @@ flowchart TD
 S02 and S03 may run in parallel after their predecessors; S01 must land before S02 is deployed.
 
 ### Why this order (and what was merged)
-- **Visitor entry before data work** (per brief), but gated on **S01** because the audit found a role-escalation path (S-01) and dev UI leakage.
+- **Visitor entry before data work** (per brief), but gated on **S01** because the audit found a role-escalation path (S-01) and credential/role security vulnerabilities.
 - **S03 before S04/S05**: the audited Grid bug (D-01) distorts every page; fixing contracts on a layout that cannot be judged is wasteful, and S03 supplies the card S04–S07 reuse.
 - **Merged**: card consistency + SafeImage + Grid (shared files: `RestaurantCard_V`, `SafeImage`, `Restaurants_V` grid); URL↔Redux↔filters + search correctness (one navigation/state contract); Home provenance + popular dishes + quick commerce + testimonials (all "truthful Home content"); batch loading + listing polish (both own the listing results pane).
 - **S06 follows S04** because "batch loading" must sit on the final filter/sort contract.
@@ -77,4 +78,4 @@ Zero horizontal overflow at 320/360/768/1024/1440 px; no layout shift when image
 - Before editing run: `git status`, `git rev-parse HEAD` and compare to the baseline SHA; record drift in the slice PR notes.
 - Commands (from `web/`): `npm test` (= `vitest run`), `npx vite build --outDir <tmp> --emptyOutDir`, `npx tsc -p tsconfig.app.json --noEmit` (baseline **1,244** errors; a slice must **not increase** the count and should reduce errors in files it touches — compare with `scratch/tsc-app.log` style diff).
 - Baseline unit result to preserve: 33 passed, 5 failed, 3 suites unresolved — unrelated pre-existing failures; do not "fix" them inside these slices.
-- Never expose `/dev`, dev switchers, or mock simulator toggles in production; never weaken `ProtectedRoute`/`authorize`.
+- Strictly enforce authorization, credential safety, and secret protection: prevent privilege escalation, eliminate plaintext credential logging, and guard destructive server endpoints. Maintain showcase visibility for safe developer tooling (DevVersionSwitcher, logger controls, read-only dev explorers, and mock/API switching). Never weaken `ProtectedRoute`/`authorize`.

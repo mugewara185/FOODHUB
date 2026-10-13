@@ -32,7 +32,7 @@ The audited page mixes an off-brand purple gradient final CTA (`Home_V.tsx` L188
 3. Apply `SectionHeader`/`SectionContainer` to all S05 sections; unify spacing/grids to the S03 pattern (`size={{ xs:12, sm:6, md:4, lg:3 }}` or the values chosen in S03).
 4. Final CTA: replace gradient with a theme-token surface; copy from S05.
 5. Loading skeletons / empty / error per section matching final geometry (no layout shift when data arrives).
-6. **Cleanup** (only after confirming zero imports via `git grep`): delete deprecated fabricated components (`StatsSection`, `PromoSection`, `QuickDeliverySection`, `TestimonialsSection`, `TopDishesSection`, `CuisinesSection`, legacy `Hero*` variants not used), `HomeContainer.tsx`, inactive `Home_V0/V1/V2` variants, plus `DevVersionRenderer` wiring for Home if no longer needed. If any import remains, **keep the file** and record it in the change notes (do not break the build to delete). Leave `pages/restaurantListings` inactive variants untouched (out of scope).
+6. **Cleanup** (only after confirming zero imports via `git grep`): delete deprecated fabricated components (`StatsSection`, `PromoSection`, `QuickDeliverySection`, `TestimonialsSection`, `TopDishesSection`, `CuisinesSection`, legacy unreferenced scratch variants), and `HomeContainer.tsx`. **Preserve `DevVersionRenderer` wiring and swappable component variants** so technical evaluators can continue inspecting dynamic component version switching via `DevVersionSwitcher`. If any import remains, **keep the file** and record it in the change notes (do not break the build to delete). Leave `pages/restaurantListings` variants untouched.
 7. Update `docs/` developer notes only if they describe deleted files (do not delete `docs/portf`).
 
 ## Out of scope
@@ -72,4 +72,4 @@ Run in API mode with seeded data and in mock mode; go through the five viewport 
 Section-by-section: each section is its own commit-sized change (hero, then each section). Revert a section by restoring its previous component; deletions (item 6) are a **separate final commit** so they can be reverted alone. Risk: hero image hurts LCP → keep size-constrained and eager; risk: seed data lacks images → fallback verified.
 
 ## Security / authorization notes
-No auth changes. Never hot-link third-party image hosts with user data; never use `dangerouslySetInnerHTML`; ensure the dev chips/`DevVersionSwitcher` stay gated (S01) and are not reintroduced by the deleted-variant cleanup.
+No auth changes. Never hot-link third-party image hosts with user data; never use `dangerouslySetInnerHTML`; preserve `DevVersionRenderer` and `DevVersionSwitcher` so evaluators can inspect component version switching safely.

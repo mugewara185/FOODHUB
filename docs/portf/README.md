@@ -17,21 +17,38 @@ Planning/documentation only. **No application code was changed; nothing was comm
 | [03-verification-matrix.md](03-verification-matrix.md) | Required checks per slice, baseline numbers, exact commands |
 | [04-open-questions.md](04-open-questions.md) | Owner decisions, unknowns, blockers |
 
+## Portfolio Product Philosophy & Showcase Goals
+
+FoodHub is primarily an **engineering portfolio and demonstration platform**, not an unrestricted commercial venture. Its primary audience includes technical recruiters, engineering leaders, and fellow developers.
+
+The application has a deliberate dual mission:
+1. **A polished, usable, production-quality food-ordering experience** that proves full-stack craftsmanship.
+2. **A showcase of modern full-stack engineering capabilities**, including architectural patterns, developer tooling, observability (structured logging), mock/API switching, component version switching (`DevVersionRenderer`), and robust state management.
+
+### Key Architectural Guidelines
+- **Development features are intentional showcase capabilities.** Features like the Dev Version Switcher, runtime logger controls, mock data simulator toggles, and developer documentation are core portfolio assets. They must **not** be purged, hidden, or disabled merely to imitate a commercial production deployment.
+- **Showcase Visibility vs. Security & Safety**:
+  - **Showcase Visibility**: Visitors, recruiters, and developers should easily discover and interact with the application's technical capabilities. The Home page should present the product professionally while offering an intentional, elegant way to explore architecture and developer tools.
+  - **Authorization & Access Control**: Users cannot perform unauthorized actions or self-assign privileged roles (e.g. S-01 registration escalation).
+  - **Secret Protection**: Private API keys, database credentials, and production secrets must remain strictly protected and uncommitted.
+  - **Operational Safety**: Dangerous or destructive server-side operations (e.g. resetting production databases) must be protected, while read-only development exploration tools remain open for review.
+- **Never solve a security or visual polish problem by indiscriminately deleting developer UI.** Future implementation slices must evaluate development features against this showcase goal.
+
 ## Slice order
 
 `S00 → S01 → S02` · `S00 → S03 → S04 → S05` · `S04 → S06` · `S03 + S05 → S07` · `S01 + S02 + S06 + S07 → S08`
 
-| ID | Title | Size |
-|---|---|---|
-| S00 | Baseline capture & safety net | S |
-| S01 | Production safety gate (**backend change required**) | M |
-| S02 | Visitor showcase & guided tour | M |
-| S03 | Layout foundation: Grid v7, card, SafeImage | M |
-| S04 | Listing contract: URL ↔ Redux ↔ filters/search | L |
-| S05 | Home truthfulness | L |
-| S06 | Batch loading & listing polish | M |
-| S07 | Home visual redesign & responsive polish | L |
-| S08 | Regression & portfolio acceptance | M |
+| ID | Title | Size | Outcome |
+|---|---|---|---|
+| S00 | Baseline capture & safety net | S | Pinned evidence, characterization tests, baseline screenshots |
+| S01 | Production safety gate (**backend change required**) | M | Hardened security boundaries (no role escalation, no credential logs, safe dev endpoints) while preserving showcase dev tooling |
+| S02 | Visitor showcase & guided tour | M | Structured guided tour of customer flow and engineering architecture |
+| S03 | Layout foundation: Grid v7, card, SafeImage | M | Responsive grid layout, uniform card geometry, robust image fallback |
+| S04 | Listing contract: URL ↔ Redux ↔ filters/search | L | Shareable URL filter state, search correctness, filter integrity |
+| S05 | Home truthfulness | L | Data provenance: real API data or honest fallbacks; real add-to-cart |
+| S06 | Batch loading & listing polish | M | Client-side "Show more" batches, truthful counts, resilient state handling |
+| S07 | Home visual redesign & responsive polish | L | Lively responsive Home on real data; elegant showcase discoverability |
+| S08 | Regression & portfolio acceptance | M | Full visitor journey, responsiveness, and security verification |
 
 ## How to use
 
@@ -48,7 +65,8 @@ Planning/documentation only. **No application code was changed; nothing was comm
 ## Hard rules for the implementer
 
 - No fake Add to Cart; no hard-coded testimonials/stats/promos presented as real.
-- Don't weaken auth or expose dev routes; no new UI framework; keep Redux and the API architecture.
+- Strictly enforce authorization, credential safety, and secret protection; preserve and showcase development tooling (version switcher, logger observability, mock simulator) safely without exposing destructive operations or leaking credentials.
+- No new UI framework; keep Redux and the existing API architecture.
 - Preserve unrelated working-tree changes; don't commit or push unless asked.
 
 ## Baseline snapshot

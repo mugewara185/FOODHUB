@@ -15,6 +15,7 @@ Defaults are baked into the slices so implementation can proceed; answers below 
 | Q7 | After S01, will the owner audit existing production users for unexpected `admin/dev/owner/partner` roles (read-only, owner-run)? | Recommended yes | S01 |
 | Q8 | Add a typecheck/test job to CI and align deploy branches? CI currently deploys `main`/`dev/main`, not `dev/development`, and runs no tests | Propose only, do not change without approval | S08 |
 | Q9 | Is a hosted instance live, and what is its URL/branch? README says "not yet live". Screenshots/README demo claims depend on this | Unknown → README states local run only | S08 |
+| Q10 | Portfolio product philosophy: should developer tooling (`DevVersionSwitcher`, mock toggles, `/dev` explorer) be hidden or showcased? | **Resolved (Showcase):** Preserve and celebrate developer tooling and swappable architecture as intentional portfolio features; do not adopt a blanket hiding policy. | S01, S02, S07, S08 |
 
 ## Unknowns (audit §13 IDs plus new)
 
@@ -50,3 +51,4 @@ Defaults are baked into the slices so implementation can proceed; answers below 
 | Server-side batch loading | Backend has page/limit only, with no filters and no limit cap | Client-side default (S06) |
 | `docs/ai/project_instruction_0.txt`, `development-working-flow-conversation-format` | Absent | Equivalents: `.agents/workflows/instructions.md`, `AiPrompt/core/core-instructions.md` |
 | Remote `FOODHUB.git` | Checkout remote is `Zom2.git`; identical tip `f9bc008` | Treated as the same repo |
+| Commercial enterprise policy (blanket suppression of all dev features in prod) | FoodHub is primarily an engineering portfolio laboratory for recruiters and technical evaluators | Preserve intentional developer tooling (component version switcher, diagnostic logging, mock toggles, architecture explorer) while strictly hardening backend authentication and data safety |
