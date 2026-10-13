@@ -1,8 +1,9 @@
-import { Alert, Box, Button, Grid, Skeleton, Typography } from '@mui/material';
+import { Alert, Box, Button, Grid, Typography } from '@mui/material';
 import { NavigateNext } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
 import RestaurantCard from '@/features/restaurant/components/RestaurantCard/RestaurantCard_V';
+import { RestaurantCardSkeleton } from '@/features/restaurant/components/RestaurantCard';
 import type { Restaurant } from '@/core/types';
 
 interface FeaturedRestaurantsSectionProps {
@@ -61,12 +62,8 @@ const FeaturedRestaurantsSection_V = ({
       {loading ? (
         <Grid container spacing={3}>
           {[1, 2, 3].map((item) => (
-            <Grid item xs={12} sm={6} md={4} key={item}>
-              <Skeleton
-                variant="rectangular"
-                height={300}
-                sx={{ borderRadius: 2 }}
-              />
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item} sx={{ display: 'flex' }}>
+              <RestaurantCardSkeleton />
             </Grid>
           ))}
         </Grid>
@@ -75,8 +72,9 @@ const FeaturedRestaurantsSection_V = ({
           {/* Restaurant List */}
           <Grid container spacing={3}>
             {restaurants.slice(0, 6).map((restaurant, index) => (
-              <Grid item xs={12} sm={6} md={4} key={restaurant.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={restaurant.id} sx={{ display: 'flex' }}>
                 <motion.div
+                  style={{ height: '100%', width: '100%', display: 'flex' }}
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{

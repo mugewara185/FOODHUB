@@ -112,4 +112,57 @@ describe('RestaurantCard_V', () => {
       'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&h=225&fit=crop&q=80'
     );
   });
+
+  it('displays "New" when rating is 0 or unrated', () => {
+    const unratedRestaurant: Restaurant = {
+      ...baseRestaurant,
+      rating: 0,
+    };
+
+    render(
+      <MemoryRouter>
+        <RestaurantsCard restaurant={unratedRestaurant} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('New')).toBeInTheDocument();
+  });
+
+  it('renders up to 2 cuisine chips and shows +N chip for extras', () => {
+    const multiCuisineRestaurant: Restaurant = {
+      ...baseRestaurant,
+      cuisine: ['American', 'Burgers', 'Fast Food', 'Beverages'],
+    };
+
+    render(
+      <MemoryRouter>
+        <RestaurantsCard restaurant={multiCuisineRestaurant} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('American')).toBeInTheDocument();
+    expect(screen.getByText('Burgers')).toBeInTheDocument();
+    expect(screen.getByText('+2')).toBeInTheDocument();
+  });
+
+  it('safely handles missing tags and undefined cuisines without error', () => {
+    const sparseRestaurant = {
+      ...baseRestaurant,
+      cuisine: undefined,
+      tags: undefined,
+      address: undefined,
+      deliveryTime: 'undefined-NaN min',
+    } as unknown as Restaurant;
+
+    render(
+      <MemoryRouter>
+        <RestaurantsCard restaurant={sparseRestaurant} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Burger Palace')).toBeInTheDocument();
+    expect(screen.getByText('Local area')).toBeInTheDocument();
+    expect(screen.getByText('25-35 min')).toBeInTheDocument();
+  });
 });
+
