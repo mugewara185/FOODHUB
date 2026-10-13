@@ -6,13 +6,17 @@ import React, { useState } from "react";
 import { Favorite, FavoriteBorder } from "@mui/icons-material";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
 import { toggleFavoriteThunk } from "@/features/auth/authSlice";
+import { buildRestaurantImageUrl } from "@/shared/utils/image";
 
 const RestaurantCard = ({restaurant}: { restaurant: Restaurant }) => {
   // console.log('restaurant mapped:',restaurant['address'])
   const navigate = useNavigate();
-const { id, name, image, address, cuisine, rating, deliveryTime, minOrder, deliveryFee }=restaurant;
-const fallBackImgSrc='https://th.bing.com/th/id/OIP.PLyeERi4uNYToVEWGHbhngHaEK?w=321&h=181&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3'
-const [fallBackImg, setfallBackImg] = useState<string | null>(null)
+  const { id, name, image, address, cuisine, rating, deliveryTime, minOrder, deliveryFee }=restaurant;
+  const rawImage = image || (restaurant as unknown as { imageUrl?: string }).imageUrl;
+  const imageSrc = buildRestaurantImageUrl(rawImage, { width: 400, height: 225 });
+  const imageSrc800 = buildRestaurantImageUrl(rawImage, { width: 800, height: 450 });
+  const fallBackImgSrc='https://th.bing.com/th/id/OIP.PLyeERi4uNYToVEWGHbhngHaEK?w=321&h=181&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3'
+  const [fallBackImg, setfallBackImg] = useState<string | null>(null)
   const ref= React.useRef(0); let i=0;
   // console.log('%cRestaurantCard rendering...',ref.current++,':',i,':',restaurant.id)
   
@@ -43,17 +47,15 @@ const [fallBackImg, setfallBackImg] = useState<string | null>(null)
     {(
       // console.log('rendering image'),
     <img
-      // src={`${image}?w=400&h=225&fit=crop&q=80`}
-      // src={`${fallBackImg ? fallBackImg : image}?w=400&h=225&fit=crop&q=80`}
-      src={`${image}?w=400&h=225&fit=crop&q=80`}
-      // onError={() => setfallBackImg(fallBackImgSrc)}
-       onError={(e) => {
-          (e.target as HTMLImageElement).src = fallBackImgSrc;
-        }}
-      srcSet={`
-        ${image}?w=400&h=225&fit=crop&q=80 400w,
-        ${image}?w=800&h=450&fit=crop&q=80 800w
-      `}
+      src={imageSrc || fallBackImgSrc}
+      onError={(e) => {
+        (e.target as HTMLImageElement).src = fallBackImgSrc;
+      }}
+      srcSet={
+        imageSrc && imageSrc800
+          ? `${imageSrc} 400w, ${imageSrc800} 800w`
+          : undefined
+      }
       loading="lazy"
       sizes="(max-width: 768px) 100vw, 400px"
       alt={name}

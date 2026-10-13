@@ -20,6 +20,7 @@ import {
 // import { type Restaurant } from '../../../../data/types/food';
 import { type Restaurant } from '../../../../core/types';
 import { useNavigate } from 'react-router-dom';
+import { buildRestaurantImageUrl } from '@/shared/utils/image';
 
 interface RestaurantsCardProps {
   restaurant: Restaurant;
@@ -33,6 +34,8 @@ const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
   onToggleFavorite,
 }) => {
   const navigate = useNavigate();
+  const rawImage = restaurant.image || (restaurant as unknown as { imageUrl?: string }).imageUrl;
+  const imageSrc = buildRestaurantImageUrl(rawImage);
 
   return (
     <Card
@@ -84,7 +87,7 @@ const RestaurantsCard: React.FC<RestaurantsCardProps> = ({
         <CardMedia
           component="img"
           height="160"
-          image={restaurant.image}
+          image={imageSrc || restaurant.image}
           alt={restaurant.name}
           sx={{ objectFit: 'cover' }}
         />

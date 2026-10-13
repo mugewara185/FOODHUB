@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import type { BoxProps } from '@mui/material';
 
@@ -7,15 +7,21 @@ const FALLBACK_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANUAAACUCAMA
 interface SafeImageProps extends Omit<BoxProps<'img'>, 'src' | 'alt' | 'onError'> {
   src?: string | null;
   alt?: string;
+  onError?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
 }
 
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   alt = 'Image',
+  onError,
   sx,
   ...props
 }) => {
   const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
 
   // Consider an empty string or null as an immediate error
   const isBroken = hasError || !src;
@@ -31,6 +37,15 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         if (!hasError) {
           setHasError(true);
           e.currentTarget.removeAttribute('srcset');
+          if (import.meta.env.DEV) {
+            try {
+              const host = src ? new URL(src, window.location.origin).hostname : 'unknown';
+              console.debug(`[SafeImage] Image failed to load from host: ${host}, falling back to placeholder`);
+            } catch {
+              console.debug('[SafeImage] Image failed to load, falling back to placeholder');
+            }
+          }
+          onError?.(e);
         }
       }}
       sx={sx}

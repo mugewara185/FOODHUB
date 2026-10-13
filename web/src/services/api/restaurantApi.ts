@@ -97,9 +97,9 @@ export const normalizeRestaurant = (dto: RestaurantApiDTO): Restaurant => ({
   deliveryTime: formatDeliveryTime(dto.deliveryTime),
   deliveryFee: dto.deliveryFee ?? 0,
   minOrder: dto.minOrder,
-  // Backend uses imageUrl as primary; the seed controller also copies it to 'image'
-  image: dto.imageUrl || dto.image || '',
-  bannerImage: dto.coverImageUrl || dto.bannerImage,
+  // Backend uses imageUrl as primary; also accepts image if present
+  image: (dto.imageUrl && dto.imageUrl.trim()) || (dto.image && dto.image.trim()) || '',
+  bannerImage: (dto.coverImageUrl && dto.coverImageUrl.trim()) || (dto.bannerImage && dto.bannerImage.trim()) || undefined,
   address: dto.address,
   location: dto.location ?? { lat: 0, lng: 0 },
   isOpen: dto.isOpen,

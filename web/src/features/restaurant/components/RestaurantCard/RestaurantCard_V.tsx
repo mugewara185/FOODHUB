@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 //core
 import { type Restaurant } from '../../../../core/types';
 import { SafeImage } from '../../../../shared/components/ui/SafeImage';
+import { buildRestaurantImageUrl } from '../../../../shared/utils/image';
 //features
 import { useFavorites } from '@/features/auth/hooks/useFavorites';
 
@@ -35,7 +36,9 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
   onToggleFavorite: propOnToggleFavorite
 }
 ) => {
-  const { id, name, image } = restaurant;
+  const { id, name } = restaurant;
+  const rawImage = restaurant.image || (restaurant as unknown as { imageUrl?: string }).imageUrl;
+  const imageSrc = buildRestaurantImageUrl(rawImage);
   const navigate = useNavigate();
   const { isFavorite: checkFavorite, toggleFavorite } = useFavorites();
 
@@ -103,7 +106,7 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
         {/* Image Container */}
         <div className="relative w-full aspect-[16/9] overflow-hidden">
           <SafeImage
-            src={image ? `${image}?w=400&h=225&fit=crop&q=80` : undefined}
+            src={imageSrc}
             alt={name}
             sx={{
               width: '100%',
