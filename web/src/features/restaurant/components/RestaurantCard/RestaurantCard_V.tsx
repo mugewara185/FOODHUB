@@ -39,6 +39,7 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
   const { id, name } = restaurant;
   const rawImage = restaurant.image || (restaurant as unknown as { imageUrl?: string }).imageUrl;
   const imageSrc = buildRestaurantImageUrl(rawImage);
+  console.log("imageSrc", imageSrc)
   const navigate = useNavigate();
   const { isFavorite: checkFavorite, toggleFavorite } = useFavorites();
 

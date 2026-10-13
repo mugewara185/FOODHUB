@@ -114,7 +114,8 @@ export type AppConfig = typeof appConfig;
 
 if (IS_DEV) {
   console.table({
-    "API URL": appConfig.api.baseUrl,
+    "API URL(resolved)": appConfig.api.baseUrl,
+    "API URL(import)": import.meta.env.VITE_API_URL,
     "Data Source": appConfig.api.dataSource,
     "Bypass Auth": appConfig.dev.bypassAuth,
     "Log Level": appConfig.dev.logger.logLevel
