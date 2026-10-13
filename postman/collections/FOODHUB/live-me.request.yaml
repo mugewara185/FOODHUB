@@ -1,5 +1,5 @@
 $kind: http-request
-name: live
+name: live/me
 url: ""
 method: GET
 order: 2861
