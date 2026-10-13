@@ -59,6 +59,7 @@ npm test                                         # requires Mongo test DB — ma
 
 | Slice | Must prove |
 |---|---|
+| S00 | Baseline screenshots at 360/768/1280 (Home + listing); characterization tests for restaurantApi & restaurantSlice green; D-01/D-02/D-09/D-15 confirmed in runtime |
 | S01 | `POST /auth/register` with `roles:['admin']` yields a customer; validation actually replaces `req.body` (S-01); no token/body/user logging; prod build has no `/dev` route and ignores `localStorage` DevContext overrides |
 | S03 | Cards equal height per row at 320/768/1024/1440; no Grid "removed prop" warnings in touched files |
 | S04 | `parse(serialize(x))` round-trip; `"30-40 min"` matches `time=40`; Back restores filters; `/search?q=` redirects |

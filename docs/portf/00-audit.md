@@ -50,11 +50,11 @@ Evidence key: **[S]** source-inspected · **[R]** runtime-checked (SSR script) �
 - Offending usages (Home + listing): `FeaturedRestaurantsSection.tsx` L64, L78; `Restaurants_V.tsx` L247-257 (cuisine chips), L853-890 (skeletons), L935-953 (cards); `CuisinesSection.tsx` L87-89; `PromoSection.tsx` L73-75; `StatsSection.tsx` L82-84; `TestimonialsSection.tsx` L125-127; `TopDishesSection.tsx` L185-187; `QuickDeliverySection.tsx` L77-79; `HeroCompact.tsx` L69-71. Repo-wide: 377 `<Grid item` single-line matches; 29 files-lines use `size=`.
 - Evidence [R]: SSR render of `<Grid container><Grid item xs={12} sm={6} md={4}>` emitted MUI warnings "The `item` prop has been removed…", "The `xs`/`sm`/`md` prop has been removed" and the child received **no width rules** (only `min-width:0; box-sizing:border-box`), whereas `<Grid size={{xs:12,sm:6,md:4}}>` produced `width:calc(100% * 12 / …)` + media queries at 600/900 px. Container is `display:flex; flex-wrap:wrap; gap`.
 - Evidence [B]: tsc TS2769 "No overload matches this call" at exactly these lines (391 total).
-- Impact: cards are content-sized flex items, not a 1/2/3-column grid → non-uniform card widths/heights, broken responsive columns. **This is the most likely cause of "restaurant cards not uniform"** — to be confirmed in a browser (`NEEDS VERIFICATION`, S00/S03).
+- Impact: cards are content-sized flex items, not a 1/2/3-column grid → non-uniform card widths/heights, broken responsive columns. **Confirmed in browser runtime in S00** ([baseline/NOTES.md](baseline/NOTES.md)).
 - Fix: migrate to `size={{ xs: 12, sm: 6, md: 4 }}` (no `item`) on the Home/listing surfaces first (S03); full-repo codemod is out of scope.
 
-**D-16 — `RestaurantCard_V` geometry is not self-contained** [S] — *Medium*
-- `RestaurantCard_V.tsx` L104: `className="relative w-full aspect-[16/9] overflow-hidden"` — **no Tailwind exists** (not in `web/package.json`, no tailwind/postcss config, no directive in `index.css`/`App.css`), so the class is inert; the wrapper `div` has no height and `SafeImage height:100%` resolves against `auto`. The outer MUI `Box` (L69-75) already sets `aspectRatio:'16/9'`, so the image is cropped/short rather than `cover`-filling.
+**D-16 — `RestaurantCard_V` geometry is not self-contained** [S][R] — *Medium*
+- `RestaurantCard_V.tsx` L104: `className="relative w-full aspect-[16/9] overflow-hidden"` — **no Tailwind exists** (not in `web/package.json`, no tailwind/postcss config, no directive in `index.css`/`App.css`), so the class is inert (confirmed in browser runtime in S00); the wrapper `div` has no height and `SafeImage height:100%` resolves against `auto`. The outer MUI `Box` (L69-75) already sets `aspectRatio:'16/9'`, so the image is cropped/short rather than `cover`-filling.
 - L106: `` `${image}?w=400&h=225&fit=crop&q=80` `` blindly appends a query string — wrong for URLs that already have `?`, for local `/assets/…` files and data URLs.
 - L137: `{restaurant.rating && …toFixed(1)}` renders literal `0` for rating `0` (new restaurants default `rating: 0`, `restaurant.model.ts` L59).
 - L55: whole card is `onClick` on a `Card` (not a link/`CardActionArea`) → no keyboard/semantic navigation, no middle-click.
@@ -66,8 +66,8 @@ Evidence key: **[S]** source-inspected · **[R]** runtime-checked (SSR script) �
 - Only `RestaurantCard_V` uses it. `TopDishesSection` (L78-91) uses `CardMedia` + `onError` swapping to an Unsplash URL; `CuisinesSection`, `QuickDeliverySection` (L93-107 `backgroundImage`), `HeroCompact` (L49, L289) and `TestimonialsSection` (pravatar) hot-link remote images with **no fallback at all**.
 - Doc discrepancy: `FINAL_REPORT.md` §6 claims TopDishes was refactored to use `SafeImage`/`object-cover`; source shows it does not.
 
-**D-15 — Listing page shell** [S] — *Medium; runtime effect NEEDS VERIFICATION*
-- `Restaurants_V.tsx` L462-471: `Container height: calc(100vh - 140px)`, `overflow:hidden` on desktop; the results pane is the only scroll area (L835-849) while the `Pagination` block (L964-985) is a sibling after a `height:'94%'` box (L478-485) → can clip the pager on short viewports.
+**D-15 — Listing page shell** [S][R] — *Medium; runtime clipping confirmed in S00*
+- `Restaurants_V.tsx` L462-471: `Container height: calc(100vh - 140px)`, `overflow:hidden` on desktop; the results pane is the only scroll area (L835-849) while the `Pagination` block (L964-985) is a sibling after a `height:'94%'` box (L478-485) → clips the pager on short viewports (confirmed in browser runtime at 700px height in S00, [baseline/NOTES.md](baseline/NOTES.md)).
 - L444-455: any `error` replaces the entire page with an `Alert` — no retry, no filters.
 - L853-890: skeleton (200 px + text rows) ≠ real card geometry (layout shift).
 - L228: `const FilterContent = () => …` is a component **defined inside render** → remounts on each render (accordion state/slider focus reset). Rendered at L583 and L1057.
@@ -103,10 +103,9 @@ Copy/semantic mismatches: `FeaturedRestaurantsSection.tsx` L37-39 "Discover top-
 
 ### 3.4 Home → Restaurant Discovery flow (the "earlier finding", re-verified)
 
-**D-09 — URL params produced by Home are never consumed** [S] — *High*
+**D-09 — URL params produced by Home are never consumed** [S][R] — *High; confirmed in runtime in S00*
 - Producers: `Home_V.tsx` L97-100 `/restaurants?cuisine=<name>` (**dead code in the default version** — `handleCuisineClick` is never passed to `CuisinesSection`), L102-104 `/restaurants?filter=featured` (used by "View All Restaurants", L123).
-- Consumers: **none**. `useSearchParams|useLocation|URLSearchParams` is absent from `Restaurants_V.tsx`, `RestaurantsV1/V2/V0` (grep-verified); only `SearchPage.tsx` reads `?q=`.
-- Result: "View All Restaurants" opens the unfiltered, rating-sorted list; the URL promises a filter the page does not apply and cannot be shared/bookmarked/restored.
+- Consumers: **none**. `useSearchParams|useLocation|URLSearchParams` is absent from `Restaurants_V.tsx`, `RestaurantsV1/V2/V0` (grep-verified); only `SearchPage.tsx` reads `?q=`. Confirmed in browser runtime in S00 ([baseline/NOTES.md](baseline/NOTES.md)): `/restaurants?cuisine=Indian` and `/restaurants?filter=featured` render the default 8 cards with no chips applied.
 
 **D-10 — `filterByCuisine` reducer corrupts shared state** [S] — *Medium (latent in default version)*
 - `restaurantSlice_V.ts` L137-146 replaces `state.restaurants` with `mockRestaurants` filtered; `mockRestaurants` is `[]` unless `import.meta.env.DEV` (L42-48, async import) → in production it would **empty** the list. It also bypasses `filters.cuisines`, so the listing UI never shows the cuisine chip. Called from `Home_V0.tsx` L69/L195 (live click handler) and `Home_V2.tsx` L75; imported but unused in `Home_V.tsx`/`Home_V1.tsx`. Reachable in prod only via D-22.
@@ -238,7 +237,7 @@ Distinguish: *design problems* = repetition, off-brand gradient, tiny dish type,
 |---|---|---|
 | U-01 | Is a hosted instance live? README says "not yet live / no URL published" (L542-546); brief calls it "hosted". Which branch deploys (`main`/`dev/main`, not `dev/development`)? | `UNKNOWN` |
 | U-02 | Production DB contents (restaurant count, `isFeatured`, image URLs, reviews, any seeded role accounts) | `UNKNOWN` |
-| U-03 | Browser rendering of D-01/D-15/D-16 and card heights | `NEEDS VERIFICATION` (S00) |
+| U-03 | Browser rendering of D-01/D-15/D-16 and card heights | **CONFIRMED in runtime** (S00, see [baseline/NOTES.md](baseline/NOTES.md)) |
 | U-04 | S-01 exploitability on a live DB | `NEEDS VERIFICATION` on a **test** DB only |
 | U-05 | Backend discount/coupon handling at order creation | `UNKNOWN` |
 | U-06 | Whether `/dev` redirect for a `dev`-role user loops in production | `NEEDS VERIFICATION` |
