@@ -1,3 +1,7 @@
+/**
+ * @deprecated Fabricated user testimonials (Sarah Johnson, Rajesh Kumar) from pravatar.cc.
+ * Unmounted in S05 to maintain data truthfulness. See docs/portf/slices/SLICE-05.md.
+ */
 import React from 'react';
 import {
   Box,

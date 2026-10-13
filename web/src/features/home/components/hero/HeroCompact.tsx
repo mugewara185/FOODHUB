@@ -13,18 +13,19 @@ type HeroProps = {
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   handleSearch: (e: React.FormEvent<HTMLFormElement>) => void;
   stats?: { label: string; value: number|string; suffix?: string; icon: React.ElementType }[];
+  loading?: boolean;
 };
 
-const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats}:HeroProps) => {
+const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats, loading = false}:HeroProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   // Default stats if not provided
   const defaultStats = [
-    { label: "Restaurants", value: "100+", icon: Restaurant },
-    { label: "Offers", value: "50+", icon: LocalOffer },
-    { label: "Delivery Time", value: "30", suffix: "min", icon: AccessTime },
+    { label: "Restaurants", value: "Curated", icon: Restaurant },
+    { label: "Cuisines", value: "Diverse", icon: LocalOffer },
+    { label: "Delivery Time", value: "Fast", icon: AccessTime },
   ];
 
   const displayStats = stats || defaultStats;
@@ -68,7 +69,7 @@ const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats
       <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
         <Grid container spacing={{ xs: 2, md: 3 }} alignItems="center">
           {/* Left Content */}
-          <Grid item xs={12} md={7}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <motion.div
               initial="hidden"
               animate="visible"
@@ -227,21 +228,36 @@ const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats
                         alignItems="center" 
                         justifyContent="center"
                       >
-                        <stat.icon sx={{ 
-                          fontSize: { xs: 18, sm: 22, md: 26 }, 
-                          opacity: 0.9,
-                          color: "secondary.light",
-                        }} />
-                        <Typography 
-                          variant="h4" 
-                          fontWeight={700}
-                          sx={{
-                            fontSize: { xs: "1.2rem", sm: "1.5rem", md: "1.8rem" },
-                          }}
-                        >
-                          {stat.value}
-                          {stat.suffix}
-                        </Typography>
+                        {Boolean(stat.icon) && (
+                          React.isValidElement(stat.icon)
+                            ? stat.icon
+                            : React.createElement(stat.icon, {
+                                sx: {
+                                  fontSize: { xs: 18, sm: 22, md: 26 },
+                                  opacity: 0.9,
+                                  color: "secondary.light",
+                                },
+                              })
+                        )}
+                        {loading ? (
+                          <Skeleton
+                            variant="text"
+                            width={32}
+                            height={28}
+                            sx={{ bgcolor: 'rgba(255,255,255,0.25)' }}
+                          />
+                        ) : (
+                          <Typography 
+                            variant="h4" 
+                            fontWeight={700}
+                            sx={{
+                              fontSize: { xs: "1.2rem", sm: "1.5rem", md: "1.8rem" },
+                            }}
+                          >
+                            {stat.value}
+                            {stat.suffix}
+                          </Typography>
+                        )}
                       </Stack>
                       <Typography
                         variant="caption"
@@ -264,9 +280,7 @@ const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats
 
           {/* Right Image - Hidden on Mobile, Smaller on Tablet */}
           <Grid 
-            item 
-            xs={12} 
-            md={5} 
+            size={{ xs: 12, md: 5 }} 
             sx={{ 
               display: { xs: "none", md: "block" },
             }}

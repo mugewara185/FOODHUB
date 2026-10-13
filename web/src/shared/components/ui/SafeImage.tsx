@@ -2,18 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import type { BoxProps } from '@mui/material';
 
-// const FALLBACK_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANUAAACUCAMAAAAzmpx4AAAANlBMVEXm6ezc3+Lp7O/W2t63vsattb2dp7Ht8PKPmaWqsbrb3uOTnamkrbaXoayyucHh5OfCyM7IztMwfhuPAAABTUlEQVR4nO3Y0W7CIBSAYXooYAVK+/4vu4I1U7slS5qs4eT/LtQwxZ8CKsYAAAAAAAAAAAAAAAAAAAAAAAAAfyFHV0/pNCn2qHTeFWzyR8mGqyd2ivU5uU8pe3v1xM6QMa7haIljz2tQxlv5YXS49V41bG9hGN4q7hqqwpxzeh3WUCVrTFN2L8eehqrgtiMv5UdVq1FRteR59KlWSVnrsIYqY3yM+1no2krUURVse0RSUk7ZGdFRZdoPWilTnIc5zkVJVftc3BYkZnvVU1VzJvOIS1lJVV1+rqWI2b6UdVS1PfUc3LJUVD331D5qVeyrGjWZ7xAVv9nFPPfUTsMZWKPmt+H+q0p421NN9yswLlJPvM9/+EvPVfU2xufs3PQqZX+/emKn1JuzdLg8m2zXj+qXW07TeRQAAAAAAAAAAAAAAAAAAAAAAAD+y6DRF1ANDSRFLNpuAAAAAElFTkSuQmCC';
-// const FALLBACK_IMG = 'data:image/png;base64,https://placehold.co/300x220/eef2f7/94a3b8?text=No+Image'
-const FALLBACK_IMG = 'https://placehold.co/300x220/eef2f7/94a3b8?text=No+Image'
+const DEFAULT_FALLBACK_IMG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANUAAACUCAMAAAAzmpx4AAAANlBMVEXm6ezc3+Lp7O/W2t63vsattb2dp7Ht8PKPmaWqsbrb3uOTnamkrbaXoayyucHh5OfCyM7IztMwfhuPAAABTUlEQVR4nO3Y0W7CIBSAYXooYAVK+/4vu4I1U7slS5qs4eT/LtQwxZ8CKsYAAAAAAAAAAAAAAAAAAAAAAAAAfyFHV0/pNCn2qHTeFWzyR8mGqyd2ivU5uU8pe3v1xM6QMa7haIljz2tQxlv5YXS49V41bG9hGN4q7hqqwpxzeh3WUCVrTFN2L8eehqrgtiMv5UdVq1FRteR59KlWSVnrsIYqY3yM+1no2krUURVse0RSUk7ZGdFRZdoPWilTnIc5zkVJVftc3BYkZnvVU1VzJvOIS1lJVV1+rqWI2b6UdVS1PfUc3LJUVD331D5qVeyrGjWZ7xAVv9nFPPfUTsMZWKPmt+H+q0p421NN9yswLlJPvM9/+EvPVfU2xufs3PQqZX+/emKn1JuzdLg8m2zXj+qXW07TeRQAAAAAAAAAAAAAAAAAAAAAAAD+y6DRF1ANDSRFLNpuAAAAAElFTkSuQmCC';
+
 interface SafeImageProps extends Omit<BoxProps<'img'>, 'src' | 'alt' | 'onError'> {
   src?: string | null;
   alt?: string;
+  fallbackSrc?: string;
+  loading?: 'lazy' | 'eager';
+  decoding?: 'async' | 'sync' | 'auto';
   onError?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
 }
 
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   alt = 'Image',
+  fallbackSrc = DEFAULT_FALLBACK_IMG,
+  loading = 'lazy',
+  decoding = 'async',
   onError,
   sx,
   ...props
@@ -26,14 +32,15 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
   // Consider an empty string or null as an immediate error
   const isBroken = hasError || !src;
-
-  const resolvedSrc = isBroken ? FALLBACK_IMG : src;
+  const resolvedSrc = isBroken ? fallbackSrc : src;
 
   return (
     <Box
       component="img"
       src={resolvedSrc}
       alt={alt}
+      loading={loading}
+      decoding={decoding}
       onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
         if (!hasError) {
           setHasError(true);
@@ -49,7 +56,10 @@ export const SafeImage: React.FC<SafeImageProps> = ({
           onError?.(e);
         }
       }}
-      sx={sx}
+      sx={{
+        bgcolor: 'action.hover',
+        ...sx,
+      }}
       {...props}
     />
   );

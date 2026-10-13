@@ -3,7 +3,7 @@
 // ============================================================================
 // This file is deprecated. All types are now centralized in src/core/types/index.ts
 // Use imports from core/types directly instead:
-//   import type { Restaurant, FoodItem, Cart, Order } from '@/core/types'
+import type { Restaurant, FoodItem, Cart, Order } from '@/core/types'
 
 export {
   type Restaurant,

@@ -19,4 +19,24 @@ export const DeliveryDining = 'div';
 export const Favorite = 'div';
 export const FavoriteBorder = 'div';
 
+// Additional icons used across application & test suites
+export const NavigateNext = 'div';
+export const LocalOffer = 'div';
+export const Bolt = 'div';
+export const ArrowForward = 'div';
+export const CheckCircle = 'div';
+export const LocalShipping = 'div';
+export const Schedule = 'div';
+export const TrendingUp = 'div';
+export const Code = 'div';
+export const People = 'div';
+export const LocalDining = 'div';
+export const FormatQuote = 'div';
+export const LocalFireDepartment = 'div';
+export const Clear = 'div';
+export const History = 'div';
+export const FilterList = 'div';
+export const Sort = 'div';
+export const ExpandMore = 'div';
+
 export default 'div';

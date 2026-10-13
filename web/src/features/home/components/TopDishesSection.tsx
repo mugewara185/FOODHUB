@@ -1,3 +1,7 @@
+/**
+ * @deprecated Fabricated dishes with fake order counts (1200+ orders) and fake toast-only cart actions.
+ * Replaced in S05 by MenuHighlightsSection with real Redux/API items and cart actions. See docs/portf/slices/SLICE-05.md.
+ */
 import React from 'react';
 import {
   Box,

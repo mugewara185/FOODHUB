@@ -1,3 +1,7 @@
+/**
+ * @deprecated Fabricated static promo codes (FIRST50, MEGA40, FREEDELIVERY).
+ * Unmounted in S05 to maintain data truthfulness. See docs/portf/slices/SLICE-05.md.
+ */
 import React from 'react';
 import {
   Box,

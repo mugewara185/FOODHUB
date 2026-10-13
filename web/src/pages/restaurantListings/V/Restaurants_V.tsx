@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
     Container,
     Grid,
@@ -30,7 +31,6 @@ import {
     Accordion,
     AccordionSummary,
     AccordionDetails,
-    Skeleton,
     Alert,
     type SelectChangeEvent,
 } from '@mui/material';
@@ -67,6 +67,7 @@ import {
 } from '../../../features/restaurant/restaurantSlice';
 
 import RestaurantCard from '../../../features/restaurant/components/RestaurantCard/RestaurantCard_V';
+import { RestaurantCardSkeleton } from '../../../features/restaurant/components/RestaurantCard';
 
 import {
     CUISINES,
@@ -111,9 +112,7 @@ const Restaurants: React.FC = () => {
         (state) => state.restaurants.pagination.currentPage
     );
 
-    const filteredCount = useAppSelector(
-        selectFilteredRestaurants
-    ).length;
+    const [searchParams] = useSearchParams();
 
     // ---------------------------------------------------------------------------
     // Initial restaurant fetch
@@ -122,6 +121,31 @@ const Restaurants: React.FC = () => {
     useEffect(() => {
         dispatch(fetchRestaurants());
     }, [dispatch]);
+
+    // ---------------------------------------------------------------------------
+    // Synchronize URL query params (?cuisine, ?q, ?sort) into Redux filters (S04/S05 contract)
+    // ---------------------------------------------------------------------------
+
+    useEffect(() => {
+        const cuisineParam = searchParams.get('cuisine');
+        const qParam = searchParams.get('q');
+        const sortParam = searchParams.get('sort');
+
+        if (cuisineParam && !filters.cuisines.includes(cuisineParam)) {
+            dispatch(toggleCuisine(cuisineParam));
+        }
+
+        if (qParam && filters.searchQuery !== qParam) {
+            setLocalSearch(qParam);
+            dispatch(setSearchQuery(qParam));
+        }
+
+        if (sortParam && ['rating', 'deliveryTime', 'price', 'price_desc', 'name'].includes(sortParam)) {
+            if (filters.sortBy !== sortParam) {
+                dispatch(setSortBy(sortParam as any));
+            }
+        }
+    }, [searchParams, dispatch, filters.cuisines, filters.searchQuery, filters.sortBy]);
 
     // ---------------------------------------------------------------------------
     // Cleanup debounce timer
@@ -225,7 +249,7 @@ const Restaurants: React.FC = () => {
     // Filter content
     // ---------------------------------------------------------------------------
 
-    const FilterContent = () => (
+    const renderFilterContent = () => (
         <Box
             sx={{
                 p: 3,
@@ -251,8 +275,7 @@ const Restaurants: React.FC = () => {
 
                                 return (
                                     <Grid
-                                        item
-                                        xs={6}
+                                        size={6}
                                         key={cuisine.id}
                                     >
                                         <Chip
@@ -448,7 +471,7 @@ const Restaurants: React.FC = () => {
                 sx={{ py: 4 }}
             >
                 <Alert severity="error">
-                    {error}
+                    {typeof error === 'string' ? error : error.message || 'Failed to load restaurants'}
                 </Alert>
             </Container>
         );
@@ -580,7 +603,7 @@ const Restaurants: React.FC = () => {
                                 boxSizing: 'border-box',
                             }}
                         >
-                            <FilterContent />
+                            {renderFilterContent()}
                         </Box>
                     </Box>
                 )}
@@ -855,35 +878,11 @@ const Restaurants: React.FC = () => {
                                 {[1, 2, 3, 4, 5, 6].map(
                                     (item) => (
                                         <Grid
-                                            item
-                                            xs={12}
-                                            sm={6}
-                                            md={4}
+                                            size={{ xs: 12, sm: 6, md: 4 }}
                                             key={item}
+                                            sx={{ display: 'flex' }}
                                         >
-                                            <Skeleton
-                                                variant="rectangular"
-                                                height={200}
-                                                sx={{
-                                                    borderRadius: 2,
-                                                }}
-                                            />
-
-                                            <Skeleton
-                                                variant="text"
-                                                height={40}
-                                                sx={{ mt: 1 }}
-                                            />
-
-                                            <Skeleton
-                                                variant="text"
-                                                width="60%"
-                                            />
-
-                                            <Skeleton
-                                                variant="text"
-                                                width="40%"
-                                            />
+                                            <RestaurantCardSkeleton />
                                         </Grid>
                                     )
                                 )}
@@ -939,11 +938,9 @@ const Restaurants: React.FC = () => {
                                 {paginatedRestaurants.map(
                                     (restaurant) => (
                                         <Grid
-                                            item
-                                            xs={12}
-                                            sm={6}
-                                            md={4}
+                                            size={{ xs: 12, sm: 6, md: 4 }}
                                             key={restaurant.id}
+                                            sx={{ display: 'flex' }}
                                         >
                                             <RestaurantCard
                                                 restaurant={restaurant}
@@ -1054,7 +1051,7 @@ const Restaurants: React.FC = () => {
                             flex: 1,
                         }}
                     >
-                        <FilterContent />
+                        {renderFilterContent()}
                     </Box>
                 </Drawer>
             )}

@@ -19,10 +19,18 @@ import {
   Favourites,
   Profile,
   Notifications,
-  SearchPage,
   Settings
 } from '@pages/index';
 import { appConfig } from '../../../core/config/app.config';
+import { useSearchParams } from 'react-router-dom';
+
+// Redirects /search or /search?q= to /restaurants?q=
+const SearchRouteRedirect: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const q = searchParams.get('q');
+  const target = q ? `/restaurants?q=${encodeURIComponent(q)}` : '/restaurants';
+  return <Navigate to={target} replace />;
+};
 
 // Bypasses the route protection if DEV_BYPASS_AUTH is active
 const UserProtected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,7 +50,7 @@ export const UserRoutes = (
     <Route path="restaurants/:id" element={<RestaurantDetail />} />
     <Route path="favorites" element={<Favourites />} />
     <Route path="notification" element={<Notifications />} />
-    <Route path="search" element={<SearchPage />} />
+    <Route path="search" element={<SearchRouteRedirect />} />
     <Route path="settings" element={<Settings />} />
     <Route path="orders/confirmation" element={<Orderconfirmation />} />
     

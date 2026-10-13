@@ -22,29 +22,29 @@ const STEPS: Step[] = [
   {
     id: 1,
     icon: <LocationOn sx={{ fontSize: 40 }} />,
-    title: 'Set Your Location',
-    description: 'Enter your delivery address to see restaurants near you',
+    title: 'Explore Restaurants',
+    description: 'Browse curated menus, dietary filters, and ratings near you',
     color: '#FF6B6B',
   },
   {
     id: 2,
     icon: <ShoppingCart sx={{ fontSize: 40 }} />,
-    title: 'Browse & Order',
-    description: 'Choose from thousands of dishes from your favorite restaurants',
+    title: 'Choose Your Dishes',
+    description: 'Select your favorite dishes and add them to your cart with one click',
     color: '#4ECDC4',
   },
   {
     id: 3,
     icon: <LocalShipping sx={{ fontSize: 40 }} />,
-    title: 'Fast Delivery',
-    description: 'Get your food delivered hot and fresh in 20-40 minutes',
+    title: 'Seamless Checkout',
+    description: 'Experience simulated fast checkout with transparent delivery fees',
     color: '#FFD93D',
   },
   {
     id: 4,
     icon: <CheckCircle sx={{ fontSize: 40 }} />,
-    title: 'Enjoy Your Meal',
-    description: 'Savor delicious food from the comfort of your home',
+    title: 'Live Order Tracking',
+    description: 'Follow your food order status from kitchen prep to doorstep',
     color: '#6BCB77',
   },
 ];
@@ -66,7 +66,7 @@ const HowItWorksSection: React.FC = () => {
 
       <Grid container spacing={4}>
         {STEPS.map((step, index) => (
-          <Grid item xs={12} sm={6} md={3} key={step.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={step.id}>
             <Card
               sx={{
                 height: '100%',
