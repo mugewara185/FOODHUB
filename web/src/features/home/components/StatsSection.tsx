@@ -1,3 +1,7 @@
+/**
+ * @deprecated Fabricated static statistics (2500+ restaurants, 50k+ users).
+ * Replaced in S05 by truthful data sourced from Redux / API. See docs/portf/slices/SLICE-05.md.
+ */
 import React from 'react';
 import {
   Box,

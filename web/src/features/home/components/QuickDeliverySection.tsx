@@ -1,3 +1,7 @@
+/**
+ * @deprecated Fabricated quick delivery restaurants (Pizza Express, Dessert Heaven).
+ * Replaced in S05 by FastestDeliverySection backed by real restaurant data. See docs/portf/slices/SLICE-05.md.
+ */
 import React from 'react';
 import {
   Box,

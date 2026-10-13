@@ -3,8 +3,7 @@ import { createSlice, createAsyncThunk, type PayloadAction, createSelector } fro
 // import { v4 as uuidv4 } from 'uuid';
 import type { RootState } from '../../../../app/store';
 import type { Restaurant, FoodItem, Category } from '@core/types';
-import { appConfig } from '../../../../core/config/app.config';
-import { restaurantApi } from '../../../../services/api/restaurantApi';
+import { restaurantApi } from '@/services/api/restaurantApi';
 import { logger } from '@/core/dev/logger';
 import { normalizeError, type AsyncStatus, type NormalizedApiError } from '@/core/utils/asyncState';
 
@@ -20,12 +19,29 @@ export type RestaurantFilters = {
   sortBy: 'rating' | 'deliveryTime' | 'price' | 'price_desc' | 'name';
 }
 
+export interface CuisineSummary {
+  name: string;
+  count: number;
+  coverImage: string;
+}
+
+export interface MenuHighlightItem {
+  restaurantId: string;
+  restaurantName: string;
+  item: FoodItem;
+}
+
 export interface RestaurantState {
   restaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
   menuItems: FoodItem[];
   categories: Category[];
   featuredRestaurants: Restaurant[];
+  menuHighlights: {
+    status: AsyncStatus;
+    items: MenuHighlightItem[];
+    error: NormalizedApiError | null;
+  };
   fetchStatus: AsyncStatus;
   fetchByIdStatus: AsyncStatus;
   error: NormalizedApiError | null;
@@ -95,6 +111,57 @@ export const fetchRestaurantById = createAsyncThunk(
   }
 );
 
+export const fetchMenuHighlights = createAsyncThunk<
+  MenuHighlightItem[],
+  void,
+  { state: RootState }
+>(
+  'restaurants/fetchMenuHighlights',
+  async (_, { getState, rejectWithValue }) => {
+    logger.info('RESTAURANT', 'Fetching menu highlights', { event: 'RESTAURANT.HIGHLIGHTS.START' });
+    try {
+      const state = getState() as RootState;
+      let candidates = state.restaurants.featuredRestaurants;
+      if (!candidates || candidates.length === 0) {
+        candidates = state.restaurants.restaurants.slice(0, 3);
+      }
+      const topRestaurants = candidates.slice(0, 3);
+      if (topRestaurants.length === 0) {
+        return [];
+      }
+
+      const results = await Promise.allSettled(
+        topRestaurants.map((r) => restaurantApi.getById(r.id))
+      );
+
+      const highlights: MenuHighlightItem[] = [];
+      for (const res of results) {
+        if (res.status === 'fulfilled') {
+          const { restaurant, items } = res.value;
+          const availableItems = items.filter((item) => item.isAvailable !== false);
+          for (const item of availableItems.slice(0, 2)) {
+            highlights.push({
+              restaurantId: restaurant.id,
+              restaurantName: restaurant.name,
+              item,
+            });
+          }
+        }
+      }
+      logger.info('RESTAURANT', 'Menu highlights loaded', {
+        event: 'RESTAURANT.HIGHLIGHTS.SUCCESS',
+        data: { count: highlights.length },
+      });
+      return highlights;
+    } catch (error) {
+      logger.error('RESTAURANT', 'Failed to fetch menu highlights', {
+        event: 'RESTAURANT.HIGHLIGHTS.FAILURE',
+        error,
+      });
+      return rejectWithValue(normalizeError(error));
+    }
+  }
+);
 
 const initialState: RestaurantState = {
   restaurants: [],
@@ -102,6 +169,11 @@ const initialState: RestaurantState = {
   menuItems: [],
   categories: [],
   featuredRestaurants: [],
+  menuHighlights: {
+    status: 'idle',
+    items: [],
+    error: null,
+  },
   fetchStatus: 'idle',
   fetchByIdStatus: 'idle',
   loading: false,
@@ -244,6 +316,20 @@ const restaurantSlice = createSlice({
       .addCase(fetchRestaurantById.rejected, (state, action) => {
         state.fetchByIdStatus = 'error';
         state.error = action.payload as NormalizedApiError;
+      })
+
+      // Fetch menu highlights
+      .addCase(fetchMenuHighlights.pending, (state) => {
+        state.menuHighlights.status = 'loading';
+        state.menuHighlights.error = null;
+      })
+      .addCase(fetchMenuHighlights.fulfilled, (state, action) => {
+        state.menuHighlights.status = 'success';
+        state.menuHighlights.items = action.payload;
+      })
+      .addCase(fetchMenuHighlights.rejected, (state, action) => {
+        state.menuHighlights.status = 'error';
+        state.menuHighlights.error = action.payload as NormalizedApiError;
       });
   },
 });
@@ -260,6 +346,53 @@ export const selectMenuCategories = (state: RootState) => state.restaurants.cate
 export const selectRestaurantLoading = (state: RootState) => state.restaurants.fetchStatus === 'loading';
 export const selectFetchStatus = (state: RootState) => state.restaurants.fetchStatus;
 export const selectRestaurantError = (state: RootState) => state.restaurants.error;
+export const selectMenuHighlights = (state: RootState) => state.restaurants.menuHighlights;
+
+export const selectCuisineSummary = createSelector(
+  [selectAllRestaurants],
+  (restaurants): CuisineSummary[] => {
+    const map = new Map<string, { count: number; bestRating: number; image: string }>();
+    for (const r of restaurants) {
+      const cuisines = Array.isArray(r.cuisine) ? r.cuisine : [];
+      for (const c of cuisines) {
+        const trimmed = c.trim();
+        if (!trimmed) continue;
+        const existing = map.get(trimmed);
+        const currentRating = r.rating || 0;
+        const currentImg = r.image || '';
+        if (!existing) {
+          map.set(trimmed, { count: 1, bestRating: currentRating, image: currentImg });
+        } else {
+          existing.count += 1;
+          if (currentRating > existing.bestRating && currentImg) {
+            existing.bestRating = currentRating;
+            existing.image = currentImg;
+          }
+        }
+      }
+    }
+    return Array.from(map.entries())
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        coverImage: data.image,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }
+);
+
+export const selectFastestRestaurants = createSelector(
+  [selectAllRestaurants],
+  (restaurants) => {
+    return [...restaurants]
+      .sort((a, b) => {
+        const timeA = parseInt(String(a.deliveryTime), 10) || 999;
+        const timeB = parseInt(String(b.deliveryTime), 10) || 999;
+        return timeA - timeB;
+      })
+      .slice(0, 3);
+  }
+);
 
 export const selectFilteredRestaurants = createSelector(
   [selectAllRestaurants, (state: RootState) => state.restaurants.filters],

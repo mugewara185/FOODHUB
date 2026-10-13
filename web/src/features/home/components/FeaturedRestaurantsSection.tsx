@@ -36,7 +36,7 @@ const FeaturedRestaurantsSection_V = ({
           </Typography>
 
           <Typography variant="body1" color="text.secondary">
-            Discover top-rated restaurants near you
+            Restaurants highlighted on FoodHub
           </Typography>
         </Box>
 

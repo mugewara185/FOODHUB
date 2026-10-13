@@ -2,87 +2,67 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
-  Grid,
   Typography,
   Box,
   Button,
-  Paper,
-  InputBase,
-  IconButton,
-  Stack,
   Alert,
-  Chip,
-  Divider,
-  Skeleton,
-  Fade,
-  Grow,
-  Zoom,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   NavigateNext,
   Restaurant,
-  DeliveryDining,
-  Star,
   LocalOffer,
-  Schedule,
-  TrendingUp,
-  Code,
+  AccessTime,
+  Refresh,
 } from '@mui/icons-material';
-import { motion } from 'framer-motion';
-import store, { useAppDispatch, useAppSelector } from '../../../app/store';
+import { useAppDispatch, useAppSelector } from '../../../app/store';
 import { 
   fetchRestaurants, 
+  fetchMenuHighlights,
   selectFeaturedRestaurants,
   selectAllRestaurants,
   selectRestaurantLoading,
+  selectRestaurantError,
+  selectCuisineSummary,
+  selectFastestRestaurants,
+  selectMenuHighlights,
   filterByCuisine,
 } from '../../../features/restaurant/restaurantSlice';
-import RestaurantCard from '../../../features/restaurant/components/RestaurantCard/RestaurantCard_V';
-import { Restaurants_Card, RestaurantsCard as RestaurantCard2 } from '@features/restaurant/components/RestaurantCard';
 import { showToast } from '../../../features/ui/uiSlice';
-// import { CUISINES } from '../../../core/constants/food';
-//dev
-import { useDevContext } from '../../../core/dev/contexts/DevContext';
+import { useHideGlobalSearch } from '@/features/ui/hooks/useHideGlobalSearch';
 
-// Import section components
-import PromoSection from '@features/home/components/PromoSection';
-import CuisinesSection from '@features/home/components/CuisinesSection';
-import HowItWorksSection from '@features/home/components/HowItWorksSection';
-import HowItWorksSection1 from '@/features/home/components/howItWorks/HowItWorks_V1';
-import TestimonialsSection from '@features/home/components/TestimonialsSection';
-import StatsSection from '@features/home/components/StatsSection';
-import TopDishesSection from '@features/home/components/TopDishesSection';
-import QuickDeliverySection from '@features/home/components/QuickDeliverySection';
-import Hero from '@/features/home/components/hero/Hero_V';
+// Truthful section components
 import HeroCompact from '@/features/home/components/hero/HeroCompact';
 import FeaturedRestaurantsSection from '@/features/home/components/FeaturedRestaurantsSection';
-
-
-import { useHideGlobalSearch } from '@/features/ui/hooks/useHideGlobalSearch';
+import FastestDeliverySection from '@/features/home/components/FastestDeliverySection';
+import CuisineGridSection from '@/features/home/components/CuisineGridSection';
+import MenuHighlightsSection from '@/features/home/components/MenuHighlightsSection';
+import HowItWorksSection from '@/features/home/components/HowItWorksSection';
 
 const HomeV2: React.FC = () => {
   useHideGlobalSearch();
-  // console.log('store states',store.getState())
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  // const { availableVersions, selectedVersions } = useDevContext();
   
   const featuredRestaurants = useAppSelector(selectFeaturedRestaurants);
   const allRestaurants = useAppSelector(selectAllRestaurants);
   const loading = useAppSelector(selectRestaurantLoading);
+  const error = useAppSelector(selectRestaurantError);
+  const cuisineSummary = useAppSelector(selectCuisineSummary);
+  const fastestRestaurants = useAppSelector(selectFastestRestaurants);
+  const menuHighlightsState = useAppSelector(selectMenuHighlights);
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [heroImageLoaded, setHeroImageLoaded] = useState(false);
+  const [heroImageLoaded] = useState(true);
 
   useEffect(() => {
     dispatch(fetchRestaurants())
       .unwrap()
-      .catch((error) => {
+      .then(() => {
+        dispatch(fetchMenuHighlights());
+      })
+      .catch((err) => {
         dispatch(showToast({
-          message: String(error) || 'Failed to load restaurants',
+          message: String(err) || 'Failed to load restaurants',
           type: 'error'
         }));
       });
@@ -91,115 +71,120 @@ const HomeV2: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      navigate(`/restaurants?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
+
   const handleCuisineClick = (cuisine: string) => {
     dispatch(filterByCuisine(cuisine));
-    navigate(`/restaurants?cuisine=${cuisine}`);
+    navigate(`/restaurants?cuisine=${encodeURIComponent(cuisine)}`);
   };
 
   const handleViewAll = (type: string) => {
-    navigate(`/restaurants?filter=${type}`);
+    if (type === 'featured') {
+      navigate('/restaurants?featured=1');
+    } else {
+      navigate(`/restaurants?filter=${type}`);
+    }
   };
 
-  // Quick stats data
+  // Truthful stats derived from genuine store data
+  const fastestMinutes = fastestRestaurants[0]
+    ? parseInt(String(fastestRestaurants[0].deliveryTime), 10) || 25
+    : 25;
+
   const stats = [
-    { value: allRestaurants.length, label: 'Restaurants', icon: Restaurant, suffix: '+' },
-    { value: '200', label: 'Dishes', icon: LocalOffer, suffix: '+' },
-    { value: '10k', label: 'Customers', icon: TrendingUp, suffix: '+' },
-    { value: '30', label: 'min Delivery', icon: Schedule, suffix: '' },
+    { value: allRestaurants.length, label: 'Restaurants', icon: Restaurant },
+    { value: cuisineSummary.length, label: 'Cuisines', icon: LocalOffer },
+    { value: fastestMinutes, label: 'Fastest Delivery', icon: AccessTime, suffix: 'm' },
   ];
 
   return (
     <Box sx={{ overflowX: 'hidden' }}>
-      {/*Vref: Hero Section with Parallax Effect */}
-      {/* <Hero heroImageLoaded={heroImageLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleSearch={handleSearch} stats={stats} /> */}
-      <HeroCompact heroImageLoaded={heroImageLoaded} searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleSearch={handleSearch} stats={stats} />
+      {/* Hero Section with truthful stats & search */}
+      <HeroCompact 
+        heroImageLoaded={heroImageLoaded} 
+        searchQuery={searchQuery} 
+        setSearchQuery={setSearchQuery} 
+        handleSearch={handleSearch} 
+        stats={stats}
+        loading={loading}
+      />
 
-{/*Vref: Main Content */}
+      {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
-        {/*Vref: Featured Restaurants */}
-        <FeaturedRestaurantsSection restaurants={featuredRestaurants} loading={loading} onViewAll={() => handleViewAll('featured')}  />
+        {/* Global Restaurant Fetch Error Alert */}
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ mb: 4, borderRadius: 2 }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                startIcon={<Refresh />}
+                onClick={() => {
+                  dispatch(fetchRestaurants())
+                    .unwrap()
+                    .then(() => dispatch(fetchMenuHighlights()));
+                }}
+              >
+                Retry
+              </Button>
+            }
+          >
+            Unable to load restaurants. Please check your connection and try again.
+          </Alert>
+        )}
 
-        {/*Vref: Top Dishes Section - Popular Items */}
-        <Box sx={{ my: 8 }}>
-          <TopDishesSection />
-        </Box>
-        {/*Vref: Section Indicator */}
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Chip 
-            icon={<Code />}
-            label="add more components here..." 
-            color="warning" 
-            variant="outlined"
-            sx={{ mb: 2 }}
-          />
-        </Box>
+        {/* 1. Featured Restaurants */}
+        <FeaturedRestaurantsSection 
+          restaurants={featuredRestaurants} 
+          loading={loading} 
+          onViewAll={() => handleViewAll('featured')}  
+        />
 
-        <Divider sx={{ my: 4 }}>
-          <Chip label="Explore" size="medium" />
-        </Divider>
+        {/* 2. Menu Highlights (Real Items with Add-to-Cart) */}
+        <MenuHighlightsSection 
+          highlights={menuHighlightsState.items} 
+          loading={menuHighlightsState.status === 'loading'}
+          error={menuHighlightsState.error ? 'Could not load menu highlights' : null}
+          onRetry={() => dispatch(fetchMenuHighlights())}
+        />
 
-        {/*Vref: Stats Section - Credibility & Impact */}
-        <Fade in timeout={1000}>
-          <Box>
-            <StatsSection />
-          </Box>
-        </Fade>
+        {/* 3. Fastest Delivery (Real Restaurants by Delivery Time) */}
+        <FastestDeliverySection 
+          restaurants={fastestRestaurants} 
+          loading={loading} 
+        />
 
-        {/*Vref: Promo Section - Call to Action with Offers */}
-        <Zoom in timeout={800}>
-          <Box sx={{ my: 6 }}>
-            <PromoSection />
-          </Box>
-        </Zoom>
+        {/* 4. Browse by Cuisine (Real Distinct Cuisines) */}
+        <CuisineGridSection 
+          cuisines={cuisineSummary} 
+          loading={loading}
+          onCuisineClick={handleCuisineClick}
+        />
 
-        {/*Vref: Quick Delivery Section - Express Service Hook */}
-        <Grow in timeout={600}>
-          <Box sx={{ my: 6 }}>
-            <QuickDeliverySection />
-          </Box>
-        </Grow>
+        {/* 5. How It Works (Truthful Consumer Flow) */}
+        <HowItWorksSection />
 
-        {/*Vref: Cuisines Section - Browse by Category */}
-        <Box sx={{ my: 8 }}>
-          <Typography variant="h4" fontWeight={700} gutterBottom textAlign="center">
-            Browse by Cuisine
-          </Typography>
-          <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
-            Explore your favorite food categories
-          </Typography>
-          <CuisinesSection />
-        </Box>
-
-        {/*Vref: How It Works Section - User Education */}
-        <Box sx={{ my: 8 }}>
-          <HowItWorksSection />
-          {/*Vref: <HowItWorksSection1/> */}
-        </Box>
-
-        {/*Vref: Testimonials Section - Social Proof */}
-        <Box sx={{ my: 8 }}>
-          <TestimonialsSection />
-        </Box>
-
-        {/*Vref: Final CTA Section */}
+        {/* 6. Truthful Final Call to Action */}
         <Box
           sx={{
             mt: 8,
-            p: { xs: 3, md: 6 },
+            p: { xs: 4, md: 6 },
             borderRadius: 4,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
             color: 'white',
             textAlign: 'center',
+            boxShadow: '0 12px 32px rgba(255, 107, 107, 0.25)',
           }}
         >
           <Typography variant="h4" fontWeight={800} gutterBottom>
             Ready to Order?
           </Typography>
-          <Typography variant="h6" sx={{ mb: 4, opacity: 0.95 }}>
-            Join thousands of satisfied customers and get your favorite food delivered
+          <Typography variant="h6" sx={{ mb: 4, opacity: 0.95, maxWidth: 600, mx: 'auto', fontWeight: 400 }}>
+            Discover top-rated local kitchens and enjoy fresh meals delivered right to your doorstep.
           </Typography>
           <Button
             variant="contained"
@@ -210,17 +195,19 @@ const HomeV2: React.FC = () => {
               color: 'primary.main',
               px: 5,
               py: 1.5,
-              fontSize: '1.1rem',
+              fontSize: '1.05rem',
               fontWeight: 700,
+              borderRadius: 3,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
               '&:hover': {
                 bgcolor: 'grey.100',
-                transform: 'scale(1.05)',
-                transition: 'transform 0.3s ease',
+                transform: 'scale(1.03)',
+                transition: 'transform 0.2s ease',
               }
             }}
           >
-            Browse Restaurants
-            <NavigateNext sx={{ ml: 1 }} />
+            Browse All Restaurants
+            <NavigateNext sx={{ ml: 0.5 }} />
           </Button>
         </Box>
       </Container>

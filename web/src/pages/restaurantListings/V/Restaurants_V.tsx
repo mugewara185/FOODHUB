@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
     Container,
     Grid,
@@ -111,9 +112,7 @@ const Restaurants: React.FC = () => {
         (state) => state.restaurants.pagination.currentPage
     );
 
-    const filteredCount = useAppSelector(
-        selectFilteredRestaurants
-    ).length;
+    const [searchParams] = useSearchParams();
 
     // ---------------------------------------------------------------------------
     // Initial restaurant fetch
@@ -122,6 +121,31 @@ const Restaurants: React.FC = () => {
     useEffect(() => {
         dispatch(fetchRestaurants());
     }, [dispatch]);
+
+    // ---------------------------------------------------------------------------
+    // Synchronize URL query params (?cuisine, ?q, ?sort) into Redux filters (S04/S05 contract)
+    // ---------------------------------------------------------------------------
+
+    useEffect(() => {
+        const cuisineParam = searchParams.get('cuisine');
+        const qParam = searchParams.get('q');
+        const sortParam = searchParams.get('sort');
+
+        if (cuisineParam && !filters.cuisines.includes(cuisineParam)) {
+            dispatch(toggleCuisine(cuisineParam));
+        }
+
+        if (qParam && filters.searchQuery !== qParam) {
+            setLocalSearch(qParam);
+            dispatch(setSearchQuery(qParam));
+        }
+
+        if (sortParam && ['rating', 'deliveryTime', 'price', 'price_desc', 'name'].includes(sortParam)) {
+            if (filters.sortBy !== sortParam) {
+                dispatch(setSortBy(sortParam as any));
+            }
+        }
+    }, [searchParams, dispatch, filters.cuisines, filters.searchQuery, filters.sortBy]);
 
     // ---------------------------------------------------------------------------
     // Cleanup debounce timer
@@ -447,7 +471,7 @@ const Restaurants: React.FC = () => {
                 sx={{ py: 4 }}
             >
                 <Alert severity="error">
-                    {error}
+                    {typeof error === 'string' ? error : error.message || 'Failed to load restaurants'}
                 </Alert>
             </Container>
         );

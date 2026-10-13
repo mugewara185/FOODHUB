@@ -1,3 +1,7 @@
+/**
+ * @deprecated Fabricated static cuisines with fake counts (45, 38, 52).
+ * Replaced in S05 by CuisineGridSection backed by real restaurant cuisines. See docs/portf/slices/SLICE-05.md.
+ */
 import React from 'react';
 import {
   Box,
