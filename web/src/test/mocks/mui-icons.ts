@@ -15,5 +15,8 @@ export const Settings = 'div';
 export const Menu = 'div';
 export const ShoppingCart = 'div';
 export const Refresh = 'div';
+export const DeliveryDining = 'div';
+export const Favorite = 'div';
+export const FavoriteBorder = 'div';
 
 export default 'div';
