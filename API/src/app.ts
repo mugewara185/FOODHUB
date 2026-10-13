@@ -28,6 +28,7 @@ const app = express();
 
 // Security & parsing
 app.use(helmet());
+app.use(cors({ origin: '*' }))
 // app.use(
 //   cors({
 //     origin: (origin, callback) => {
