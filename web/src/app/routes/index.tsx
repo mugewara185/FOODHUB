@@ -8,13 +8,13 @@ import { AdminRoutes } from './domain/AdminRoutes';
 import { PartnerRoutes } from './domain/PartnerRoutes';
 import { OwnerRoutes } from './domain/OwnerRoutes';
 import { DevRoutes } from './domain/DevRoutes';
-import type { User } from '@/data/types/auth';
+import type { User, UserRole } from '@/data/types/auth';
 
 const AppRoutes: React.FC = () => {
   const { user } = useAuth() as { user: User | null };
 
   const roles = user?.role ?? [];
-  const has = (r: string) => roles.includes(r);
+  const has = (r: UserRole) => roles.includes(r);
   const isDev = has('dev');
 
   return (

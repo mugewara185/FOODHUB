@@ -18,17 +18,17 @@ import { appConfig } from '../../../core/config/app.config';
 // Bypasses the route protection if DEV_BYPASS_AUTH is active
 const AdminProtected: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (appConfig.dev.bypassAuth) return <>{children}</>;
-  return <ProtectedRoute allowedRoles={['admin']}>{children}</ProtectedRoute>;
+  return <ProtectedRoute allowedRoles={['admin']}>{children}</ProtectedRoute>
 };
 
 export const AdminRoutes = (
-  <Route 
-    path="/admin/*" 
+  <Route
+    path="/admin/*"
     element={
       <AdminProtected>
         <AdminLayout />
       </AdminProtected>
-    } 
+    }
   >
     <Route index element={<AdminDashboard />} />
     <Route path='orders' element={<OrdersList />} />
@@ -43,7 +43,7 @@ export const AdminRoutes = (
     <Route path='ai' element={<AdminAIPage />} />
     <Route path='ai/investigations/:id' element={<InvestigationPage />} />
     <Route path='delivery' element={<AdminDeliveryDashboard />} />
-    
+
     {/* Coming Soon Routes */}
     <Route path='payments' element={<ComingSoon title="Payments" />} />
     <Route path='orders/analytics' element={<ComingSoon title="Order Analytics" />} />
