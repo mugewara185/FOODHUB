@@ -584,7 +584,7 @@ export const Restaurants: React.FC = () => {
   // Render: Main Listing Page
   // ---------------------------------------------------------------------------
   return (
-    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', py: { xs: 2.5, sm: 3.5, md: 4.5 }, overflowX: 'hidden' }}>
+    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', py: { xs: 2.5, sm: 3.5, md: 4.5 } }}>
       <Container
         maxWidth="xl"
         sx={{
@@ -766,7 +766,7 @@ export const Restaurants: React.FC = () => {
                 maxHeight: 'calc(100vh - 100px)',
                 overflowY: 'auto',
                 overflowX: 'hidden',
-                pr: 0.5,
+                pr: 1,
                 pb: 2,
                 '&::-webkit-scrollbar': {
                   width: 6,
@@ -777,64 +777,49 @@ export const Restaurants: React.FC = () => {
                 },
               }}
             >
-              <Paper
-                elevation={0}
+              {/* Sidebar header */}
+              <Box
                 sx={{
-                  p: 2.5,
-                  borderRadius: 3,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  mb: 2,
                 }}
               >
-                {/* Sidebar header */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    mb: 2,
-                    pb: 1.5,
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FilterList color="primary" />
-                    <Typography variant="h6" fontWeight={800} fontSize="1.1rem">
-                      Filters
-                    </Typography>
-                    {activeFiltersCount > 0 && (
-                      <Chip
-                        label={activeFiltersCount}
-                        size="small"
-                        color="primary"
-                        sx={{ height: 22, fontWeight: 700 }}
-                      />
-                    )}
-                  </Box>
-
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <FilterList color="primary" />
+                  <Typography variant="h6" fontWeight={700} fontSize="1.125rem">
+                    Filters
+                  </Typography>
                   {activeFiltersCount > 0 && (
-                    <Button
-                      onClick={handleClearAllFilters}
+                    <Chip
+                      label={activeFiltersCount}
                       size="small"
-                      color="secondary"
-                      sx={{
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        minHeight: 28,
-                        color: 'text.secondary',
-                        '&:hover': { color: 'error.main' },
-                      }}
-                    >
-                      Clear All
-                    </Button>
+                      color="primary"
+                      sx={{ height: 22, fontWeight: 700 }}
+                    />
                   )}
                 </Box>
 
-                {filterContent}
-              </Paper>
+                {activeFiltersCount > 0 && (
+                  <Button
+                    onClick={handleClearAllFilters}
+                    size="small"
+                    color="secondary"
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      minHeight: 32,
+                      color: 'text.secondary',
+                      '&:hover': { color: 'error.main' },
+                    }}
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </Box>
+
+              {filterContent}
             </Box>
           )}
 
