@@ -38,5 +38,10 @@ export const History = 'div';
 export const FilterList = 'div';
 export const Sort = 'div';
 export const ExpandMore = 'div';
+export const Person = 'div';
+export const CenterFocusStrong = 'div';
+export const Chat = 'div';
+export const Send = 'div';
+export const Storefront = 'div';
 
 export default 'div';

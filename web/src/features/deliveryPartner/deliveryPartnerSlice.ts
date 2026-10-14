@@ -251,7 +251,9 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(fetchPartnerStateThunk.fulfilled, (state, action) => {
       state.isLoading = false;
-      const p = action.payload ?? {};
+      const p = (action.payload && typeof action.payload === 'object' && 'data' in action.payload && action.payload.data)
+        ? action.payload.data
+        : (action.payload ?? {});
       if (p.name) state.name = p.name;
       if (p.phone) state.phone = p.phone;
       if (p.vehicle) state.vehicle = p.vehicle;
@@ -294,7 +296,9 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(setOnlineStatusThunk.fulfilled, (state, action) => {
       state.isLoading = false;
-      const p = action.payload ?? {};
+      const p = (action.payload && typeof action.payload === 'object' && 'data' in action.payload && action.payload.data)
+        ? action.payload.data
+        : (action.payload ?? {});
       const serverStatus = p.status ?? (p.isOnline ? 'available' : 'offline');
       state.isOnline = serverStatus === 'available' || serverStatus === 'on_delivery';
       state.status =
@@ -313,7 +317,11 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(updateAssignmentStatusThunk.fulfilled, (state, action) => {
       state.isLoading = false;
-      const { status, delivery } = action.payload;
+      const { status } = action.payload;
+      const rawDelivery = action.payload.delivery;
+      const delivery = (rawDelivery && typeof rawDelivery === 'object' && 'data' in rawDelivery && rawDelivery.data)
+        ? rawDelivery.data
+        : rawDelivery;
       if (state.activeAssignment) {
         state.activeAssignment.status = status as DeliveryAssignment['status'];
         if (status === 'delivered') {
@@ -343,7 +351,9 @@ const deliveryPartnerSlice = createSlice({
       state.isLoading = false;
       state.status = 'ON_DELIVERY';
       
-      const d = action.payload.data || action.payload; // fallback if unwrapped
+      const d = (action.payload && typeof action.payload === 'object' && 'data' in action.payload && action.payload.data)
+        ? action.payload.data
+        : (action.payload || {});
       const orderId = action.meta.arg.orderId;
       const matched = state.availableAssignments.find(a => a.orderId === orderId);
 

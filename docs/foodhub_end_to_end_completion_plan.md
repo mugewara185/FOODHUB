@@ -4,8 +4,8 @@
 - **Core Order Lifecycle (Local Environment):** 100% E2E runtime verified across Customer, Owner, Partner, and Admin.
 - **Hosted Deployment Readiness:** Deployment Ready (Code & Blueprint configured; hosted runtime pending external provisioning).
 - Phase 1 — Data/Auth prerequisites: [Deferred for test automation via bypass; real JWT auth active for production].
-- Phase 2 — API contract integrity: Build, Runtime & E2E-verified.
-- Phase 3 — Customer tracking + realtime: Build, Runtime & E2E-verified.
+- Phase 2 — API contract integrity: Build, Runtime & Unit/Contract-verified (defensive envelope extraction across deliveryPartnerSlice thunks; verified in `deliveryBugs.test.tsx`).
+- Phase 3 — Customer tracking + realtime: Build, Runtime & Redux-state verified (`fetchOrderByIdThunk` maintains `currentOrder` and `items[]`; verified in `orderSliceState.test.ts`).
 - Phase 4 — Partner delivery lifecycle: Build, Runtime & E2E-verified.
 - Phase 5 — Admin & Polish: Build, Runtime & E2E-verified.
 - Phase 6 — Persistent Notifications: Build, Runtime & Integration-verified.
@@ -15,6 +15,15 @@
 - Phase 10 — Deployment Readiness (Azure SWA + Render): Code & Build-verified; Pending Cloud Provisioning.
 
 ## EVIDENCE
+**API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
+- Baseline SHA: `62414e538f1aca41602a09395db12297c7466f73`
+- Workstream A (Defensive API Envelope Unwrapping): `web/src/features/deliveryPartner/deliveryPartnerSlice.ts` defensively normalizes payloads via `action.payload?.data || action.payload` across `fetchPartnerStateThunk.fulfilled`, `setOnlineStatusThunk.fulfilled`, `updateAssignmentStatusThunk.fulfilled`, and `acceptAssignmentThunk.fulfilled`. Handled both `api.ts` unwrapped payloads and raw envelopes without dropping fields.
+- Workstream B (Order Detail Redux State): Verified `fetchOrderByIdThunk.fulfilled` in `web/src/features/orders/orderSlice.ts` correctly updates `state.currentOrder = action.payload` and synchronizes `state.items[]` in-place.
+- Unit & Contract Test Suites:
+  - `web/src/features/deliveryPartner/__tests__/deliveryBugs.test.tsx`: 7/7 tests PASS (including contract unwrapping & rejection toasts).
+  - `web/src/features/orders/__tests__/orderSliceState.test.ts`: 5/5 tests PASS (covering fetch orders, order-by-id currentOrder updates, array appends, in-place item updates, and error isolation).
+- Web Production Build: `npm run build` in `web/` PASS (exit code 0, 0 build errors).
+
 **Backend Integration Verification**
 - `API/src/__tests__/multi-actor-e2e.test.ts`
 - validates API/DB/server-side Socket.IO integration
@@ -82,6 +91,7 @@ NotificationBell / Toast
 
 ## REMAINING BLOCKERS
 - Seed pipeline plaintext passwords (Auth prerequisite) [DEFERRED BY PROJECT DECISION].
+- **Security Hardening S01 (Deferred):** Intentionally deferred to the final hardening phase; pending and preserved outside the active API contract and order state cycles.
 
 ## VERIFICATION
 - **Build verification:** TypeScript verification PASS (`npm run build` in API and web).
@@ -272,6 +282,7 @@ The Partner UI (`ActiveDelivery.tsx`) and the Partner Backend do not agree on st
 ## H. Deferred Work
 
 Do **NOT** touch the following yet:
+- Security Hardening S01 (Intentionally deferred to the final hardening phase)
 - Phase 1 Auth Seeding (Project explicitly deferred this to focus on E2E functionality)
 - Admin Fleet mapping and complex operational visibility tools.
 - Complex review backend logic (ensure basic functionality first).
