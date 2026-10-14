@@ -18,7 +18,7 @@ Project progress is calculated from explicit, weighted milestones based on imple
 | **S01** | Security hardening & safe showcase isolation | 12% | **PENDING** | 0% | Requires backend role mass-assignment fix, no-log middleware, test DB guards |
 | **S02** | Visitor entry & guided tour (`/tour`) | 10% | **PENDING** | 0% | Depends on S01; static `/tour` with real deep links & engineering showcase |
 | **S03** | Layout foundation: Grid v7, uniform card, SafeImage | 10% | **COMPLETE** | 10% | Commit `690b761`, 16:9 shell, SafeImage fallback, 4 screenshots in `s03-evidence/`, 9 tests passing |
-| **S04** | Listing contract: URL ↔ Redux ↔ filters/search | 13% | **COMPLETE** | 13% | Commit `pending`, 28 tests passing (`restaurantSlice`, `useRestaurantUrlState`, `Restaurants_V`), 8 screenshots in `listing-evidence/`, 0 horizontal overflow |
+| **S04** | Listing contract: URL ↔ Redux ↔ filters/search | 13% | **COMPLETE** | 13% | Commit `ad4bfb8`, 28 tests passing (`restaurantSlice`, `useRestaurantUrlState`, `Restaurants_V`), 8 screenshots in `listing-evidence/`, 0 horizontal overflow |
 | **S05** | Home truthfulness: data provenance & truthful CTAs | 14% | **COMPLETE** | 14% | 7 tests passing, 3 screenshots in `s05-evidence/`, 0 forbidden tokens |
 | **S06** | Batch loading & listing polish | 8% | **PENDING** | 0% | Complete catalogue fetch & client-side "Show more" batching |
 | **S07** | Home visual redesign & responsive polish | 12% | **COMPLETE** | 12% | 13 tests passing, 8 responsive screenshots in `s07-evidence/`, 0 horizontal overflow |
@@ -106,7 +106,7 @@ Project progress is calculated from explicit, weighted milestones based on imple
 ### S04 — Listing Contract: URL ↔ Redux ↔ Filters/Search
 - **Status:** **COMPLETE** (100% of milestone)
 - **Dependencies:** S03
-- **Commit:** `pending`
+- **Commit:** `ad4bfb8`
 - **Verified Evidence:**
   - Redux slice fixes in `web/src/features/restaurant/restaurantSlice/V/restaurantSlice_V.ts`:
     - Resolved D-10 (`filterByCuisine` preserving other filter dimensions).
