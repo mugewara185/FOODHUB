@@ -9,9 +9,13 @@ import restaurantReducer, {
   setVegFilter,
   filterByCuisine,
   fetchRestaurants,
+  hydrateFilters,
+  setFeaturedOnly,
   selectFilteredRestaurants,
   selectPaginatedRestaurants,
   selectTotalPages,
+  selectHasVegData,
+  selectIsInitialLoading,
   type RestaurantState,
 } from '../V/restaurantSlice_V';
 import type { Restaurant } from '../../../../core/types';
@@ -80,19 +84,19 @@ describe('restaurantSlice reducers and pagination (characterization)', () => {
     expect(store.getState().restaurants.pagination.currentPage).toBe(1);
   });
 
-  it('characterizes D-11: setSearchQuery does NOT reset pagination to 1 (known defect)', () => {
+  it('resets pagination to 1 when setSearchQuery is dispatched (fixes D-11)', () => {
     const store = createTestStore();
 
     store.dispatch(setCurrentPage(3));
     expect(store.getState().restaurants.pagination.currentPage).toBe(3);
 
-    // KNOWN-DEFECT D-11: setSearchQuery updates query but does NOT reset pagination.currentPage
+    // D-11 fixed: setSearchQuery updates query and resets pagination.currentPage to 1
     store.dispatch(setSearchQuery('pizza'));
     expect(store.getState().restaurants.filters.searchQuery).toBe('pizza');
-    expect(store.getState().restaurants.pagination.currentPage).toBe(3);
+    expect(store.getState().restaurants.pagination.currentPage).toBe(1);
   });
 
-  it('characterizes D-10: filterByCuisine("all") clobbers loaded restaurants when mockRestaurants is empty', () => {
+  it('sets filters.cuisines and leaves loaded restaurants intact (fixes D-10)', () => {
     const initialRestaurants = [
       createMockRestaurant({ id: 'r1', name: 'Restaurant 1' }),
       createMockRestaurant({ id: 'r2', name: 'Restaurant 2' }),
@@ -101,10 +105,14 @@ describe('restaurantSlice reducers and pagination (characterization)', () => {
 
     expect(store.getState().restaurants.restaurants).toHaveLength(2);
 
-    // KNOWN-DEFECT D-10: In production/unit test environment mockRestaurants is [],
-    // so filterByCuisine('all') replaces state.restaurants with []
+    // D-10 fixed: filterByCuisine sets filters.cuisines and leaves loaded restaurants intact
+    store.dispatch(filterByCuisine('Indian'));
+    expect(store.getState().restaurants.filters.cuisines).toEqual(['Indian']);
+    expect(store.getState().restaurants.restaurants).toHaveLength(2);
+
     store.dispatch(filterByCuisine('all'));
-    expect(store.getState().restaurants.restaurants).toEqual([]);
+    expect(store.getState().restaurants.filters.cuisines).toEqual([]);
+    expect(store.getState().restaurants.restaurants).toHaveLength(2);
   });
 });
 
@@ -195,7 +203,7 @@ describe('selectFilteredRestaurants (characterization)', () => {
     expect(filtered.map(r => r.id)).toEqual(['r1', 'r3']);
   });
 
-  it('characterizes D-12: deliveryTime filter uses strict equality against formatted string', () => {
+  it('filters deliveryTime by upper bound threshold (fixes D-12)', () => {
     const store = createTestStore({ restaurants: [r1] }); // r1 has deliveryTime: '30-40 min'
 
     // 'all' includes the restaurant
@@ -203,22 +211,18 @@ describe('selectFilteredRestaurants (characterization)', () => {
     let filtered = selectFilteredRestaurants(store.getState() as unknown as RootState);
     expect(filtered).toHaveLength(1);
 
-    // Exact string match '30-40 min' includes the restaurant
-    store.dispatch(setDeliveryTime('30-40 min'));
+    // Within 40 min includes '30-40 min' (upper bound 40 <= 40)
+    store.dispatch(setDeliveryTime('40'));
     filtered = selectFilteredRestaurants(store.getState() as unknown as RootState);
     expect(filtered).toHaveLength(1);
 
-    // KNOWN-DEFECT D-12: UI option '10-15 mins' or numeric '30' does not match formatted string
-    store.dispatch(setDeliveryTime('10-15 mins'));
-    filtered = selectFilteredRestaurants(store.getState() as unknown as RootState);
-    expect(filtered).toHaveLength(0);
-
+    // Within 30 min excludes '30-40 min' (upper bound 40 > 30)
     store.dispatch(setDeliveryTime('30'));
     filtered = selectFilteredRestaurants(store.getState() as unknown as RootState);
     expect(filtered).toHaveLength(0);
   });
 
-  it('characterizes D-13: isVeg filter excludes restaurants where isVeg is undefined (all API data)', () => {
+  it('isVeg filter evaluates only restaurants with boolean isVeg (fixes D-13)', () => {
     const store = createTestStore({ restaurants: [r1, r2, r4] });
     // r1: isVeg === undefined (API normalized)
     // r2: isVeg === true
@@ -227,10 +231,23 @@ describe('selectFilteredRestaurants (characterization)', () => {
     store.dispatch(setVegFilter(true));
     const filtered = selectFilteredRestaurants(store.getState() as unknown as RootState);
 
-    // KNOWN-DEFECT D-13: Because !restaurant.isVeg is true when isVeg is undefined,
-    // all API restaurants with undefined isVeg are excluded
-    expect(filtered.map(r => r.id)).toEqual(['r2']);
-    expect(filtered.some(r => r.id === 'r1')).toBe(false);
+    // D-13 fixed: r2 (true) is included, r1 (undefined) is not excluded, r4 (false) is excluded
+    expect(filtered.map(r => r.id)).toEqual(['r1', 'r2']);
+    expect(filtered.some(r => r.id === 'r4')).toBe(false);
+  });
+
+  it('filters by featuredOnly when enabled', () => {
+    const f1 = createMockRestaurant({ id: 'f1', isFeatured: true });
+    const f2 = createMockRestaurant({ id: 'f2', isFeatured: false });
+    const store = createTestStore({ restaurants: [f1, f2] });
+
+    let filtered = selectFilteredRestaurants(store.getState() as unknown as RootState);
+    expect(filtered).toHaveLength(2);
+
+    store.dispatch(setFeaturedOnly(true));
+    filtered = selectFilteredRestaurants(store.getState() as unknown as RootState);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].id).toBe('f1');
   });
 });
 
@@ -303,5 +320,61 @@ describe('fetchRestaurants thunk (characterization)', () => {
     expect(state.restaurants).toHaveLength(3);
     expect(state.featuredRestaurants).toHaveLength(2);
     expect(state.featuredRestaurants.map(r => r.id)).toEqual(['r1', 'r3']);
+  });
+});
+
+describe('hydrateFilters and UI selectors', () => {
+  it('hydrates partial filters and page atomically', () => {
+    const store = createTestStore();
+    store.dispatch(
+      hydrateFilters({
+        filters: {
+          searchQuery: 'biryani',
+          cuisines: ['Indian'],
+          minRating: 4,
+          deliveryTime: '30',
+          isOpen: true,
+          featuredOnly: true,
+          sortBy: 'name',
+        },
+        page: 2,
+      })
+    );
+
+    const filters = store.getState().restaurants.filters;
+    expect(filters.searchQuery).toBe('biryani');
+    expect(filters.cuisines).toEqual(['Indian']);
+    expect(filters.minRating).toBe(4);
+    expect(filters.deliveryTime).toBe('30');
+    expect(filters.isOpen).toBe(true);
+    expect(filters.featuredOnly).toBe(true);
+    expect(filters.sortBy).toBe('name');
+    expect(store.getState().restaurants.pagination.currentPage).toBe(2);
+  });
+
+  it('selectHasVegData returns true only when at least one restaurant has boolean isVeg', () => {
+    const noVegStore = createTestStore({
+      restaurants: [createMockRestaurant({ isVeg: undefined })],
+    });
+    expect(selectHasVegData(noVegStore.getState() as unknown as RootState)).toBe(false);
+
+    const withVegStore = createTestStore({
+      restaurants: [createMockRestaurant({ isVeg: true })],
+    });
+    expect(selectHasVegData(withVegStore.getState() as unknown as RootState)).toBe(true);
+  });
+
+  it('selectIsInitialLoading identifies initial empty loading versus background refresh', () => {
+    const initialLoadingStore = createTestStore({
+      fetchStatus: 'loading',
+      restaurants: [],
+    });
+    expect(selectIsInitialLoading(initialLoadingStore.getState() as unknown as RootState)).toBe(true);
+
+    const backgroundRefreshStore = createTestStore({
+      fetchStatus: 'loading',
+      restaurants: [createMockRestaurant()],
+    });
+    expect(selectIsInitialLoading(backgroundRefreshStore.getState() as unknown as RootState)).toBe(false);
   });
 });

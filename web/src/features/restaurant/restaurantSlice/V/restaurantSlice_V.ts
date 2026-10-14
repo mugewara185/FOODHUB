@@ -16,8 +16,9 @@ export type RestaurantFilters = {
   deliveryTime: string;
   isVeg: boolean;
   isOpen: boolean;
+  featuredOnly?: boolean;
   sortBy: 'rating' | 'deliveryTime' | 'price' | 'price_desc' | 'name';
-}
+};
 
 export interface CuisineSummary {
   name: string;
@@ -46,6 +47,7 @@ export interface RestaurantState {
   fetchByIdStatus: AsyncStatus;
   error: NormalizedApiError | null;
   loading: boolean;
+  lastFetchedAt: number | null;
   filters: RestaurantFilters;
   pagination: {
     currentPage: number;
@@ -53,14 +55,6 @@ export interface RestaurantState {
   };
   // favorites: Set<string>; // Store favorite restaurant IDs
   favorites: string[]; // for serialization in localStorage, we can convert this to a Set when using it in the app logic
-}
-
-let mockRestaurants: Restaurant[] = [];
-let mockFoodItems: FoodItem[] = [];
-
-if (import.meta.env.DEV) {
-  import('../../../../core/data/factories/restaurants').then(m => mockRestaurants = m.default);
-  import('../../../../core/data/factories/foodItems').then(m => mockFoodItems = m.default);
 }
 
 // Helper to group items by category
@@ -81,7 +75,11 @@ const groupItemsByCategory = (items: FoodItem[]) => {
 };
 
 // Async thunks
-export const fetchRestaurants = createAsyncThunk(
+export const fetchRestaurants = createAsyncThunk<
+  Restaurant[],
+  { force?: boolean } | void,
+  { state: RootState }
+>(
   'restaurants/fetchAll',
   async (_, { rejectWithValue }) => {
     logger.info('RESTAURANT', 'Loading restaurants', { event: 'RESTAURANT.LOAD.START' });
@@ -93,6 +91,22 @@ export const fetchRestaurants = createAsyncThunk(
       logger.error('RESTAURANT', 'Failed to load restaurants', { event: 'RESTAURANT.LOAD.FAILURE', error });
       return rejectWithValue(normalizeError(error));
     }
+  },
+  {
+    condition: (arg, { getState }) => {
+      const state = getState() as RootState;
+      if (state.restaurants?.fetchStatus === 'loading') {
+        return false;
+      }
+      if (arg && (arg as { force?: boolean }).force) {
+        return true;
+      }
+      const lastFetched = state.restaurants?.lastFetchedAt;
+      if (lastFetched && Date.now() - lastFetched < 60000 && state.restaurants?.restaurants?.length > 0) {
+        return false;
+      }
+      return true;
+    },
   }
 );
 
@@ -178,6 +192,7 @@ const initialState: RestaurantState = {
   fetchByIdStatus: 'idle',
   loading: false,
   error: null,
+  lastFetchedAt: null,
   filters: {
     searchQuery: '',
     cuisines: [],
@@ -187,6 +202,7 @@ const initialState: RestaurantState = {
     deliveryTime: 'all',
     isVeg: false,
     isOpen: false,
+    featuredOnly: false,
     sortBy: 'rating',
   },
   pagination: {
@@ -205,20 +221,32 @@ const restaurantSlice = createSlice({
       state.menuItems = [];
       state.categories = [];
     },
+    hydrateFilters: (
+      state,
+      action: PayloadAction<{ filters: Partial<RestaurantFilters>; page?: number }>
+    ) => {
+      state.filters = {
+        ...state.filters,
+        ...action.payload.filters,
+      };
+      if (action.payload.page !== undefined) {
+        state.pagination.currentPage = action.payload.page;
+      }
+    },
+    setFeaturedOnly: (state, action: PayloadAction<boolean>) => {
+      state.filters.featuredOnly = action.payload;
+      state.pagination.currentPage = 1;
+    },
     //restaurants
     filterByCuisine: (state, action: PayloadAction<string>) => {
-      // Filter restaurants by cuisine
-      if (action.payload === 'all') {
-        state.restaurants = mockRestaurants;
-      } else {
-        state.restaurants = mockRestaurants.filter(r =>
-          r.cuisine.includes(action.payload)
-        );
-      }
+      // Filter restaurants by cuisine without corrupting loaded restaurants (fixes D-10)
+      state.filters.cuisines = action.payload === 'all' ? [] : [action.payload];
+      state.pagination.currentPage = 1;
     },
     //filter state reducers
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.filters.searchQuery = action.payload;
+      state.pagination.currentPage = 1;
     },
     toggleCuisine: (state, action: PayloadAction<string>) => {
       const cuisine = action.payload;
@@ -228,7 +256,7 @@ const restaurantSlice = createSlice({
         state.filters.cuisines.push(cuisine);
       }
       // Reset pagination when filters change
-      state.pagination.currentPage = 1; //dev-implement:later change logic to stay in the same page even after filter change, if the current page has results after filtering, otherwise reset to page 1.
+      state.pagination.currentPage = 1;
     },
     setPriceRange: (state, action: PayloadAction<[number, number]>) => {
       state.filters.minPrice = action.payload[0];
@@ -265,6 +293,7 @@ const restaurantSlice = createSlice({
         deliveryTime: 'all',
         isVeg: false,
         isOpen: false,
+        featuredOnly: false,
         sortBy: 'rating',
       };
       state.pagination.currentPage = 1;
@@ -295,6 +324,7 @@ const restaurantSlice = createSlice({
         state.fetchStatus = 'success';
         state.restaurants = action.payload;
         state.featuredRestaurants = action.payload.filter(r => r.isFeatured);
+        state.lastFetchedAt = Date.now();
       })
       .addCase(fetchRestaurants.rejected, (state, action) => {
         state.fetchStatus = 'error';
@@ -308,6 +338,7 @@ const restaurantSlice = createSlice({
       })
       .addCase(fetchRestaurantById.fulfilled, (state, action) => {
         // console.log('fetchRestaurantById.fulfilled:', {state, action})
+        state.fetchByIdStatus = 'success';
         state.loading = false;
         state.selectedRestaurant = action.payload.restaurant;
         state.menuItems = action.payload.items;
@@ -334,7 +365,24 @@ const restaurantSlice = createSlice({
   },
 });
 
-export const { clearSelectedRestaurant, filterByCuisine, clearFilters, setCurrentPage, setDeliveryTime, setMinRating, setOpenNowFilter, setPriceRange, setSearchQuery, setSortBy, setVegFilter, toggleCuisine, toggleFavorite } = restaurantSlice.actions;
+export const {
+  clearSelectedRestaurant,
+  hydrateFilters,
+  setFeaturedOnly,
+  filterByCuisine,
+  clearFilters,
+  setCurrentPage,
+  setDeliveryTime,
+  setMinRating,
+  setOpenNowFilter,
+  setPriceRange,
+  setSearchQuery,
+  setSortBy,
+  setVegFilter,
+  toggleCuisine,
+  toggleFavorite,
+} = restaurantSlice.actions;
+
 export default restaurantSlice.reducer;
 
 // Selectors
@@ -344,9 +392,16 @@ export const selectSelectedRestaurant = (state: RootState) => state.restaurants.
 export const selectRestaurantMenu = (state: RootState) => state.restaurants.menuItems;
 export const selectMenuCategories = (state: RootState) => state.restaurants.categories;
 export const selectRestaurantLoading = (state: RootState) => state.restaurants.fetchStatus === 'loading';
+export const selectIsInitialLoading = (state: RootState) =>
+  state.restaurants.fetchStatus === 'loading' && state.restaurants.restaurants.length === 0;
 export const selectFetchStatus = (state: RootState) => state.restaurants.fetchStatus;
 export const selectRestaurantError = (state: RootState) => state.restaurants.error;
 export const selectMenuHighlights = (state: RootState) => state.restaurants.menuHighlights;
+
+export const selectHasVegData = createSelector(
+  [selectAllRestaurants],
+  (restaurants) => restaurants.some((r) => typeof r.isVeg === 'boolean')
+);
 
 export const selectCuisineSummary = createSelector(
   [selectAllRestaurants],
@@ -394,22 +449,42 @@ export const selectFastestRestaurants = createSelector(
   }
 );
 
+export const parseDeliveryMinutes = (deliveryTime: unknown): number => {
+  if (typeof deliveryTime === 'number' && !isNaN(deliveryTime)) {
+    return deliveryTime;
+  }
+  if (typeof deliveryTime === 'string') {
+    const matches = deliveryTime.match(/\d+/g);
+    if (matches && matches.length > 0) {
+      return parseInt(matches[matches.length - 1], 10);
+    }
+  }
+  return 999;
+};
+
 export const selectFilteredRestaurants = createSelector(
   [selectAllRestaurants, (state: RootState) => state.restaurants.filters],
   (restaurants, filters) => {
     return restaurants.filter(restaurant => {
-      // Search filter
+      // Search filter (name, cuisine, tags)
       if (filters.searchQuery) {
-        const query = filters.searchQuery.toLowerCase();
+        const query = filters.searchQuery.toLowerCase().trim();
         const matchesName = restaurant.name.toLowerCase().includes(query);
-        const matchesCuisine = restaurant.cuisine.some(c => c.toLowerCase().includes(query));
-        if (!matchesName && !matchesCuisine) return false;
+        const matchesCuisine = Array.isArray(restaurant.cuisine) && restaurant.cuisine.some(c => c.toLowerCase().includes(query));
+        const tags = Array.isArray(restaurant.tags) ? restaurant.tags : [];
+        const matchesTags = tags.some(t => t.toLowerCase().includes(query));
+        if (!matchesName && !matchesCuisine && !matchesTags) return false;
       }
 
-      // Cuisine filter
+      // Cuisine filter (case-insensitive)
       if (filters.cuisines.length > 0) {
-        if (!restaurant.cuisine.some(c => filters.cuisines.includes(c))) return false;
+        const selectedLower = filters.cuisines.map(c => c.toLowerCase());
+        const restaurantCuisines = Array.isArray(restaurant.cuisine) ? restaurant.cuisine.map(c => c.toLowerCase()) : [];
+        if (!selectedLower.some(c => restaurantCuisines.includes(c))) return false;
       }
+
+      // Featured filter
+      if (filters.featuredOnly && !restaurant.isFeatured) return false;
 
       // Price filter
       if (restaurant.minOrder < filters.minPrice! || restaurant.minOrder > filters.maxPrice!) return false;
@@ -417,11 +492,19 @@ export const selectFilteredRestaurants = createSelector(
       // Rating filter
       if (filters.minRating && restaurant.rating < filters.minRating) return false;
 
-      // Delivery time filter
-      if (filters.deliveryTime !== 'all' && restaurant.deliveryTime !== filters.deliveryTime) return false;
+      // Delivery time filter (numeric threshold based on upper bound)
+      if (filters.deliveryTime && filters.deliveryTime !== 'all') {
+        const maxLimit = parseInt(filters.deliveryTime, 10);
+        if (!isNaN(maxLimit)) {
+          const restaurantTime = parseDeliveryMinutes(restaurant.deliveryTime);
+          if (restaurantTime > maxLimit) return false;
+        } else if (restaurant.deliveryTime !== filters.deliveryTime) {
+          return false;
+        }
+      }
 
-      // Veg filter
-      if (filters.isVeg && !restaurant.isVeg) return false;
+      // Veg filter (only when restaurant.isVeg is boolean)
+      if (filters.isVeg && typeof restaurant.isVeg === 'boolean' && !restaurant.isVeg) return false;
 
       // Open now filter
       if (filters.isOpen && !restaurant.isOpen) return false;
@@ -440,7 +523,11 @@ export const selectSortedRestaurants = createSelector(
       case 'rating':
         return sorted.sort((a, b) => b.rating - a.rating);
       case 'deliveryTime':
-        return sorted.sort((a, b) => parseInt(a.deliveryTime) - parseInt(b.deliveryTime));
+        return sorted.sort((a, b) => {
+          const timeA = parseDeliveryMinutes(a.deliveryTime);
+          const timeB = parseDeliveryMinutes(b.deliveryTime);
+          return timeA - timeB;
+        });
       case 'price':
         return sorted.sort((a, b) => a.minOrder - b.minOrder);
       case 'price_desc':
@@ -453,18 +540,19 @@ export const selectSortedRestaurants = createSelector(
   }
 );
 
+export const selectTotalPages = createSelector(
+  [selectFilteredRestaurants, (state: RootState) => state.restaurants.pagination.itemsPerPage],
+  (restaurants, itemsPerPage) => Math.max(1, Math.ceil(restaurants.length / itemsPerPage))
+);
+
 export const selectPaginatedRestaurants = createSelector(
-  [selectSortedRestaurants, (state: RootState) => state.restaurants.pagination],
-  (restaurants, pagination) => {
-    const start = (pagination.currentPage - 1) * pagination.itemsPerPage;
+  [selectSortedRestaurants, (state: RootState) => state.restaurants.pagination, selectTotalPages],
+  (restaurants, pagination, totalPages) => {
+    const clampedPage = Math.min(Math.max(1, pagination.currentPage), totalPages);
+    const start = (clampedPage - 1) * pagination.itemsPerPage;
     const end = start + pagination.itemsPerPage;
     return restaurants.slice(start, end);
   }
-);
-
-export const selectTotalPages = createSelector(
-  [selectFilteredRestaurants, (state: RootState) => state.restaurants.pagination.itemsPerPage],
-  (restaurants, itemsPerPage) => Math.ceil(restaurants.length / itemsPerPage)
 );
 
 export const selectActiveFiltersCount = createSelector(
@@ -474,9 +562,10 @@ export const selectActiveFiltersCount = createSelector(
     if (filters.searchQuery) count++;
     if (filters.cuisines.length) count++;
     if (filters.minRating) count++;
-    if (filters.deliveryTime !== 'all') count++;
+    if (filters.deliveryTime && filters.deliveryTime !== 'all') count++;
     if (filters.isVeg) count++;
     if (filters.isOpen) count++;
+    if (filters.featuredOnly) count++;
     if (filters.minPrice! > 0 || filters.maxPrice! < 1000) count++;
     return count;
   }

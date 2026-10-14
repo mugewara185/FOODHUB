@@ -18,14 +18,14 @@ Project progress is calculated from explicit, weighted milestones based on imple
 | **S01** | Security hardening & safe showcase isolation | 12% | **PENDING** | 0% | Requires backend role mass-assignment fix, no-log middleware, test DB guards |
 | **S02** | Visitor entry & guided tour (`/tour`) | 10% | **PENDING** | 0% | Depends on S01; static `/tour` with real deep links & engineering showcase |
 | **S03** | Layout foundation: Grid v7, uniform card, SafeImage | 10% | **COMPLETE** | 10% | Commit `690b761`, 16:9 shell, SafeImage fallback, 4 screenshots in `s03-evidence/`, 9 tests passing |
-| **S04** | Listing contract: URL ↔ Redux ↔ filters/search | 13% | **PENDING** | 0% | URL parameter synchronization, filter integrity, search redirects |
+| **S04** | Listing contract: URL ↔ Redux ↔ filters/search | 13% | **COMPLETE** | 13% | Commit `pending`, 28 tests passing (`restaurantSlice`, `useRestaurantUrlState`, `Restaurants_V`), 8 screenshots in `listing-evidence/`, 0 horizontal overflow |
 | **S05** | Home truthfulness: data provenance & truthful CTAs | 14% | **COMPLETE** | 14% | 7 tests passing, 3 screenshots in `s05-evidence/`, 0 forbidden tokens |
 | **S06** | Batch loading & listing polish | 8% | **PENDING** | 0% | Complete catalogue fetch & client-side "Show more" batching |
 | **S07** | Home visual redesign & responsive polish | 12% | **COMPLETE** | 12% | 13 tests passing, 8 responsive screenshots in `s07-evidence/`, 0 horizontal overflow |
 | **S08** | Regression & portfolio acceptance | 6% | **PENDING** | 0% | Full user journey verification, security checklist audit, CI truthfulness |
-| **Total** | | **100%** | | **51.0%** | |
+| **Total** | | **100%** | | **64.0%** | |
 
-**Current Overall Progress:** **51.0% Complete**  
+**Current Overall Progress:** **64.0% Complete**  
 
 ---
 
@@ -104,13 +104,38 @@ Project progress is calculated from explicit, weighted milestones based on imple
 ---
 
 ### S04 — Listing Contract: URL ↔ Redux ↔ Filters/Search
-- **Status:** **PENDING**
+- **Status:** **COMPLETE** (100% of milestone)
 - **Dependencies:** S03
-- **Scope:**
-  - URL query parameter synchronization for `/restaurants` (`cuisine`, `q`, `sort`, `page`).
-  - Fix filter reducers (D-10, D-11, D-12, D-13).
-  - Route redirect from `/search?q=` to `/restaurants?q=`.
-- **Remaining Work:** Implementation of URL synchronization and filter fixes.
+- **Commit:** `pending`
+- **Verified Evidence:**
+  - Redux slice fixes in `web/src/features/restaurant/restaurantSlice/V/restaurantSlice_V.ts`:
+    - Resolved D-10 (`filterByCuisine` preserving other filter dimensions).
+    - Resolved D-11 (`setSearchQuery` resetting `currentPage` to 1).
+    - Resolved D-12 (delivery time evaluates numerical threshold `<= maxMinutes`).
+    - Resolved D-13 (honest vegetarian boolean evaluation).
+    - Added `featuredOnly` state/action, `hydrateFilters` atomic batch action, and `lastFetchedAt` 60s cache guard on `fetchRestaurants`.
+    - Added selectors: `selectHasVegData`, `selectIsInitialLoading`, `selectTotalPages` (clamped >= 1), and `selectPaginatedRestaurants`.
+  - URL synchronization hook in `web/src/features/restaurant/hooks/useRestaurantUrlState.ts`:
+    - Pure `parseUrlParams` and `serializeUrlParams` supporting `q`, `cuisine`, `rating`, `time`, `open`, `featured`, `sort`, `page`.
+    - 2-way sync with `isSyncingFromUrlRef` loop guard; `replace` for debounced typing and `push` for discrete filter actions.
+  - Redesigned listing page in `web/src/pages/restaurantListings/V/Restaurants_V.tsx`:
+    - Natural page scrolling; eliminated `calc(100vh - 140px)` rigid constraint; no nested double scrollbars.
+    - Sticky desktop sidebar (`SIDEBAR_WIDTH = 290px`, `top: 84px`).
+    - Responsive card grid `size={{ xs: 12, sm: 6, md: 6, lg: 4 }}` (2 cards on `md` beside sidebar, 3 cards on `lg`/`xl`, 1 card on mobile).
+    - Compact discovery header with `<h1>` "Explore Restaurants" and truthful place count badge (`X places` / `1 place`).
+    - Active filter chips bar (`data-testid="active-filter-chips"`) with individual chip delete handlers and "Clear all" button.
+    - Skeletons matching card dimensions, truthful empty state with reset button, retryable error alert on fetch failure.
+    - Full mobile filter drawer with independent scrolling and bottom action buttons.
+  - Tests:
+    - `web/src/pages/restaurantListings/__tests__/Restaurants_V.test.tsx`: 6 passed.
+    - `web/src/features/restaurant/hooks/__tests__/useRestaurantUrlState.test.ts`: 8 passed.
+    - `web/src/features/restaurant/restaurantSlice/__tests__/restaurantSlice.test.ts`: 14 passed.
+    - Full touched domain suite: 50 passed across 8 test suites.
+  - Responsive & Overflow: Zero horizontal overflow verified across 8 viewports (320, 360, 390, 430, 768, 1024, 1280, 1440 px).
+  - Production Build: Clean exit 0 (`npm run build`).
+  - Visual Evidence: 8 responsive screenshots + 1 filtered state in [`docs/portf/listing-evidence/`](listing-evidence/).
+  - Evidence Report: [`docs/portf/listing-evidence/NOTES.md`](listing-evidence/NOTES.md).
+- **Remaining Work:** None.
 
 ---
 
@@ -203,3 +228,5 @@ Project progress is calculated from explicit, weighted milestones based on imple
 - **2026-10-14 (S03 Complete):** Normalized restaurant card shell, 16:9 image wrapper, SafeImage data URI fallback, MUI v7 Grid size alignment, 9 passing tests, 4 screenshots captured. Progress: **25%**.
 - **2026-10-14 (S05 Complete):** Replaced fabricated Home content with genuine store/API data, added truthful sections, real add-to-cart with conflict dialog, URL search sync, 7 tests passing, 3 screenshots captured, TypeScript errors reduced by 19. Progress: **39%**.
 - **2026-10-14 (S07 Complete):** Cohesive responsive visual redesign of Home page, shared SectionContainer/SectionHeader/Reveal primitives, 8 device viewports verified with zero horizontal overflow, 13 tests passing, production build verified with 0 hotlinked Unsplash images. Progress: **51%**.
+- **2026-10-14 (S04 Listing Contract & Polish Complete):** Redesigned Restaurants_V with sticky sidebar, responsive grid (xs:12, sm:6, md:6, lg:4), natural scrolling, URL ↔ Redux bidirectional synchronization, fixed slice defects (D-10, D-11, D-12, D-13), 28 tests passing across slice/hook/listing, 8 responsive screenshots in listing-evidence/ with 0 horizontal overflow. Progress: **64%**.
+
