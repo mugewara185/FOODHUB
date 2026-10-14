@@ -1,8 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { RestaurantsCard } from '../RestaurantCard_V';
 import type { Restaurant } from '../../../../../core/types';
+
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 // Mock useFavorites
 vi.mock('@/features/auth/hooks/useFavorites', () => ({
@@ -163,6 +172,21 @@ describe('RestaurantCard_V', () => {
     expect(screen.getByText('Burger Palace')).toBeInTheDocument();
     expect(screen.getByText('Local area')).toBeInTheDocument();
     expect(screen.getByText('25-35 min')).toBeInTheDocument();
+  });
+
+  it('supports accessibility attributes and keyboard navigation on Enter', () => {
+    render(
+      <MemoryRouter>
+        <RestaurantsCard restaurant={baseRestaurant} />
+      </MemoryRouter>
+    );
+
+    const card = screen.getByRole('article', { name: 'Burger Palace' });
+    expect(card).toBeInTheDocument();
+    expect(card).toHaveAttribute('tabIndex', '0');
+
+    fireEvent.keyDown(card, { key: 'Enter', code: 'Enter' });
+    expect(mockNavigate).toHaveBeenCalledWith('/restaurants/r1');
   });
 });
 

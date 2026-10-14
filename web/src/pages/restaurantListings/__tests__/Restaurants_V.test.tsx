@@ -25,6 +25,11 @@ vi.mock('@/features/auth/hooks/useFavorites', () => ({
   }),
 }));
 
+const mockUseHideGlobalSearch = vi.fn();
+vi.mock('@/features/ui/hooks/useHideGlobalSearch', () => ({
+  useHideGlobalSearch: () => mockUseHideGlobalSearch(),
+}));
+
 const mockRestaurants: Restaurant[] = [
   {
     id: 'rest-1',
@@ -224,5 +229,21 @@ describe('Restaurants_V Listing Page Integration & Polish', () => {
     vi.mocked(restaurantApi.getAll).mockResolvedValueOnce(mockRestaurants);
     fireEvent.click(retryButton);
     expect(restaurantApi.getAll).toHaveBeenCalled();
+  });
+
+  it('invokes useHideGlobalSearch to prevent duplicate search bars on the listing page', () => {
+    renderWithRouterAndStore(['/restaurants']);
+    expect(mockUseHideGlobalSearch).toHaveBeenCalled();
+  });
+
+  it('correctly calculates pagination summary bounds based on itemsPerPage', () => {
+    renderWithRouterAndStore(['/restaurants'], {
+      pagination: {
+        currentPage: 2,
+        itemsPerPage: 2,
+      },
+    });
+
+    expect(screen.getByText(/showing 3–3 of 3 places/i)).toBeInTheDocument();
   });
 });

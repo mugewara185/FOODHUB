@@ -66,9 +66,23 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const target = e.target as HTMLElement;
+      if (target.tagName !== 'BUTTON' && !target.closest('button')) {
+        e.preventDefault();
+        navigate(`/restaurants/${id}`);
+      }
+    }
+  };
+
   return (
     <Card
+      role="article"
+      tabIndex={0}
+      aria-label={restaurant.name}
       onClick={() => navigate(`/restaurants/${id}`)}
+      onKeyDown={handleKeyDown}
       sx={{
         height: '100%',
         width: '100%',
@@ -83,6 +97,10 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
         position: 'relative',
         boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
         transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease',
+        '&:focus-visible': {
+          outline: (theme) => `2px solid ${theme.palette.primary.main}`,
+          outlineOffset: 2,
+        },
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: '0 12px 24px -4px rgba(0, 0, 0, 0.09), 0 4px 12px rgba(0, 0, 0, 0.04)',

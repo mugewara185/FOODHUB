@@ -78,11 +78,13 @@ import {
 import RestaurantCard from '@/features/restaurant/components/RestaurantCard/RestaurantCard_V';
 import { RestaurantCardSkeleton } from '@/features/restaurant/components/RestaurantCard';
 import { useRestaurantUrlState } from '@/features/restaurant/hooks/useRestaurantUrlState';
+import { useHideGlobalSearch } from '@/features/ui/hooks/useHideGlobalSearch';
 import { CUISINES } from '@/core/constants/food';
 
 const SIDEBAR_WIDTH = 290;
 
 export const Restaurants: React.FC = () => {
+  useHideGlobalSearch();
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -109,6 +111,7 @@ export const Restaurants: React.FC = () => {
 
   const filters = useAppSelector((state) => state.restaurants.filters);
   const currentPage = useAppSelector((state) => state.restaurants.pagination.currentPage);
+  const itemsPerPage = useAppSelector((state) => state.restaurants.pagination.itemsPerPage) || 12;
 
   // ---------------------------------------------------------------------------
   // URL Synchronization Contract (S04)
@@ -336,39 +339,36 @@ export const Restaurants: React.FC = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0, px: 2, pb: 2 }}>
-            <Grid container spacing={1}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               {CUISINES.map((cuisine) => {
                 const isSelected = filters.cuisines.includes(cuisine.name);
                 return (
-                  <Grid size={6} key={cuisine.id}>
-                    <Chip
-                      label={`${cuisine.icon} ${cuisine.name}`}
-                      onClick={() => handleCuisineToggle(cuisine.name)}
-                      color={isSelected ? 'primary' : 'default'}
-                      variant={isSelected ? 'filled' : 'outlined'}
-                      icon={isSelected ? <CheckCircle fontSize="small" sx={{ color: 'inherit !important' }} /> : undefined}
-                      sx={{
-                        width: '100%',
-                        justifyContent: 'flex-start',
-                        cursor: 'pointer',
-                        fontWeight: isSelected ? 700 : 500,
-                        fontSize: '0.75rem',
-                        height: 32,
-                        borderRadius: 2,
-                        transition: 'all 0.15s ease',
-                        borderColor: isSelected ? 'primary.main' : 'divider',
-                        bgcolor: isSelected ? 'primary.main' : 'background.paper',
-                        color: isSelected ? 'primary.contrastText' : 'text.primary',
-                        boxShadow: isSelected ? '0 2px 6px rgba(255, 107, 53, 0.25)' : 'none',
-                        '&:hover': {
-                          bgcolor: isSelected ? 'primary.dark' : 'action.hover',
-                        },
-                      }}
-                    />
-                  </Grid>
+                  <Chip
+                    key={cuisine.id}
+                    label={`${cuisine.icon} ${cuisine.name}`}
+                    onClick={() => handleCuisineToggle(cuisine.name)}
+                    color={isSelected ? 'primary' : 'default'}
+                    variant={isSelected ? 'filled' : 'outlined'}
+                    icon={isSelected ? <CheckCircle fontSize="small" sx={{ color: 'inherit !important' }} /> : undefined}
+                    sx={{
+                      cursor: 'pointer',
+                      fontWeight: isSelected ? 700 : 500,
+                      fontSize: '0.75rem',
+                      height: 32,
+                      borderRadius: 2,
+                      transition: 'all 0.15s ease',
+                      borderColor: isSelected ? 'primary.main' : 'divider',
+                      bgcolor: isSelected ? 'primary.main' : 'background.paper',
+                      color: isSelected ? 'primary.contrastText' : 'text.primary',
+                      boxShadow: isSelected ? '0 2px 6px rgba(255, 107, 53, 0.25)' : 'none',
+                      '&:hover': {
+                        bgcolor: isSelected ? 'primary.dark' : 'action.hover',
+                      },
+                    }}
+                  />
                 );
               })}
-            </Grid>
+            </Box>
           </AccordionDetails>
         </Accordion>
 
@@ -1153,29 +1153,34 @@ export const Restaurants: React.FC = () => {
             )}
 
             {/* =============================================================== */}
-            {/* Pagination                                                      */}
+            {/* Pagination (Sticky over scrolling results section)              */}
             {/* =============================================================== */}
             {totalPages > 1 && (
               <Paper
-                elevation={0}
+                elevation={3}
                 sx={{
+                  position: 'sticky',
+                  bottom: { xs: 68, sm: 72, md: 20 },
+                  zIndex: 20,
                   display: 'flex',
                   flexDirection: { xs: 'column', sm: 'row' },
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  mt: { xs: 4, md: 5 },
-                  p: 2.5,
+                  mt: { xs: 3, md: 4 },
+                  mb: 1,
+                  p: { xs: 1.5, sm: 2 },
                   borderRadius: 3,
                   border: '1px solid',
                   borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
-                  gap: 2,
+                  bgcolor: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)',
+                  gap: { xs: 1, sm: 2 },
                 }}
               >
-                <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                  Showing {Math.min((currentPage - 1) * 12 + 1, filteredRestaurants.length)}–
-                  {Math.min(currentPage * 12, filteredRestaurants.length)} of {filteredRestaurants.length} places
+                <Typography variant="body2" color="text.secondary" fontWeight={600} fontSize={{ xs: '0.8rem', sm: '0.875rem' }}>
+                  Showing {filteredRestaurants.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}–
+                  {Math.min(currentPage * itemsPerPage, filteredRestaurants.length)} of {filteredRestaurants.length} places
                 </Typography>
 
                 <Pagination
@@ -1183,7 +1188,8 @@ export const Restaurants: React.FC = () => {
                   page={currentPage}
                   onChange={handlePageChange}
                   color="primary"
-                  size={isMobile ? 'medium' : 'large'}
+                  size={isMobile ? 'small' : 'large'}
+                  siblingCount={isMobile ? 0 : 1}
                   showFirstButton
                   showLastButton
                   aria-label="Restaurant pagination navigation"
