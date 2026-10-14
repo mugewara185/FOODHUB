@@ -965,347 +965,347 @@ export const Restaurants: React.FC = () => {
 
             {/* =============================================================== */}
             {/* Active Filter Chips                                              */}
-          {/* =============================================================== */}
-          {activeFiltersCount > 0 && (
-            <Paper
-              elevation={0}
-              data-testid="active-filter-chips"
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                flexWrap: 'wrap',
-                mb: 3,
-                p: 1.75,
-                borderRadius: 2.5,
-                bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mr: 0.5 }}>
-                <FilterList sx={{ fontSize: 16, color: 'text.secondary' }} />
-                <Typography variant="caption" fontWeight={700} color="text.secondary">
-                  Active Filters ({activeFiltersCount}):
-                </Typography>
-              </Box>
-
-              {filters.searchQuery && (
-                <Chip
-                  label={`Search: "${filters.searchQuery}"`}
-                  onDelete={handleClearSearch}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                />
-              )}
-
-              {filters.featuredOnly && (
-                <Chip
-                  label="Featured Only"
-                  onDelete={() => dispatch(setFeaturedOnly(false))}
-                  size="small"
-                  color="primary"
-                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                />
-              )}
-
-              {filters.cuisines.map((cuisine) => (
-                <Chip
-                  key={cuisine}
-                  label={cuisine}
-                  onDelete={() => handleCuisineToggle(cuisine)}
-                  size="small"
-                  color="primary"
-                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                />
-              ))}
-
-              {filters.minRating && (
-                <Chip
-                  label={`${filters.minRating}★ & up`}
-                  onDelete={() => dispatch(setMinRating(null))}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                />
-              )}
-
-              {filters.deliveryTime && filters.deliveryTime !== 'all' && (
-                <Chip
-                  label={`Within ${filters.deliveryTime} mins`}
-                  onDelete={() => dispatch(setDeliveryTime('all'))}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                />
-              )}
-
-              {filters.isOpen && (
-                <Chip
-                  label="Open Now"
-                  onDelete={() => dispatch(setOpenNowFilter(false))}
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                />
-              )}
-
-              {filters.isVeg && (
-                <Chip
-                  label="Pure Veg"
-                  onDelete={() => dispatch(setVegFilter(false))}
-                  size="small"
-                  color="success"
-                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                />
-              )}
-
-              {((filters.minPrice ?? 0) > 0 || (filters.maxPrice ?? 1000) < 1000) && (
-                <Chip
-                  label={`Order: ₹${filters.minPrice ?? 0} - ₹${filters.maxPrice ?? 1000}+`}
-                  onDelete={() => dispatch(setPriceRange([0, 1000]))}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                />
-              )}
-
-              <Button
-                onClick={handleClearAllFilters}
-                size="small"
-                color="secondary"
+            {/* =============================================================== */}
+            {activeFiltersCount > 0 && (
+              <Paper
+                elevation={0}
+                data-testid="active-filter-chips"
                 sx={{
-                  ml: 'auto',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.8125rem',
-                  minHeight: 28,
-                  color: 'text.secondary',
-                  '&:hover': { color: 'error.main' },
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  flexWrap: 'wrap',
+                  mb: 3,
+                  p: 1.75,
+                  borderRadius: 2.5,
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
                 }}
               >
-                Clear all
-              </Button>
-            </Paper>
-          )}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mr: 0.5 }}>
+                  <FilterList sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Typography variant="caption" fontWeight={700} color="text.secondary">
+                    Active Filters ({activeFiltersCount}):
+                  </Typography>
+                </Box>
 
-          {/* =============================================================== */}
-          {/* Restaurant Results Grid                                         */}
-          {/* =============================================================== */}
-          {initialLoading ? (
-            /* Loading skeletons matching responsive card layout */
-            <Grid container spacing={{ xs: 2.5, sm: 3 }}>
-              {[1, 2, 3, 4, 5, 6].map((item) => (
-                <Grid
-                  size={{ xs: 12, sm: 6, md: 6, lg: 4 }}
-                  key={item}
-                  sx={{ display: 'flex' }}
-                >
-                  <RestaurantCardSkeleton />
-                </Grid>
-              ))}
-            </Grid>
-          ) : paginatedRestaurants.length === 0 ? (
-            /* Truthful empty state distinguishing filters vs empty catalogue */
-            <Paper
-              variant="outlined"
-              sx={{
-                textAlign: 'center',
-                py: { xs: 6, md: 8 },
-                px: 3,
-                borderRadius: 3,
-                borderStyle: 'dashed',
-                borderColor: 'divider',
-              }}
-            >
-              <RestaurantIcon
-                sx={{
-                  fontSize: { xs: 56, md: 72 },
-                  color: 'text.secondary',
-                  mb: 2,
-                  opacity: 0.6,
-                }}
-              />
-              <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
-                {allRestaurants.length === 0 ? 'No restaurants available' : 'No restaurants match your filters'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 460, mx: 'auto', mb: 3 }}>
-                {allRestaurants.length === 0
-                  ? 'We are actively expanding our partner kitchens. Please check back shortly.'
-                  : 'Try loosening your cuisine selections, broadening delivery duration, or resetting the search term.'}
-              </Typography>
-              {activeFiltersCount > 0 && (
+                {filters.searchQuery && (
+                  <Chip
+                    label={`Search: "${filters.searchQuery}"`}
+                    onDelete={handleClearSearch}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                  />
+                )}
+
+                {filters.featuredOnly && (
+                  <Chip
+                    label="Featured Only"
+                    onDelete={() => dispatch(setFeaturedOnly(false))}
+                    size="small"
+                    color="primary"
+                    sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                  />
+                )}
+
+                {filters.cuisines.map((cuisine) => (
+                  <Chip
+                    key={cuisine}
+                    label={cuisine}
+                    onDelete={() => handleCuisineToggle(cuisine)}
+                    size="small"
+                    color="primary"
+                    sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                  />
+                ))}
+
+                {filters.minRating && (
+                  <Chip
+                    label={`${filters.minRating}★ & up`}
+                    onDelete={() => dispatch(setMinRating(null))}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                  />
+                )}
+
+                {filters.deliveryTime && filters.deliveryTime !== 'all' && (
+                  <Chip
+                    label={`Within ${filters.deliveryTime} mins`}
+                    onDelete={() => dispatch(setDeliveryTime('all'))}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                  />
+                )}
+
+                {filters.isOpen && (
+                  <Chip
+                    label="Open Now"
+                    onDelete={() => dispatch(setOpenNowFilter(false))}
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                  />
+                )}
+
+                {filters.isVeg && (
+                  <Chip
+                    label="Pure Veg"
+                    onDelete={() => dispatch(setVegFilter(false))}
+                    size="small"
+                    color="success"
+                    sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                  />
+                )}
+
+                {((filters.minPrice ?? 0) > 0 || (filters.maxPrice ?? 1000) < 1000) && (
+                  <Chip
+                    label={`Order: ₹${filters.minPrice ?? 0} - ₹${filters.maxPrice ?? 1000}+`}
+                    onDelete={() => dispatch(setPriceRange([0, 1000]))}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                  />
+                )}
+
                 <Button
-                  variant="contained"
-                  color="primary"
                   onClick={handleClearAllFilters}
-                  sx={{ textTransform: 'none', fontWeight: 600, px: 3, py: 1, borderRadius: 2 }}
+                  size="small"
+                  color="secondary"
+                  sx={{
+                    ml: 'auto',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.8125rem',
+                    minHeight: 28,
+                    color: 'text.secondary',
+                    '&:hover': { color: 'error.main' },
+                  }}
                 >
-                  Reset All Filters
+                  Clear all
                 </Button>
-              )}
-            </Paper>
-          ) : (
-            /* Loaded Restaurant Cards */
-            <Grid container spacing={{ xs: 2.5, sm: 3 }}>
-              {paginatedRestaurants.map((restaurant) => (
-                <Grid
-                  size={{ xs: 12, sm: 6, md: 6, lg: 4 }}
-                  key={restaurant.id}
-                  sx={{ display: 'flex' }}
-                >
-                  <RestaurantCard restaurant={restaurant} />
-                </Grid>
-              ))}
-            </Grid>
-          )}
+              </Paper>
+            )}
 
-          {/* =============================================================== */}
-          {/* Pagination                                                      */}
-          {/* =============================================================== */}
-          {totalPages > 1 && (
-            <Paper
-              elevation={0}
+            {/* =============================================================== */}
+            {/* Restaurant Results Grid                                         */}
+            {/* =============================================================== */}
+            {initialLoading ? (
+              /* Loading skeletons matching responsive card layout */
+              <Grid container spacing={{ xs: 2.5, sm: 3 }}>
+                {[1, 2, 3, 4, 5, 6].map((item) => (
+                  <Grid
+                    size={{ xs: 12, sm: 6, md: 6, lg: 4 }}
+                    key={item}
+                    sx={{ display: 'flex' }}
+                  >
+                    <RestaurantCardSkeleton />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : paginatedRestaurants.length === 0 ? (
+              /* Truthful empty state distinguishing filters vs empty catalogue */
+              <Paper
+                variant="outlined"
+                sx={{
+                  textAlign: 'center',
+                  py: { xs: 6, md: 8 },
+                  px: 3,
+                  borderRadius: 3,
+                  borderStyle: 'dashed',
+                  borderColor: 'divider',
+                }}
+              >
+                <RestaurantIcon
+                  sx={{
+                    fontSize: { xs: 56, md: 72 },
+                    color: 'text.secondary',
+                    mb: 2,
+                    opacity: 0.6,
+                  }}
+                />
+                <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ mb: 1 }}>
+                  {allRestaurants.length === 0 ? 'No restaurants available' : 'No restaurants match your filters'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 460, mx: 'auto', mb: 3 }}>
+                  {allRestaurants.length === 0
+                    ? 'We are actively expanding our partner kitchens. Please check back shortly.'
+                    : 'Try loosening your cuisine selections, broadening delivery duration, or resetting the search term.'}
+                </Typography>
+                {activeFiltersCount > 0 && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleClearAllFilters}
+                    sx={{ textTransform: 'none', fontWeight: 600, px: 3, py: 1, borderRadius: 2 }}
+                  >
+                    Reset All Filters
+                  </Button>
+                )}
+              </Paper>
+            ) : (
+              /* Loaded Restaurant Cards */
+              <Grid container spacing={{ xs: 2.5, sm: 3 }}>
+                {paginatedRestaurants.map((restaurant) => (
+                  <Grid
+                    size={{ xs: 12, sm: 6, md: 6, lg: 4 }}
+                    key={restaurant.id}
+                    sx={{ display: 'flex' }}
+                  >
+                    <RestaurantCard restaurant={restaurant} />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+
+            {/* =============================================================== */}
+            {/* Pagination                                                      */}
+            {/* =============================================================== */}
+            {totalPages > 1 && (
+              <Paper
+                elevation={0}
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  mt: { xs: 4, md: 5 },
+                  p: 2.5,
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+                  gap: 2,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                  Showing {Math.min((currentPage - 1) * 12 + 1, filteredRestaurants.length)}–
+                  {Math.min(currentPage * 12, filteredRestaurants.length)} of {filteredRestaurants.length} places
+                </Typography>
+
+                <Pagination
+                  count={totalPages}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  size={isMobile ? 'medium' : 'large'}
+                  showFirstButton
+                  showLastButton
+                  aria-label="Restaurant pagination navigation"
+                  sx={{
+                    '& .MuiPaginationItem-root': {
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      '&.Mui-selected': {
+                        bgcolor: 'primary.main',
+                        color: 'primary.contrastText',
+                        boxShadow: '0 2px 8px rgba(255, 107, 53, 0.25)',
+                      },
+                    },
+                  }}
+                />
+              </Paper>
+            )}
+          </Box>
+        </Box>
+
+        {/* =================================================================== */}
+        {/* Mobile Filter Drawer                                                */}
+        {/* =================================================================== */}
+        {isMobile && (
+          <Drawer
+            anchor="left"
+            open={filterDrawerOpen}
+            onClose={() => setFilterDrawerOpen(false)}
+            PaperProps={{
+              sx: {
+                width: '85%',
+                maxWidth: 360,
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              },
+            }}
+          >
+            {/* Drawer Header */}
+            <Box
               sx={{
                 display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                mt: { xs: 4, md: 5 },
-                p: 2.5,
-                borderRadius: 3,
-                border: '1px solid',
+                p: 2,
+                borderBottom: '1px solid',
                 borderColor: 'divider',
-                bgcolor: 'background.paper',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
-                gap: 2,
               }}
             >
-              <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                Showing {Math.min((currentPage - 1) * 12 + 1, filteredRestaurants.length)}–
-                {Math.min(currentPage * 12, filteredRestaurants.length)} of {filteredRestaurants.length} places
-              </Typography>
-
-              <Pagination
-                count={totalPages}
-                page={currentPage}
-                onChange={handlePageChange}
-                color="primary"
-                size={isMobile ? 'medium' : 'large'}
-                showFirstButton
-                showLastButton
-                aria-label="Restaurant pagination navigation"
-                sx={{
-                  '& .MuiPaginationItem-root': {
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    '&.Mui-selected': {
-                      bgcolor: 'primary.main',
-                      color: 'primary.contrastText',
-                      boxShadow: '0 2px 8px rgba(255, 107, 53, 0.25)',
-                    },
-                  },
-                }}
-              />
-            </Paper>
-          )}
-        </Box>
-      </Box>
-
-      {/* =================================================================== */}
-      {/* Mobile Filter Drawer                                                */}
-      {/* =================================================================== */}
-      {isMobile && (
-        <Drawer
-          anchor="left"
-          open={filterDrawerOpen}
-          onClose={() => setFilterDrawerOpen(false)}
-          PaperProps={{
-            sx: {
-              width: '85%',
-              maxWidth: 360,
-              boxSizing: 'border-box',
-              display: 'flex',
-              flexDirection: 'column',
-            },
-          }}
-        >
-          {/* Drawer Header */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              p: 2,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <FilterList color="primary" />
-              <Typography variant="h6" fontWeight={800}>
-                Filters
-              </Typography>
-              {activeFiltersCount > 0 && (
-                <Chip
-                  label={activeFiltersCount}
-                  size="small"
-                  color="primary"
-                  sx={{ height: 22, fontWeight: 700 }}
-                />
-              )}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FilterList color="primary" />
+                <Typography variant="h6" fontWeight={800}>
+                  Filters
+                </Typography>
+                {activeFiltersCount > 0 && (
+                  <Chip
+                    label={activeFiltersCount}
+                    size="small"
+                    color="primary"
+                    sx={{ height: 22, fontWeight: 700 }}
+                  />
+                )}
+              </Box>
+              <IconButton onClick={() => setFilterDrawerOpen(false)} aria-label="Close filters">
+                <Close />
+              </IconButton>
             </Box>
-            <IconButton onClick={() => setFilterDrawerOpen(false)} aria-label="Close filters">
-              <Close />
-            </IconButton>
-          </Box>
 
-          {/* Drawer Scrollable Body */}
-          <Box sx={{ overflowY: 'auto', p: 2, flex: 1 }}>
-            {filterContent}
-          </Box>
+            {/* Drawer Scrollable Body */}
+            <Box sx={{ overflowY: 'auto', p: 2, flex: 1 }}>
+              {filterContent}
+            </Box>
 
-          {/* Drawer Sticky Footer with Clear and Apply Actions */}
-          <Box
-            sx={{
-              p: 2,
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              display: 'flex',
-              gap: 1.5,
-            }}
-          >
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={handleClearAllFilters}
-              disabled={activeFiltersCount === 0}
-              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}
+            {/* Drawer Sticky Footer with Clear and Apply Actions */}
+            <Box
+              sx={{
+                p: 2,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                display: 'flex',
+                gap: 1.5,
+              }}
             >
-              Clear All
-            </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              color="primary"
-              onClick={() => setFilterDrawerOpen(false)}
-              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}
-            >
-              Show {filteredRestaurants.length} Results
-            </Button>
-          </Box>
-        </Drawer>
-      )}
-    </Container>
-  </Box>
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={handleClearAllFilters}
+                disabled={activeFiltersCount === 0}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}
+              >
+                Clear All
+              </Button>
+              <Button
+                variant="contained"
+                fullWidth
+                color="primary"
+                onClick={() => setFilterDrawerOpen(false)}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}
+              >
+                Show {filteredRestaurants.length} Results
+              </Button>
+            </Box>
+          </Drawer>
+        )}
+      </Container>
+    </Box>
   );
 };
 
