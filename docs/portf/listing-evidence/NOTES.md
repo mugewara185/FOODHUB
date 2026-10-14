@@ -98,6 +98,7 @@ Stored in [`docs/portf/listing-evidence/`](./):
 - `restaurants-1280.png`: Standard desktop listing view (sidebar + 3 card columns)
 - `restaurants-1440.png`: Large desktop listing view
 - `restaurants-filtered-1280.png`: Filtered URL state (`?cuisine=Pizza&time=30&sort=rating`) showing active chips and truthful matching count
+- `restaurants-sticky-scroll-1280.png`: Sticky filter sidebar pinned at `top: 84px` while the restaurant results column is scrolled down 500px
 
 ### D. Production Build Verification
 - Command: `npm run build`
