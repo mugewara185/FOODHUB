@@ -16,14 +16,30 @@ import {
   CompareArrows,
   CheckCircle,
   HelpOutline,
+  OpenInNew,
 } from '@mui/icons-material';
 import { ENGINEERING_TRADEOFFS } from '../showcaseData';
+import { getGitHubFileUrl } from '../types';
 
 export const EngineeringTradeoffs: React.FC = () => {
   const [expanded, setExpanded] = useState<string | false>('atomic-concurrency');
 
   const handleChange = (panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Verified E2E':
+      case 'Integration Verified':
+        return 'success';
+      case 'Unit / Contract Tested':
+        return 'primary';
+      case 'Framework Architecture':
+        return 'secondary';
+      default:
+        return 'default';
+    }
   };
 
   return (
@@ -70,12 +86,13 @@ export const EngineeringTradeoffs: React.FC = () => {
                   </Typography>
                   <Chip
                     label={tradeoff.status}
-                    color="success"
+                    color={getStatusColor(tradeoff.status) as any}
                     size="small"
                     sx={{ fontWeight: 700, fontSize: '0.68rem', flexShrink: 0 }}
                   />
                 </Stack>
               </AccordionSummary>
+
 
               <AccordionDetails sx={{ px: 3, pb: 3, pt: 2, bgcolor: 'background.paper' }}>
                 <Box sx={{ mb: 2 }}>
@@ -118,16 +135,36 @@ export const EngineeringTradeoffs: React.FC = () => {
                   AUTHORITATIVE REPOSITORY SOURCE FILES:
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {tradeoff.sourceFiles.map((file) => (
-                    <Chip
-                      key={file}
-                      label={`📂 ${file}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontFamily: 'monospace', fontSize: '0.72rem', borderColor: 'divider' }}
-                    />
-                  ))}
+                  {tradeoff.sourceFiles.map((file) => {
+                    const lineRange = tradeoff.sourceLineRanges?.[file];
+                    return (
+                      <Chip
+                        key={file}
+                        component="a"
+                        href={getGitHubFileUrl(file, lineRange)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        clickable
+                        icon={<OpenInNew sx={{ fontSize: '13px !important' }} />}
+                        label={lineRange ? `📂 ${file} (${lineRange})` : `📂 ${file}`}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontFamily: 'monospace',
+                          fontSize: '0.72rem',
+                          borderColor: 'divider',
+                          textDecoration: 'none',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            bgcolor: 'rgba(59, 130, 246, 0.08)',
+                          },
+                        }}
+                      />
+                    );
+                  })}
                 </Stack>
+
               </AccordionDetails>
             </Accordion>
           );

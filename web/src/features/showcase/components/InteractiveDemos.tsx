@@ -203,8 +203,9 @@ export const InteractiveDemos: React.FC = () => {
                   <Chip label="Deterministic Simulation" color="info" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
-                  Demonstrates the server-side simulation loop (`delivery.simulator.service.ts`) computing intermediate coordinates between restaurant and drop-off.
+                  Demonstrates the server-side simulation loop (`API/src/modules/delivery/delivery.simulator.ts`) computing intermediate coordinates between restaurant and drop-off.
                 </Typography>
+
               </Box>
 
               <Stack direction="row" spacing={1}>
@@ -330,7 +331,7 @@ export const InteractiveDemos: React.FC = () => {
               <Typography variant="h6" fontWeight={800}>
                 Dynamic Component Versioning Engine
               </Typography>
-              <Chip label="Verified E2E" color="success" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
+              <Chip label="Framework Architecture" color="secondary" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               FoodHub abstracts component generation switching via `DevVersionRenderer.tsx`. Using Vite `import.meta.glob`, pages can dynamically load different architectural variants without route restructuring.
@@ -416,25 +417,29 @@ export default function Home() {
                   <Typography variant="h6" fontWeight={800}>
                     Structured Trace Logger & Telemetry Engine
                   </Typography>
-                  <Chip label="Verified E2E" color="success" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
+                  <Chip label="Client Observability" color="info" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
                   Live rolling stream from `web/src/core/dev/logger/Logger.ts`. Attaches trace IDs and performance measurements across HTTP, WebSockets, and Redux.
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                  * Interactive diagnostic simulation demonstrating structured trace formatting and local telemetry capture without network side effects.
                 </Typography>
               </Box>
 
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 <Button size="small" variant="outlined" onClick={() => triggerSampleEvent('API')} sx={{ textTransform: 'none', fontWeight: 600 }}>
-                  + API Log
+                  Simulate API Trace
                 </Button>
                 <Button size="small" variant="outlined" onClick={() => triggerSampleEvent('SOCKET')} sx={{ textTransform: 'none', fontWeight: 600 }}>
-                  + Socket Log
+                  Simulate Socket Trace
                 </Button>
                 <Button size="small" variant="outlined" onClick={() => triggerSampleEvent('REDUX')} sx={{ textTransform: 'none', fontWeight: 600 }}>
-                  + Redux Log
+                  Simulate Redux Trace
                 </Button>
               </Stack>
             </Stack>
+
 
             {/* Filter pills */}
             <Stack direction="row" spacing={1} sx={{ mb: 2 }}>

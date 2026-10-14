@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Restaurant, Code } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useHideGlobalSearch } from '../../features/ui/hooks/useHideGlobalSearch';
 import { ShowcaseHero } from '../../features/showcase/components/ShowcaseHero';
 import { QuickScanSummary } from '../../features/showcase/components/QuickScanSummary';
 import { ArchitectureMap } from '../../features/showcase/components/ArchitectureMap';
@@ -18,6 +19,7 @@ import { DomainShowcaseCards } from '../../features/showcase/components/DomainSh
 import { EngineeringTradeoffs } from '../../features/showcase/components/EngineeringTradeoffs';
 
 const ShowcasePage: React.FC = () => {
+  useHideGlobalSearch();
   const navigate = useNavigate();
   const [isQuickScan, setIsQuickScan] = useState<boolean>(false);
 
@@ -40,10 +42,11 @@ const ShowcasePage: React.FC = () => {
           px: { xs: 2, sm: 4 },
           bgcolor: 'background.paper',
           position: 'sticky',
-          top: 0,
-          zIndex: 1100,
+          top: { xs: 56, sm: 64 },
+          zIndex: 1090,
         }}
       >
+
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Button
             startIcon={<ArrowBack />}

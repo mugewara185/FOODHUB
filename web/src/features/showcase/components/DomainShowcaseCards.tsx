@@ -27,6 +27,7 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import { SHOWCASE_DOMAINS } from '../showcaseData';
 import type { DomainShowcase } from '../types';
+import { getGitHubFileUrl } from '../types';
 
 export const DomainShowcaseCards: React.FC = () => {
   const [activeDomainIdx, setActiveDomainIdx] = useState<number>(0);
@@ -52,7 +53,14 @@ export const DomainShowcaseCards: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Verified E2E':
+      case 'Integration Verified':
         return 'success';
+      case 'Unit / Contract Tested':
+        return 'primary';
+      case 'Framework Architecture':
+        return 'secondary';
+      case 'Client Observability':
+        return 'info';
       case 'Deterministic Simulation':
         return 'info';
       case 'Dual Transport (Mock / API)':
@@ -265,22 +273,33 @@ export const DomainShowcaseCards: React.FC = () => {
 
                     <Divider sx={{ my: 1.5 }} />
 
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography
-                        variant="caption"
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                      <Box
+                        component="a"
+                        href={getGitHubFileUrl(feature.sourceFile, feature.sourceLineRange)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
                           fontFamily: 'monospace',
-                          color: 'text.secondary',
+                          color: 'primary.main',
+                          textDecoration: 'none',
                           fontSize: '0.72rem',
                           maxWidth: '75%',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
+                          '&:hover': {
+                            textDecoration: 'underline',
+                            color: 'primary.dark',
+                          },
                         }}
-                        title={feature.sourceFile}
+                        title={`View ${feature.sourceFile} on GitHub`}
                       >
                         📂 {feature.sourceFile}
-                      </Typography>
+                        <OpenInNew sx={{ fontSize: 13, ml: 0.5, flexShrink: 0 }} />
+                      </Box>
 
                       {feature.routePath && (
                         <Button
@@ -298,6 +317,7 @@ export const DomainShowcaseCards: React.FC = () => {
                 </Card>
               </Grid>
             ))}
+
           </Grid>
         </Box>
       </Paper>

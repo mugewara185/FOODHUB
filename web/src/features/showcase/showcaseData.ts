@@ -22,7 +22,8 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Utilizes Redux Toolkit slices (`restaurantSlice.ts`) with normalized search parameters, pagination state management, and fallback image rendering (`SafeImage.tsx`).',
         sourceFile: 'web/src/pages/restaurantListings/V/Restaurants_V.tsx',
-        status: 'Verified E2E',
+        sourceLineRange: 'L40-L110',
+        status: 'Unit / Contract Tested',
         keyConcepts: ['URL Query Sync', 'Client-side Filtering', 'Resilient Images'],
         routePath: '/restaurants',
       },
@@ -33,6 +34,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Subscribes to Socket.IO order room (`order:join`). Consumes `delivery:location` and `delivery:status` payloads to render dynamic Leaflet markers and progress bars.',
         sourceFile: 'web/src/pages/Orders/OrderTracking/index.tsx',
+        sourceLineRange: 'L30-L95',
         status: 'Verified E2E',
         keyConcepts: ['WebSockets', 'Leaflet Coordinates', 'Redux Sync'],
         routePath: '/orders/tracking/ord-demo-1',
@@ -44,7 +46,8 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Direct WebSocket event routing via `chat:message` with optimistic client updates and backend database persistence.',
         sourceFile: 'web/src/shared/components/OrderChat/OrderChat.tsx',
-        status: 'Verified E2E',
+        sourceLineRange: 'L20-L80',
+        status: 'Integration Verified',
         keyConcepts: ['Socket Rooms', 'Optimistic UI', 'Unread Tracking'],
       },
     ],
@@ -70,6 +73,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Listens for `order_created` events to prepend incoming tickets without full-page reloads. Transitions order state from `placed` → `accepted` → `preparing` → `ready_for_pickup`.',
         sourceFile: 'web/src/pages/_ownerPages/orders/OrderQueue.tsx',
+        sourceLineRange: 'L40-L100',
         status: 'Verified E2E',
         keyConcepts: ['Live Queue', 'Audio Alerts', 'State Invariants'],
         routePath: '/owner',
@@ -81,6 +85,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'CRUD operations integrated with Zod validation on the backend and optimistic updates on the client.',
         sourceFile: 'web/src/pages/_ownerPages/menu/MenuItems.tsx',
+        sourceLineRange: 'L30-L90',
         status: 'Dual Transport (Mock / API)',
         keyConcepts: ['Form Validation', 'Optimistic Updates', 'Category Grouping'],
       },
@@ -107,6 +112,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Coupled with defensive Redux unwrapping in `deliveryPartnerSlice.ts`. Triggers status mutations (`arrived_pickup` → `picked_up` → `delivered`) with modal confirmation safeguards.',
         sourceFile: 'web/src/pages/_deliveryPartner/ActiveDelivery.tsx',
+        sourceLineRange: 'L50-L120',
         status: 'Verified E2E',
         keyConcepts: ['Modal Confirmations', 'Defensive Envelope Handling', 'Active Redux State'],
         routePath: '/partner',
@@ -118,6 +124,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Calculates bearing, distance, and stepped coordinate intervals (`delivery.simulator.ts`). Protected with atomic CAS guards to prevent stale updates or cancellation overwrite races.',
         sourceFile: 'API/src/modules/delivery/delivery.simulator.ts',
+        sourceLineRange: 'L88-L120',
         status: 'Deterministic Simulation',
         keyConcepts: ['Haversine Math', 'Atomic CAS Guards', 'Race Condition Prevention'],
       },
@@ -130,7 +137,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
     tagline: 'Fleet telemetry, system analytics, and operational oversight',
     description:
       'Executive command center providing live delivery tracking across all active platform couriers, centralized user management, and operational telemetry diagnostics.',
-    status: 'Verified E2E',
+    status: 'Integration Verified',
     primaryRoute: '/admin',
     accentColor: '#ef4444',
     gradient: 'linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%)',
@@ -144,7 +151,8 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Aggregates active deliveries across all restaurants. Connects to `useDeliverySocket` to render concurrent partner markers on platform maps.',
         sourceFile: 'web/src/pages/admin/delivery/index.tsx',
-        status: 'Verified E2E',
+        sourceLineRange: 'L25-L85',
+        status: 'Integration Verified',
         keyConcepts: ['Multi-marker Mapping', 'Fleet Aggregation', 'Real-time Dashboards'],
         routePath: '/admin',
       },
@@ -155,6 +163,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Prototype architectural investigation console (`AdminAIPage.tsx`) demonstrating tool-use execution interfaces and system health metrics.',
         sourceFile: 'web/src/pages/admin/ai/AdminAIPage.tsx',
+        sourceLineRange: 'L20-L70',
         status: 'Architectural Prototype',
         keyConcepts: ['Telemetry Diagnostics', 'Prototype Agent UI', 'Anomaly Detection'],
       },
@@ -167,7 +176,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
     tagline: 'Enterprise developer tooling, observability, dynamic versioning, and test data factories',
     description:
       'The foundational engineering infrastructure powering FoodHub: multi-level tracing loggers, hot-swappable UI component versioning, dual-mode transport layers, and synthetic dataset generators.',
-    status: 'Verified E2E',
+    status: 'Framework Architecture',
     primaryRoute: '/dev',
     accentColor: '#8b5cf6',
     gradient: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
@@ -181,7 +190,8 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Implemented via `DevVersionRenderer.tsx` and Vite `import.meta.glob`. Registers version variants in `DevContext` and provides seamless fallback error boundaries.',
         sourceFile: 'web/src/core/dev/renderer/DevVersionRenderer.tsx',
-        status: 'Verified E2E',
+        sourceLineRange: 'L20-L58',
+        status: 'Framework Architecture',
         keyConcepts: ['Dynamic Glob Imports', 'Component Hot-Swap', 'Architecture Evolution'],
         routePath: '/',
       },
@@ -192,7 +202,8 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'In-memory rolling buffer with localStorage persistence (`Logger.ts`). Integrated into fetch interceptors (`api.ts`), RouteLogger, and Redux middleware with filtering by level and source.',
         sourceFile: 'web/src/core/dev/logger/Logger.ts',
-        status: 'Verified E2E',
+        sourceLineRange: 'L15-L85',
+        status: 'Client Observability',
         keyConcepts: ['Distributed Tracing', 'Performance Metrics', 'Log Filtering'],
       },
       {
@@ -202,6 +213,7 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Driven by `appConfig.api.dataSource`. Mock adapters seamlessly satisfy repository API contracts when running offline or isolated in test environments.',
         sourceFile: 'web/src/core/config/app.config.ts',
+        sourceLineRange: 'L10-L60',
         status: 'Dual Transport (Mock / API)',
         keyConcepts: ['Contract Decoupling', 'Mock Adapters', 'Zero-Backend Execution'],
       },
@@ -212,11 +224,13 @@ export const SHOWCASE_DOMAINS: DomainShowcase[] = [
         technicalDetails:
           'Factory seed engine (`factorySeed.ts`) supporting presets (`minimal`, `development`, `stress`) with referential integrity across MongoDB collections.',
         sourceFile: 'web/src/core/dev/utils/factorySeed.ts',
-        status: 'Verified E2E',
+        sourceLineRange: 'L30-L110',
+        status: 'Integration Verified',
         keyConcepts: ['Relational Seeding', 'Preset Configurations', 'Testbed Safety'],
       },
     ],
   },
+
 ];
 
 export const ENGINEERING_TRADEOFFS: EngineeringTradeoff[] = [
@@ -234,7 +248,10 @@ export const ENGINEERING_TRADEOFFS: EngineeringTradeoff[] = [
       'API/src/modules/delivery/delivery.simulator.ts',
       'API/src/modules/delivery/__tests__/simulator-concurrency.integration.test.ts',
     ],
-    status: 'Verified E2E',
+    sourceLineRanges: {
+      'API/src/modules/delivery/delivery.simulator.ts': 'L88-L120',
+    },
+    status: 'Integration Verified',
   },
   {
     id: 'api-envelope-normalization',
@@ -250,7 +267,11 @@ export const ENGINEERING_TRADEOFFS: EngineeringTradeoff[] = [
       'web/src/features/deliveryPartner/deliveryPartnerSlice.ts',
       'web/src/core/utils/api.ts',
     ],
-    status: 'Verified E2E',
+    sourceLineRanges: {
+      'web/src/features/deliveryPartner/deliveryPartnerSlice.ts': 'L252-L308',
+      'web/src/core/utils/api.ts': 'L100-L135',
+    },
+    status: 'Unit / Contract Tested',
   },
   {
     id: 'version-renderer-architecture',
@@ -266,7 +287,11 @@ export const ENGINEERING_TRADEOFFS: EngineeringTradeoff[] = [
       'web/src/core/dev/renderer/DevVersionRenderer.tsx',
       'web/src/pages/Home/index.tsx',
     ],
-    status: 'Verified E2E',
+    sourceLineRanges: {
+      'web/src/core/dev/renderer/DevVersionRenderer.tsx': 'L20-L58',
+      'web/src/pages/Home/index.tsx': 'L1-L18',
+    },
+    status: 'Framework Architecture',
   },
   {
     id: 'socket-listener-hygiene',
@@ -283,7 +308,10 @@ export const ENGINEERING_TRADEOFFS: EngineeringTradeoff[] = [
       'web/src/App.tsx',
       'web/src/features/deliveryPartner/hooks/useDeliverySocket.ts',
     ],
-    status: 'Verified E2E',
+    sourceLineRanges: {
+      'web/src/features/deliveryPartner/hooks/useDeliverySocket.ts': 'L35-L60',
+    },
+    status: 'Integration Verified',
   },
   {
     id: 'multi-actor-e2e-testing',
@@ -299,9 +327,13 @@ export const ENGINEERING_TRADEOFFS: EngineeringTradeoff[] = [
       'web/e2e.ts',
       'API/src/__tests__/multi-actor-e2e.test.ts',
     ],
+    sourceLineRanges: {
+      'web/e2e.ts': 'L500-L580',
+    },
     status: 'Verified E2E',
   },
 ];
+
 
 export const ARCHITECTURE_NODES: ArchitectureNode[] = [
   {

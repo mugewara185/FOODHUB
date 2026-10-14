@@ -1,9 +1,20 @@
 export type VerificationStatus =
   | 'Verified E2E'
+  | 'Integration Verified'
+  | 'Unit / Contract Tested'
+  | 'Framework Architecture'
+  | 'Client Observability'
   | 'Deterministic Simulation'
   | 'Dual Transport (Mock / API)'
   | 'Architectural Prototype'
   | 'Deferred Hardening';
+
+export const GITHUB_REPO_BASE = 'https://github.com/mugewara185/FOODHUB/blob/dev/development';
+
+export const getGitHubFileUrl = (filePath: string, lineRange?: string): string => {
+  const base = `${GITHUB_REPO_BASE}/${filePath}`;
+  return lineRange ? `${base}#${lineRange}` : base;
+};
 
 export interface DomainFeature {
   id: string;
@@ -11,6 +22,7 @@ export interface DomainFeature {
   summary: string;
   technicalDetails: string;
   sourceFile: string;
+  sourceLineRange?: string;
   status: VerificationStatus;
   keyConcepts: string[];
   routePath?: string;
@@ -39,6 +51,7 @@ export interface EngineeringTradeoff {
   impact: string;
   tradeoffConsideration: string;
   sourceFiles: string[];
+  sourceLineRanges?: Record<string, string>;
   status: VerificationStatus;
 }
 

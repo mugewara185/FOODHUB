@@ -88,7 +88,7 @@ export const ShowcaseHero: React.FC<ShowcaseHeroProps> = ({
             />
             <Chip
               icon={<CheckCircle sx={{ fontSize: 16, color: '#4ade80 !important' }} />}
-              label="E2E VERIFIED"
+              label="MULTI-ACTOR REALTIME"
               sx={{
                 bgcolor: 'rgba(74, 222, 128, 0.15)',
                 color: '#4ade80',
@@ -97,6 +97,7 @@ export const ShowcaseHero: React.FC<ShowcaseHeroProps> = ({
                 border: '1px solid rgba(74, 222, 128, 0.3)',
               }}
             />
+
           </Stack>
 
           {/* Quick Scan Mode Toggle */}

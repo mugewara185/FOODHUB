@@ -58,6 +58,10 @@ describe('FoodHub Engineering Showcase', () => {
     it('verifies all status tags match authoritative verification classifications', () => {
       const validStatuses = [
         'Verified E2E',
+        'Integration Verified',
+        'Unit / Contract Tested',
+        'Framework Architecture',
+        'Client Observability',
         'Deterministic Simulation',
         'Dual Transport (Mock / API)',
         'Architectural Prototype',
@@ -76,6 +80,16 @@ describe('FoodHub Engineering Showcase', () => {
       });
     });
 
+    it('verifies all source files generate valid GitHub repository URLs', () => {
+      const gitHubBase = 'https://github.com/mugewara185/FOODHUB/blob/dev/development';
+      SHOWCASE_DOMAINS.forEach((domain) => {
+        domain.features.forEach((f) => {
+          expect(f.sourceFile).not.toMatch(/^file:\/\//i);
+          expect(f.sourceFile.startsWith('web/') || f.sourceFile.startsWith('API/')).toBe(true);
+        });
+      });
+    });
+
     it('contains zero exposed credentials, private tokens, or fake accounts in showcase text', () => {
       const serialized = JSON.stringify({ SHOWCASE_DOMAINS, ENGINEERING_TRADEOFFS, ARCHITECTURE_NODES });
       expect(serialized).not.toMatch(/password\s*[:=]/i);
@@ -83,6 +97,7 @@ describe('FoodHub Engineering Showcase', () => {
       expect(serialized).not.toMatch(/admin@foodhub\.internal/i);
     });
   });
+
 
   describe('Showcase Page Component Rendering', () => {
     it('renders the showcase hero header without authentication', () => {
