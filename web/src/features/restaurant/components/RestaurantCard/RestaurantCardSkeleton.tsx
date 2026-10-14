@@ -9,8 +9,12 @@ export const RestaurantCardSkeleton: React.FC = () => {
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 2,
+        borderRadius: 3,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
         overflow: 'hidden',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
       }}
     >
       {/* 16:9 Media Skeleton */}

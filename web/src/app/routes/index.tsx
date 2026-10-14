@@ -12,43 +12,30 @@ import type { User } from '@/data/types/auth';
 
 const AppRoutes: React.FC = () => {
   const { user } = useAuth() as { user: User | null };
+
+  const roles = user?.role ?? [];
+  const has = (r: string) => roles.includes(r);
+  const isDev = has('dev');
+
   return (
     <>
       <RouteLogger />
       <Routes>
-        {user?.role?.includes('admin') && <Route path="/" element={<Navigate to="/admin" replace />} />}
-        {user?.role?.includes('owner') && <Route path="/" element={<Navigate to="/owner" replace />} />}
-        {user?.role?.includes('partner') && <Route path="/" element={<Navigate to="/partner" replace />} />}
-        {user?.role?.includes('dev') && <Route path="/" element={<Navigate to="/dev" replace />} />}
-        {/* {user?.role.includes('user') && UserRoutes} */}
-        {
-          user ? (
-            user?.role[0] === 'user' ? UserRoutes :
-              user?.role[0] === 'admin' ? AdminRoutes :
-                user?.role[0] === 'partner' ? PartnerRoutes :
-                  user?.role[0] === 'owner' ? OwnerRoutes :
-                    user?.role[0] === 'dev' ? DevRoutes :
-                      // user?.role.includes('dev') ? (console.log(' dev routes'), DevRoutes) : 
-                      (console.error('No roles found in user'), UserRoutes)
-          ) : (
-            console.log('%cuser is not defined', 'color:red; font-weight:bold'),
-            UserRoutes
-          )
-        }
+        {/* Landing redirects — first match wins, priority ordered */}
+        {has('admin') && <Route path="/" element={<Navigate to="/admin" replace />} />}
+        {has('owner') && <Route path="/" element={<Navigate to="/owner" replace />} />}
+        {has('partner') && <Route path="/" element={<Navigate to="/partner" replace />} />}
+
+        {/* Always mount customer tree */}
+        {UserRoutes}
+
+        {/* Mount additional domain trees when permitted */}
+        {(has('admin') || isDev) && AdminRoutes}
+        {(has('owner') || isDev) && OwnerRoutes}
+        {(has('partner') || isDev) && PartnerRoutes}
+        {isDev && DevRoutes}
+
         <Route path="*" element={<Navigate to="/" replace />} />
-        {/* {
-          user ? (console.log('%crcba navigating to user routes', 'color:green; font-weight:bold'),
-            user?.role.includes('user') ? (console.log(' user routes'), UserRoutes) :
-              user?.role.includes('admin') ? (console.log(' admin routes '), AdminRoutes) :
-                user?.role.includes('partner') ? (console.log(' partner routes'), PartnerRoutes) :
-                  user?.role.includes('owner') ? (console.log(' owner routes'), OwnerRoutes) :
-                    // user?.role.includes('dev') ? (console.log(' dev routes'), DevRoutes) : 
-                    (console.error('No roles found in user'), UserRoutes)
-          ) : (
-            console.log('rcba navigating to login routes'),
-            UserRoutes
-          )
-        } */}
       </Routes>
     </>
   );
