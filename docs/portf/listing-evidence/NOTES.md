@@ -100,9 +100,18 @@ Stored in [`docs/portf/listing-evidence/`](./):
 - `restaurants-filtered-1280.png`: Filtered URL state (`?cuisine=Pizza&time=30&sort=rating`) showing active chips and truthful matching count
 - `restaurants-sticky-scroll-1280.png`: Sticky filter sidebar pinned at `top: 84px` while the restaurant results column is scrolled down 500px
 - `restaurants-sticky-pagination-1280.png`: Sticky floating pagination dock pinned at `bottom: 20px` over the scrolling restaurant card grid on desktop
-- `restaurants-sticky-pagination-390.png`: Sticky floating pagination dock pinned at `bottom: 68px` above the fixed mobile bottom navigation bar on iPhone 390px viewport
+- `restaurants-sticky-pagination-390.png`: Mobile listing pagination sitting cleanly above the fixed bottom navigation bar with 44px clearance
+- `mobile-overlap-current.png`: Verification measurement showing zero overlap (-43px gap) between the pagination card and the fixed mobile toolbar
 
-### D. Production Build Verification
+### D. Mobile Bottom Navigation Clearance Fix
+- **Root Cause**: `MainLayout.tsx` renders a fixed mobile bottom navigation bar (`position: fixed`, `bottom: 0`, `height: 60px`, `zIndex: 1000`). When the page container had only `py: { xs: 2.5 }` (20px), scrolling to the bottom resulted in the bottom 33px of the pagination Paper being hidden behind the toolbar.
+- **Resolution**:
+  - Container bottom padding updated to `pb: { xs: 11, sm: 11, md: 4.5 }` (88px on mobile/tablet).
+  - Pagination Paper configured with responsive positioning: `position: { xs: 'static', md: 'sticky' }`, `bottom: { md: 20 }`, and `mb: { xs: 2, md: 1 }`.
+  - When reaching the bottom of the page on mobile, the pagination card has a clean 44px breathing margin above the toolbar with 100% clickability and zero overlap.
+  - On desktop (`md+`), `position: 'sticky'` keeps the frosted glass dock pinned at `bottom: 20px` while scrolling.
+
+### E. Production Build Verification
 - Command: `npm run build`
 - Exit Code: **0**
 - Module size: `dist/assets/Restaurants_V-*.js` ~19.19 kB (gzip: ~5.07 kB)

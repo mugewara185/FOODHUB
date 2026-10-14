@@ -584,7 +584,7 @@ export const Restaurants: React.FC = () => {
   // Render: Main Listing Page
   // ---------------------------------------------------------------------------
   return (
-    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', py: { xs: 2.5, sm: 3.5, md: 4.5 } }}>
+    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', pt: { xs: 2.5, sm: 3.5, md: 4.5 }, pb: { xs: 11, sm: 11, md: 4.5 } }}>
       <Container
         maxWidth="xl"
         sx={{
@@ -1159,15 +1159,15 @@ export const Restaurants: React.FC = () => {
               <Paper
                 elevation={3}
                 sx={{
-                  position: 'sticky',
-                  bottom: { xs: 68, sm: 72, md: 20 },
+                  position: { xs: 'static', md: 'sticky' },
+                  bottom: { md: 20 },
                   zIndex: 20,
                   display: 'flex',
                   flexDirection: { xs: 'column', sm: 'row' },
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   mt: { xs: 3, md: 4 },
-                  mb: 1,
+                  mb: { xs: 2, md: 1 },
                   p: { xs: 1.5, sm: 2 },
                   borderRadius: 3,
                   border: '1px solid',
