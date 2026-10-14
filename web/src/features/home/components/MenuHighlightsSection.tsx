@@ -167,6 +167,7 @@ export const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
                       <SafeImage
                         src={highlight.item.image}
                         alt={highlight.item.name}
+                        fallbackIcon={<RestaurantMenu sx={{ fontSize: '2rem', opacity: 0.45, color: 'text.secondary' }} />}
                         sx={{
                           width: '100%',
                           height: '100%',
