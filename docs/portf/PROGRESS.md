@@ -21,11 +21,11 @@ Project progress is calculated from explicit, weighted milestones based on imple
 | **S04** | Listing contract: URL ↔ Redux ↔ filters/search | 13% | **PENDING** | 0% | URL parameter synchronization, filter integrity, search redirects |
 | **S05** | Home truthfulness: data provenance & truthful CTAs | 14% | **COMPLETE** | 14% | 7 tests passing, 3 screenshots in `s05-evidence/`, 0 forbidden tokens |
 | **S06** | Batch loading & listing polish | 8% | **PENDING** | 0% | Complete catalogue fetch & client-side "Show more" batching |
-| **S07** | Home visual redesign & responsive polish | 12% | **PENDING** | 0% | Depends on S03 & S05; visual styling, responsive layout (320-1440), motion tokens |
+| **S07** | Home visual redesign & responsive polish | 12% | **COMPLETE** | 12% | 13 tests passing, 8 responsive screenshots in `s07-evidence/`, 0 horizontal overflow |
 | **S08** | Regression & portfolio acceptance | 6% | **PENDING** | 0% | Full user journey verification, security checklist audit, CI truthfulness |
-| **Total** | | **100%** | | **39.0%** | |
+| **Total** | | **100%** | | **51.0%** | |
 
-**Current Overall Progress:** **39.0% Complete**  
+**Current Overall Progress:** **51.0% Complete**  
 
 ---
 
@@ -155,14 +155,36 @@ Project progress is calculated from explicit, weighted milestones based on imple
 ---
 
 ### S07 — Home Visual Redesign & Responsive Polish
-- **Status:** **PENDING**
+- **Status:** **COMPLETE** (100% of milestone)
 - **Dependencies:** S03, S05
-- **Scope:**
-  - Full visual polish across 320px–1440px viewports.
-  - Shared `SectionHeader` and `SectionContainer` rhythm.
-  - Restrained motion (`prefers-reduced-motion` compliance).
-  - Clean up unreferenced scratch files while strictly preserving `DevVersionRenderer` and swappable variants.
-- **Remaining Work:** Implementation.
+- **Verified Evidence:**
+  - Layout & Design Primitives in `web/src/features/home/components/shared/`:
+    - `SectionContainer.tsx`: Standardized `<section>` container with consistent vertical rhythm (`py: { xs: 4, sm: 5, md: 6 }`) and alternating backgrounds.
+    - `SectionHeader.tsx`: Accessible `<h2>` headers with responsive scale and ≥ 44px action buttons.
+    - `Reveal.tsx`: Motion wrapper strictly obeying `prefers-reduced-motion` and guarded against missing `IntersectionObserver`.
+  - Hero Redesign in `web/src/features/home/components/hero/HeroCompact.tsx`:
+    - Eliminated hotlinked Unsplash assets; integrated `SafeImage` photography with eager loading.
+    - Added high-contrast brand gradient overlay (contrast ratio > 6:1) and secondary CTA to `/restaurants`.
+    - Live store metrics chips and development mode marker preserved.
+  - Section Harmonization:
+    - `FeaturedRestaurantsSection.tsx`: Harmonized with `SectionHeader`, `Reveal`, and uniform 3-col flex-stretch grid.
+    - `MenuHighlightsSection.tsx`: Standardized 16:9 `SafeImage` card styling; single-restaurant cart conflict `Dialog` and live `addToCart` preserved.
+    - `FastestDeliverySection.tsx`: Harmonized with `SectionHeader` and `Reveal`.
+    - `CuisineGridSection.tsx`: 2-col to 6-col responsive grid with high-contrast text overlay and deep links to `/restaurants?cuisine=<name>`.
+    - `HowItWorksSection.tsx`: Eliminated horizontal overflow connector line; clean card layout with `SectionHeader`.
+    - `Home_V.tsx`: Composed page with `SectionContainer` rhythm and theme-token Final CTA.
+  - Heading & A11y Verification:
+    - Strict heading hierarchy: exactly one `<h1>` in Hero, sequential `<h2>` section headers.
+    - Zero horizontal overflow verified across 8 viewports (320, 360, 390, 430, 768, 1024, 1280, 1440 px).
+  - Tests:
+    - `Home_V.s07.test.tsx`: 6 passed.
+    - `Home_V.test.tsx`: 3 passed (including FORBIDDEN-TEXT LINT).
+    - `restaurantSlice.home.test.ts`: 4 passed.
+  - Production Build: Clean exit 0 (`vite build`).
+  - Bundle Inspection: Zero matches for `images.unsplash.com` in `Home_V-*.js`.
+  - Visual Evidence: 8 responsive screenshots in [`docs/portf/s07-evidence/`](s07-evidence/).
+  - Evidence Report: [`docs/portf/s07-evidence/NOTES.md`](s07-evidence/NOTES.md).
+- **Remaining Work:** None.
 
 ---
 
@@ -180,3 +202,4 @@ Project progress is calculated from explicit, weighted milestones based on imple
 - **2026-10-14 (Phase 6A Complete):** Portfolio product philosophy and showcase guidelines established across all planning documents. Progress: **15%**.
 - **2026-10-14 (S03 Complete):** Normalized restaurant card shell, 16:9 image wrapper, SafeImage data URI fallback, MUI v7 Grid size alignment, 9 passing tests, 4 screenshots captured. Progress: **25%**.
 - **2026-10-14 (S05 Complete):** Replaced fabricated Home content with genuine store/API data, added truthful sections, real add-to-cart with conflict dialog, URL search sync, 7 tests passing, 3 screenshots captured, TypeScript errors reduced by 19. Progress: **39%**.
+- **2026-10-14 (S07 Complete):** Cohesive responsive visual redesign of Home page, shared SectionContainer/SectionHeader/Reveal primitives, 8 device viewports verified with zero horizontal overflow, 13 tests passing, production build verified with 0 hotlinked Unsplash images. Progress: **51%**.

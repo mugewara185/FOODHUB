@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Container,
-  Typography,
   Box,
   Button,
   Alert,
+  Typography,
 } from '@mui/material';
 import {
   NavigateNext,
@@ -30,6 +29,9 @@ import {
 import { showToast } from '../../../features/ui/uiSlice';
 import { useHideGlobalSearch } from '@/features/ui/hooks/useHideGlobalSearch';
 
+// Shared Layout Primitives
+import { SectionContainer } from '@/features/home/components/shared/SectionContainer';
+
 // Truthful section components
 import HeroCompact from '@/features/home/components/hero/HeroCompact';
 import FeaturedRestaurantsSection from '@/features/home/components/FeaturedRestaurantsSection';
@@ -38,7 +40,7 @@ import CuisineGridSection from '@/features/home/components/CuisineGridSection';
 import MenuHighlightsSection from '@/features/home/components/MenuHighlightsSection';
 import HowItWorksSection from '@/features/home/components/HowItWorksSection';
 
-const HomeV2: React.FC = () => {
+const Home_V: React.FC = () => {
   useHideGlobalSearch();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -52,7 +54,7 @@ const HomeV2: React.FC = () => {
   const menuHighlightsState = useAppSelector(selectMenuHighlights);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [heroImageLoaded] = useState(true);
+  const [heroImageLoaded, setHeroImageLoaded] = useState(false);
 
   useEffect(() => {
     dispatch(fetchRestaurants())
@@ -99,25 +101,34 @@ const HomeV2: React.FC = () => {
     { value: fastestMinutes, label: 'Fastest Delivery', icon: AccessTime, suffix: 'm' },
   ];
 
+  // Authentic hero photography candidate from featured kitchens or cuisine cover
+  const heroImageCandidate =
+    featuredRestaurants[0]?.imageUrl ||
+    featuredRestaurants[0]?.image ||
+    cuisineSummary[0]?.coverImage ||
+    '';
+
   return (
-    <Box sx={{ overflowX: 'hidden' }}>
-      {/* Hero Section with truthful stats & search */}
+    <Box sx={{ overflowX: 'hidden', bgcolor: 'background.default', minHeight: '100vh' }}>
+      {/* 1. Hero Section with truthful stats, search, & responsive composition */}
       <HeroCompact 
-        heroImageLoaded={heroImageLoaded} 
+        heroImageLoaded={heroImageLoaded}
+        setHeroImageLoaded={setHeroImageLoaded}
         searchQuery={searchQuery} 
         setSearchQuery={setSearchQuery} 
         handleSearch={handleSearch} 
         stats={stats}
         loading={loading}
+        heroImage={heroImageCandidate}
+        onBrowseAll={() => navigate('/restaurants')}
       />
 
-      {/* Main Content */}
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
-        {/* Global Restaurant Fetch Error Alert */}
-        {error && (
+      {/* Global Restaurant Fetch Error Alert */}
+      {error && (
+        <SectionContainer sx={{ py: 2 }}>
           <Alert 
             severity="error" 
-            sx={{ mb: 4, borderRadius: 2 }}
+            sx={{ borderRadius: 2 }}
             action={
               <Button 
                 color="inherit" 
@@ -135,55 +146,86 @@ const HomeV2: React.FC = () => {
           >
             Unable to load restaurants. Please check your connection and try again.
           </Alert>
-        )}
+        </SectionContainer>
+      )}
 
-        {/* 1. Featured Restaurants */}
+      {/* 2. Featured Restaurants */}
+      <SectionContainer id="featured-restaurants">
         <FeaturedRestaurantsSection 
           restaurants={featuredRestaurants} 
           loading={loading} 
           onViewAll={() => handleViewAll('featured')}  
         />
+      </SectionContainer>
 
-        {/* 2. Menu Highlights (Real Items with Add-to-Cart) */}
+      {/* 3. Menu Highlights (Real Items with Add-to-Cart) */}
+      <SectionContainer id="menu-highlights" alternateBg>
         <MenuHighlightsSection 
           highlights={menuHighlightsState.items} 
           loading={menuHighlightsState.status === 'loading'}
           error={menuHighlightsState.error ? 'Could not load menu highlights' : null}
           onRetry={() => dispatch(fetchMenuHighlights())}
         />
+      </SectionContainer>
 
-        {/* 3. Fastest Delivery (Real Restaurants by Delivery Time) */}
+      {/* 4. Fastest Delivery (Real Restaurants by Delivery Time) */}
+      <SectionContainer id="fastest-delivery">
         <FastestDeliverySection 
           restaurants={fastestRestaurants} 
           loading={loading} 
         />
+      </SectionContainer>
 
-        {/* 4. Browse by Cuisine (Real Distinct Cuisines) */}
+      {/* 5. Browse by Cuisine (Real Distinct Cuisines) */}
+      <SectionContainer id="browse-by-cuisine" alternateBg>
         <CuisineGridSection 
           cuisines={cuisineSummary} 
           loading={loading}
           onCuisineClick={handleCuisineClick}
         />
+      </SectionContainer>
 
-        {/* 5. How It Works (Truthful Consumer Flow) */}
+      {/* 6. How It Works (Truthful Consumer Flow) */}
+      <SectionContainer id="how-it-works">
         <HowItWorksSection />
+      </SectionContainer>
 
-        {/* 6. Truthful Final Call to Action */}
+      {/* 7. Truthful Final Call to Action */}
+      <SectionContainer id="final-cta">
         <Box
           sx={{
-            mt: 8,
-            p: { xs: 4, md: 6 },
+            p: { xs: 4, sm: 5, md: 6 },
             borderRadius: 4,
-            background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+            background: (theme) =>
+              `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
             color: 'white',
             textAlign: 'center',
-            boxShadow: '0 12px 32px rgba(255, 107, 107, 0.25)',
+            boxShadow: (theme) => `0 16px 36px ${theme.palette.primary.main}30`,
           }}
         >
-          <Typography variant="h4" fontWeight={800} gutterBottom>
+          <Typography
+            component="h2"
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' },
+              lineHeight: 1.2,
+              mb: 1.5,
+            }}
+          >
             Ready to Order?
           </Typography>
-          <Typography variant="h6" sx={{ mb: 4, opacity: 0.95, maxWidth: 600, mx: 'auto', fontWeight: 400 }}>
+          <Typography
+            variant="body1"
+            sx={{
+              mb: 3.5,
+              opacity: 0.95,
+              maxWidth: 580,
+              mx: 'auto',
+              fontSize: { xs: '0.95rem', sm: '1.1rem' },
+              lineHeight: 1.5,
+            }}
+          >
             Discover top-rated local kitchens and enjoy fresh meals delivered right to your doorstep.
           </Typography>
           <Button
@@ -193,26 +235,28 @@ const HomeV2: React.FC = () => {
             sx={{
               bgcolor: 'white',
               color: 'primary.main',
-              px: 5,
+              px: { xs: 3.5, sm: 5 },
               py: 1.5,
-              fontSize: '1.05rem',
+              fontSize: { xs: '0.95rem', sm: '1.05rem' },
               fontWeight: 700,
               borderRadius: 3,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+              minHeight: 48,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
               '&:hover': {
                 bgcolor: 'grey.100',
-                transform: 'scale(1.03)',
-                transition: 'transform 0.2s ease',
-              }
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+              },
+              transition: 'all 0.2s ease',
             }}
           >
             Browse All Restaurants
             <NavigateNext sx={{ ml: 0.5 }} />
           </Button>
         </Box>
-      </Container>
+      </SectionContainer>
     </Box>
   );
 };
 
-export default HomeV2;
+export default Home_V;

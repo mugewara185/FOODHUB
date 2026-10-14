@@ -5,15 +5,14 @@ import {
   Grid,
   Typography,
   Stack,
-  Button,
   Skeleton,
   Alert,
 } from '@mui/material';
-import { ArrowForward } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { SafeImage } from '@/shared/components/ui/SafeImage';
 import type { CuisineSummary } from '@/features/restaurant/restaurantSlice';
+import { SectionHeader } from './shared/SectionHeader';
+import { Reveal } from './shared/Reveal';
 
 interface CuisineGridSectionProps {
   cuisines?: CuisineSummary[];
@@ -21,7 +20,7 @@ interface CuisineGridSectionProps {
   onCuisineClick?: (cuisineName: string) => void;
 }
 
-const CuisineGridSection: React.FC<CuisineGridSectionProps> = ({
+export const CuisineGridSection: React.FC<CuisineGridSectionProps> = ({
   cuisines = [],
   loading = false,
   onCuisineClick,
@@ -39,59 +38,22 @@ const CuisineGridSection: React.FC<CuisineGridSectionProps> = ({
   const topCuisines = cuisines.slice(0, 6);
 
   return (
-    <Box sx={{ my: 8 }}>
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          mb: 4,
-          flexWrap: 'wrap',
-          gap: 2,
-        }}
-      >
-        <Box>
-          <Typography
-            variant="overline"
-            sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: 1.2 }}
-          >
-            EXPLORE
-          </Typography>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Browse by Cuisine
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Discover restaurants by your favorite culinary styles
-          </Typography>
-        </Box>
-
-        <Button
-          endIcon={<ArrowForward />}
-          onClick={() => navigate('/restaurants')}
-          sx={{
-            px: 3,
-            py: 1,
-            borderRadius: 3,
-            fontWeight: 600,
-            '&:hover': {
-              transform: 'translateX(5px)',
-              transition: 'transform 0.3s ease',
-            },
-          }}
-        >
-          View All Restaurants
-        </Button>
-      </Box>
+    <Box>
+      <SectionHeader
+        title="Browse by Cuisine"
+        subtitle="Discover restaurants by your favorite culinary styles"
+        actionLabel="View All Restaurants"
+        onActionClick={() => navigate('/restaurants')}
+      />
 
       {/* Loading State */}
       {loading ? (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
+            <Grid size={{ xs: 6, sm: 4, md: 2 }} key={i}>
               <Skeleton
                 variant="rectangular"
-                height={200}
+                height={160}
                 sx={{ borderRadius: 3 }}
               />
             </Grid>
@@ -99,33 +61,28 @@ const CuisineGridSection: React.FC<CuisineGridSectionProps> = ({
         </Grid>
       ) : (
         <>
-          {/* Cuisine Cards Grid */}
-          <Grid container spacing={3}>
+          {/* Cuisine Cards Grid - 2 cols on mobile, 3 on tablet, 6 on desktop */}
+          <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
             {topCuisines.map((cuisine, index) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={cuisine.name} sx={{ display: 'flex' }}>
-                <motion.div
-                  style={{ height: '100%', width: '100%', display: 'flex' }}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.08 }}
-                  whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                >
+              <Grid size={{ xs: 6, sm: 4, md: 2 }} key={cuisine.name} sx={{ display: 'flex' }}>
+                <Reveal delay={index * 0.05} style={{ width: '100%', display: 'flex' }}>
                   <Card
                     onClick={() => handleCuisineSelect(cuisine.name)}
                     sx={{
                       width: '100%',
                       position: 'relative',
-                      height: 220,
+                      height: { xs: 140, sm: 160, md: 180 },
                       borderRadius: 3,
                       overflow: 'hidden',
                       cursor: 'pointer',
                       border: '1px solid',
                       borderColor: 'divider',
-                      boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
-                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                      boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease',
                       '&:hover': {
                         borderColor: 'primary.main',
                         boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        transform: 'translateY(-3px)',
                       },
                     }}
                   >
@@ -137,44 +94,49 @@ const CuisineGridSection: React.FC<CuisineGridSectionProps> = ({
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
-                        transition: 'transform 0.4s ease',
-                        '&:hover': {
-                          transform: 'scale(1.05)',
-                        },
                       }}
                     />
 
-                    {/* Dark gradient overlay for readable text */}
+                    {/* Dark gradient overlay for high text contrast (WCAG >= 4.5:1) */}
                     <Box
                       sx={{
                         position: 'absolute',
                         inset: 0,
                         background:
-                          'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)',
+                          'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'flex-end',
-                        p: 2.5,
+                        p: { xs: 1.5, sm: 2 },
                       }}
                     >
-                      <Stack spacing={0.5}>
+                      <Stack spacing={0.25}>
                         <Typography
-                          variant="h6"
-                          fontWeight={700}
-                          sx={{ color: 'white', lineHeight: 1.2 }}
+                          variant="subtitle1"
+                          fontWeight={800}
+                          sx={{
+                            color: 'white',
+                            lineHeight: 1.2,
+                            fontSize: { xs: '0.9rem', sm: '1.05rem' },
+                            textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                          }}
                         >
                           {cuisine.name}
                         </Typography>
                         <Typography
                           variant="caption"
-                          sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}
+                          sx={{
+                            color: 'rgba(255,255,255,0.85)',
+                            fontWeight: 500,
+                            fontSize: { xs: '0.68rem', sm: '0.75rem' },
+                          }}
                         >
-                          {cuisine.count} {cuisine.count === 1 ? 'restaurant' : 'restaurants'}
+                          {cuisine.count} {cuisine.count === 1 ? 'place' : 'places'}
                         </Typography>
                       </Stack>
                     </Box>
                   </Card>
-                </motion.div>
+                </Reveal>
               </Grid>
             ))}
           </Grid>

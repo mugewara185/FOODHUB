@@ -1,66 +1,34 @@
-import { Alert, Box, Button, Grid, Typography } from '@mui/material';
-import { NavigateNext } from '@mui/icons-material';
-import { motion } from 'framer-motion';
-
+import React from 'react';
+import { Alert, Grid, Box } from '@mui/material';
 import RestaurantCard from '@/features/restaurant/components/RestaurantCard/RestaurantCard_V';
 import { RestaurantCardSkeleton } from '@/features/restaurant/components/RestaurantCard';
 import type { Restaurant } from '@/core/types';
+import { SectionHeader } from './shared/SectionHeader';
+import { Reveal } from './shared/Reveal';
 
 interface FeaturedRestaurantsSectionProps {
   restaurants?: Restaurant[];
   loading?: boolean;
   onViewAll?: () => void;
-  // onRestaurantClick?: (restaurantId: string) => void;
 }
-const FeaturedRestaurantsSection_V = ({
-  restaurants=[],
+
+export const FeaturedRestaurantsSection: React.FC<FeaturedRestaurantsSectionProps> = ({
+  restaurants = [],
   loading = false,
   onViewAll,
-}: FeaturedRestaurantsSectionProps) => {
+}) => {
   return (
-    <Box sx={{ my: 8 }}>
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          mb: 4,
-          flexWrap: 'wrap',
-          gap: 2,
-        }}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Featured Restaurants
-          </Typography>
-
-          <Typography variant="body1" color="text.secondary">
-            Restaurants highlighted on FoodHub
-          </Typography>
-        </Box>
-
-        <Button
-          endIcon={<NavigateNext />}
-          onClick={onViewAll}
-          sx={{
-            px: 3,
-            py: 1,
-            borderRadius: 3,
-
-            '&:hover': {
-              transform: 'translateX(5px)',
-              transition: 'transform 0.3s ease',
-            },
-          }}
-        >
-          View All Restaurants
-        </Button>
-      </Box>
+    <Box>
+      <SectionHeader
+        title="Featured Restaurants"
+        subtitle="Restaurants highlighted on FoodHub"
+        actionLabel="View All Restaurants"
+        onActionClick={onViewAll}
+      />
 
       {/* Loading State */}
       {loading ? (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2.5, md: 3 }}>
           {[1, 2, 3].map((item) => (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item} sx={{ display: 'flex' }}>
               <RestaurantCardSkeleton />
@@ -70,33 +38,20 @@ const FeaturedRestaurantsSection_V = ({
       ) : (
         <>
           {/* Restaurant List */}
-          <Grid container spacing={3}>
+          <Grid container spacing={{ xs: 2.5, md: 3 }}>
             {restaurants.slice(0, 6).map((restaurant, index) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={restaurant.id} sx={{ display: 'flex' }}>
-                <motion.div
-                  style={{ height: '100%', width: '100%', display: 'flex' }}
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.5,
-                    delay: index * 0.1,
-                  }}
-                  whileHover={{
-                    y: -8,
-                    transition: { duration: 0.2 },
-                  }}
-                >
+                <Reveal delay={index * 0.08} style={{ width: '100%', display: 'flex' }}>
                   <RestaurantCard restaurant={restaurant} />
-                </motion.div>
+                </Reveal>
               </Grid>
             ))}
           </Grid>
 
           {/* Empty State */}
-          {restaurants?.length === 0 && (
-            <Alert severity="info" sx={{ textAlign: 'center', py: 4, mt: 4 }}>
-              No featured restaurants available at the moment.
-              Check back soon!
+          {restaurants.length === 0 && (
+            <Alert severity="info" sx={{ textAlign: 'center', py: 3, mt: 3, borderRadius: 2 }}>
+              No featured restaurants available at the moment. Check back soon!
             </Alert>
           )}
         </>
@@ -105,4 +60,4 @@ const FeaturedRestaurantsSection_V = ({
   );
 };
 
-export default FeaturedRestaurantsSection_V;
+export default FeaturedRestaurantsSection;

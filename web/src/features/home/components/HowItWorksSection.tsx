@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Box,
-  Container,
   Grid,
   Card,
   CardContent,
@@ -9,6 +8,8 @@ import {
   Stack,
 } from '@mui/material';
 import { LocationOn, ShoppingCart, LocalShipping, CheckCircle } from '@mui/icons-material';
+import { SectionHeader } from './shared/SectionHeader';
+import { Reveal } from './shared/Reveal';
 
 interface Step {
   id: number;
@@ -21,120 +22,112 @@ interface Step {
 const STEPS: Step[] = [
   {
     id: 1,
-    icon: <LocationOn sx={{ fontSize: 40 }} />,
+    icon: <LocationOn sx={{ fontSize: 32 }} />,
     title: 'Explore Restaurants',
     description: 'Browse curated menus, dietary filters, and ratings near you',
-    color: '#FF6B6B',
+    color: '#1976D2',
   },
   {
     id: 2,
-    icon: <ShoppingCart sx={{ fontSize: 40 }} />,
+    icon: <ShoppingCart sx={{ fontSize: 32 }} />,
     title: 'Choose Your Dishes',
     description: 'Select your favorite dishes and add them to your cart with one click',
-    color: '#4ECDC4',
+    color: '#00897B',
   },
   {
     id: 3,
-    icon: <LocalShipping sx={{ fontSize: 40 }} />,
+    icon: <LocalShipping sx={{ fontSize: 32 }} />,
     title: 'Seamless Checkout',
     description: 'Experience simulated fast checkout with transparent delivery fees',
-    color: '#FFD93D',
+    color: '#F57C00',
   },
   {
     id: 4,
-    icon: <CheckCircle sx={{ fontSize: 40 }} />,
+    icon: <CheckCircle sx={{ fontSize: 32 }} />,
     title: 'Live Order Tracking',
     description: 'Follow your food order status from kitchen prep to doorstep',
-    color: '#6BCB77',
+    color: '#43A047',
   },
 ];
 
-const HowItWorksSection: React.FC = () => {
+export const HowItWorksSection: React.FC = () => {
   return (
-    <Container maxWidth="lg" sx={{ py: 10 }}>
-      <Box sx={{ mb: 6, textAlign: 'center' }}>
-        <Typography variant="overline" sx={{ fontWeight: 600, color: 'primary.main' }}>
-          SIMPLE PROCESS
-        </Typography>
-        <Typography variant="h3" fontWeight={800} gutterBottom>
-          How It Works
-        </Typography>
-        <Typography variant="body1" color="textSecondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-          Ordering delicious food has never been easier. Follow these simple steps
-        </Typography>
-      </Box>
+    <Box>
+      <SectionHeader
+        title="How It Works"
+        subtitle="Ordering delicious food has never been easier. Follow these simple steps"
+      />
 
-      <Grid container spacing={4}>
+      <Grid container spacing={{ xs: 2.5, md: 3 }}>
         {STEPS.map((step, index) => (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={step.id}>
-            <Card
-              sx={{
-                height: '100%',
-                textAlign: 'center',
-                border: `2px solid ${step.color}`,
-                background: `linear-gradient(135deg, ${step.color}10 0%, ${step.color}05 100%)`,
-                position: 'relative',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  boxShadow: 4,
-                  transform: 'translateY(-8px)',
-                },
-              }}
-            >
-              {/* Step Number Badge */}
-              <Box
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={step.id} sx={{ display: 'flex' }}>
+            <Reveal delay={index * 0.08} style={{ width: '100%', display: 'flex' }}>
+              <Card
+                elevation={0}
                 sx={{
-                  position: 'absolute',
-                  top: -12,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 50,
-                  height: 50,
-                  bgcolor: step.color,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '1.5rem',
-                  boxShadow: `0 4px 12px ${step.color}40`,
+                  width: '100%',
+                  textAlign: 'center',
+                  p: { xs: 2, sm: 2.5 },
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                    transform: 'translateY(-3px)',
+                  },
                 }}
               >
-                {step.id}
-              </Box>
-
-              <CardContent sx={{ pt: 5 }}>
-                <Stack spacing={2} alignItems="center">
-                  <Box sx={{ color: step.color }}>{step.icon}</Box>
-                  <Typography variant="h6" fontWeight={700}>
-                    {step.title}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {step.description}
-                  </Typography>
-                </Stack>
-              </CardContent>
-
-              {/* Connector Line */}
-              {index < STEPS.length - 1 && (
+                {/* Step Number Tag */}
                 <Box
                   sx={{
-                    position: 'absolute',
-                    right: '-50%',
-                    top: '50%',
-                    width: '100%',
-                    height: '3px',
-                    bgcolor: 'divider',
-                    display: { xs: 'none', md: 'block' },
+                    width: 32,
+                    height: 32,
+                    mx: 'auto',
+                    mb: 2,
+                    bgcolor: `${step.color}18`,
+                    color: step.color,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.875rem',
                   }}
-                />
-              )}
-            </Card>
+                >
+                  {step.id}
+                </Box>
+
+                <CardContent sx={{ p: '0 !important' }}>
+                  <Stack spacing={1.25} alignItems="center">
+                    <Box sx={{ color: step.color }}>{step.icon}</Box>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight={700}
+                      sx={{ fontSize: { xs: '1rem', sm: '1.05rem' } }}
+                    >
+                      {step.title}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.8125rem', sm: '0.875rem' }, lineHeight: 1.5 }}
+                    >
+                      {step.description}
+                    </Typography>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Reveal>
           </Grid>
         ))}
       </Grid>
-    </Container>
+    </Box>
   );
 };
 
