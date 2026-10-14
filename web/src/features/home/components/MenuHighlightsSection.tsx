@@ -18,13 +18,14 @@ import {
 } from '@mui/material';
 import { ShoppingCart, RestaurantMenu, Refresh } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { addToCart, clearCart, selectIsCartEmpty } from '@/features/cart/cartSlice/V/cartSlice_V';
 import type { RootState } from '@/app/store';
 import { showToast } from '@/features/ui/uiSlice';
 import { SafeImage } from '@/shared/components/ui/SafeImage';
 import type { MenuHighlightItem } from '@/features/restaurant/restaurantSlice';
+import { SectionHeader } from './shared/SectionHeader';
+import { Reveal } from './shared/Reveal';
 
 interface MenuHighlightsSectionProps {
   highlights?: MenuHighlightItem[];
@@ -33,7 +34,7 @@ interface MenuHighlightsSectionProps {
   onRetry?: () => void;
 }
 
-const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
+export const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
   highlights = [],
   loading = false,
   error = null,
@@ -97,50 +98,13 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
   const itemsToDisplay = highlights.slice(0, 6);
 
   return (
-    <Box sx={{ my: 8 }}>
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          mb: 4,
-          flexWrap: 'wrap',
-          gap: 2,
-        }}
-      >
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-            <RestaurantMenu sx={{ color: 'primary.main', fontSize: 20 }} />
-            <Typography
-              variant="overline"
-              sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: 1.2 }}
-            >
-              CHEF'S PICKS
-            </Typography>
-          </Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Menu Highlights
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Signature dishes curated from featured restaurant menus
-          </Typography>
-        </Box>
-
-        <Button
-          variant="outlined"
-          onClick={() => navigate('/restaurants')}
-          sx={{
-            px: 3,
-            py: 1,
-            borderRadius: 3,
-            fontWeight: 600,
-            textTransform: 'capitalize',
-          }}
-        >
-          Explore Full Menus
-        </Button>
-      </Box>
+    <Box>
+      <SectionHeader
+        title="Menu Highlights"
+        subtitle="Popular available dishes from featured kitchens"
+        actionLabel="Explore Menus"
+        onActionClick={() => navigate('/restaurants')}
+      />
 
       {/* Error state */}
       {error && (
@@ -153,7 +117,7 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
               </Button>
             ) : undefined
           }
-          sx={{ mb: 4 }}
+          sx={{ mb: 4, borderRadius: 2 }}
         >
           {error}
         </Alert>
@@ -161,7 +125,7 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
 
       {/* Loading state */}
       {loading ? (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2.5, md: 3 }}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
               <Skeleton variant="rectangular" height={130} sx={{ borderRadius: 3 }} />
@@ -171,39 +135,35 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
       ) : (
         <>
           {/* Menu Items Grid */}
-          <Grid container spacing={3}>
+          <Grid container spacing={{ xs: 2.5, md: 3 }}>
             {itemsToDisplay.map((highlight, index) => (
               <Grid
                 size={{ xs: 12, sm: 6, md: 4 }}
                 key={`${highlight.restaurantId}-${highlight.item.id}`}
                 sx={{ display: 'flex' }}
               >
-                <motion.div
-                  style={{ height: '100%', width: '100%', display: 'flex' }}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.08 }}
-                >
+                <Reveal delay={index * 0.06} style={{ width: '100%', display: 'flex' }}>
                   <Card
                     elevation={0}
                     sx={{
                       display: 'flex',
                       flexDirection: 'row',
                       width: '100%',
-                      minHeight: 120,
+                      minHeight: 124,
                       borderRadius: 3,
                       border: '1px solid',
-                      borderColor: 'grey.200',
+                      borderColor: 'divider',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                       transition: 'all 0.2s ease',
                       '&:hover': {
                         borderColor: 'primary.main',
-                        boxShadow: '0 6px 18px rgba(0,0,0,0.06)',
+                        boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
                         transform: 'translateY(-2px)',
                       },
                     }}
                   >
                     {/* Left Side: Dish Cover Image */}
-                    <Box sx={{ position: 'relative', width: 115, height: 120, flexShrink: 0, p: 1 }}>
+                    <Box sx={{ position: 'relative', width: 110, height: '100%', minHeight: 124, flexShrink: 0, p: 1 }}>
                       <SafeImage
                         src={highlight.item.image}
                         alt={highlight.item.name}
@@ -218,38 +178,43 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
                         <Chip
                           label="VEG"
                           size="small"
-                          color="success"
                           sx={{
                             position: 'absolute',
-                            top: 6,
-                            left: 6,
-                            fontWeight: 800,
-                            fontSize: '0.55rem',
+                            top: 14,
+                            left: 14,
                             height: 18,
-                            px: 0.5,
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            bgcolor: 'success.main',
+                            color: 'white',
                           }}
                         />
                       )}
                     </Box>
 
-                    {/* Right Side: Content */}
+                    {/* Right Side: Details & Actions */}
                     <CardContent
                       sx={{
                         flex: 1,
-                        p: 1.5,
+                        p: '12px 14px 12px 6px !important',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        '&:last-child': { pb: 1.5 },
                       }}
                     >
                       <Box>
                         <Typography
-                          variant="subtitle2"
+                          variant="subtitle1"
                           fontWeight={700}
-                          noWrap
-                          title={highlight.item.name}
-                          sx={{ fontSize: '0.95rem', lineHeight: 1.2 }}
+                          sx={{
+                            lineHeight: 1.25,
+                            fontSize: { xs: '0.95rem', sm: '1rem' },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                          }}
                         >
                           {highlight.item.name}
                         </Typography>
@@ -257,14 +222,13 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
                         <Typography
                           variant="caption"
                           color="text.secondary"
-                          noWrap
-                          title={highlight.restaurantName}
-                          onClick={() => navigate(`/restaurants/${highlight.restaurantId}`)}
                           sx={{
                             display: 'block',
-                            mt: 0.5,
-                            cursor: 'pointer',
-                            '&:hover': { color: 'primary.main', textDecoration: 'underline' },
+                            mt: 0.25,
+                            fontSize: '0.78rem',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
                           }}
                         >
                           {highlight.restaurantName}
@@ -273,27 +237,25 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
 
                       <Stack
                         direction="row"
-                        sx={{
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          mt: 1,
-                        }}
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ mt: 1 }}
                       >
-                        <Typography variant="subtitle2" fontWeight={800} color="primary.main">
+                        <Typography variant="subtitle1" fontWeight={800} color="text.primary">
                           ₹{highlight.item.price}
                         </Typography>
 
-                        <Stack direction="row" spacing={0.5}>
+                        <Stack direction="row" spacing={0.75} alignItems="center">
                           <Button
                             size="small"
-                            variant="text"
                             onClick={() => navigate(`/restaurants/${highlight.restaurantId}`)}
                             sx={{
                               minWidth: 0,
-                              px: 1,
-                              py: 0.25,
+                              p: '4px 6px',
                               fontSize: '0.75rem',
-                              textTransform: 'capitalize',
+                              textTransform: 'none',
+                              color: 'text.secondary',
+                              '&:hover': { color: 'primary.main' },
                             }}
                           >
                             Menu
@@ -302,13 +264,14 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
                           <Button
                             variant="contained"
                             size="small"
+                            startIcon={<ShoppingCart sx={{ fontSize: '15px !important' }} />}
                             onClick={() => handleAddDish(highlight)}
-                            startIcon={<ShoppingCart sx={{ fontSize: 14 }} />}
                             sx={{
-                              fontSize: '0.75rem',
-                              textTransform: 'capitalize',
+                              minHeight: 32,
                               px: 1.5,
-                              py: 0.5,
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              textTransform: 'none',
                               borderRadius: 2,
                             }}
                           >
@@ -318,7 +281,7 @@ const MenuHighlightsSection: React.FC<MenuHighlightsSectionProps> = ({
                       </Stack>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </Reveal>
               </Grid>
             ))}
           </Grid>

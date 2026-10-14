@@ -1,44 +1,89 @@
-import { Box, Container, Grid } from "@mui/material";
-import { Chip, Typography, Paper, InputBase, IconButton, Stack, useMediaQuery, useTheme } from "@mui/material";
-import { Search, Restaurant, LocalOffer, AccessTime } from "@mui/icons-material";
-import { motion } from "framer-motion";
-import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { Skeleton } from "@mui/material";
 import React from "react";
+import {
+  Box,
+  Container,
+  Grid,
+  Chip,
+  Typography,
+  Paper,
+  InputBase,
+  IconButton,
+  Button,
+  Stack,
+  Skeleton,
+  useTheme,
+} from "@mui/material";
+import { Search, Restaurant, LocalOffer, AccessTime, ArrowForward } from "@mui/icons-material";
+import { motion, useReducedMotion } from "framer-motion";
+import { SafeImage } from "@/shared/components/ui/SafeImage";
 
-//types
-type HeroProps = {
-  heroImageLoaded: boolean;
+export type HeroProps = {
+  heroImageLoaded?: boolean;
+  setHeroImageLoaded?: (loaded: boolean) => void;
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   handleSearch: (e: React.FormEvent<HTMLFormElement>) => void;
-  stats?: { label: string; value: number|string; suffix?: string; icon: React.ElementType }[];
+  stats?: { label: string; value: number | string; suffix?: string; icon: React.ElementType }[];
   loading?: boolean;
+  heroImage?: string;
+  onBrowseAll?: () => void;
 };
 
-const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats, loading = false}:HeroProps) => {
+export const HeroCompact: React.FC<HeroProps> = ({
+  handleSearch,
+  searchQuery,
+  setSearchQuery,
+  heroImageLoaded = false,
+  setHeroImageLoaded,
+  stats,
+  loading = false,
+  heroImage,
+  onBrowseAll,
+}) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const shouldReduceMotion = useReducedMotion();
 
-  // Default stats if not provided
   const defaultStats = [
     { label: "Restaurants", value: "Curated", icon: Restaurant },
     { label: "Cuisines", value: "Diverse", icon: LocalOffer },
-    { label: "Delivery Time", value: "Fast", icon: AccessTime },
+    { label: "Delivery", value: "Fast", icon: AccessTime },
   ];
 
   const displayStats = stats || defaultStats;
 
+  // Reduced-motion variants
+  const containerVariants = shouldReduceMotion
+    ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
+    : {
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: { staggerChildren: 0.12 },
+        },
+      };
+
+  const itemVariants = shouldReduceMotion
+    ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
+    : {
+        hidden: { opacity: 0, y: 16 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
+        },
+      };
+
   return (
     <Box
+      component="header"
       sx={{
-        bgcolor: "primary.main",
+        background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 60%, ${theme.palette.primary.light} 100%)`,
         color: "white",
-        py: { xs: 3, sm: 4, md: 5 }, // Reduced vertical padding
+        pt: { xs: 3, sm: 4, md: 6 },
+        pb: { xs: 4, sm: 5, md: 7 },
         position: "relative",
         overflow: "hidden",
-        minHeight: { xs: "auto", sm: "auto", md: "auto" }, // Remove full height
+        // Subtle decorative geometric scrim using local brand tokens (no third-party stock images)
         "&::before": {
           content: '""',
           position: "absolute",
@@ -47,82 +92,56 @@ const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats
           right: 0,
           bottom: 0,
           backgroundImage:
-            "url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&auto=format)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.08,
-          zIndex: 0,
-        },
-        // Subtle gradient overlay
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "linear-gradient(135deg, rgba(0,0,0,0.2) 0%, transparent 100%)",
+            "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0%, transparent 40%), radial-gradient(circle at 10% 80%, rgba(0,0,0,0.15) 0%, transparent 45%)",
           zIndex: 0,
         },
       }}
     >
-      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
-        <Grid container spacing={{ xs: 2, md: 3 }} alignItems="center">
+      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, px: { xs: 2, sm: 3, md: 4 } }}>
+        <Grid container spacing={{ xs: 3, md: 4 }} alignItems="center">
           {/* Left Content */}
           <Grid size={{ xs: 12, md: 7 }}>
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={staggerContainer}
-            >
-              {/* Development Badge */}
-              <motion.div variants={fadeInUp}>
+            <motion.div initial="hidden" animate="visible" variants={containerVariants}>
+              {/* Development Mode Badge */}
+              <motion.div variants={itemVariants}>
                 <Chip
                   label="⚡ Development Mode - _V_ Renderer"
                   size="small"
-                  color="warning"
                   variant="outlined"
                   sx={{
-                    mb: { xs: 1.5, sm: 2, md: 2.5 },
+                    mb: { xs: 1.5, sm: 2 },
                     color: "white",
-                    borderColor: "rgba(255,255,255,0.3)",
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                    backdropFilter: "blur(10px)",
+                    borderColor: "rgba(255,255,255,0.35)",
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                    backdropFilter: "blur(8px)",
+                    fontWeight: 600,
                     height: { xs: 24, sm: 28 },
-                    fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                    fontSize: { xs: "0.68rem", sm: "0.75rem" },
                   }}
                 />
               </motion.div>
 
               {/* Headline */}
-              <motion.div variants={fadeInUp}>
+              <motion.div variants={itemVariants}>
                 <Typography
+                  component="h1"
                   variant="h1"
                   sx={{
-                    fontSize: { xs: "1.8rem", sm: "2.5rem", md: "3rem", lg: "3.5rem" },
+                    fontSize: { xs: "1.75rem", sm: "2.5rem", md: "3rem", lg: "3.25rem" },
                     fontWeight: 800,
-                    mb: { xs: 1, sm: 1.5, md: 2 },
-                    lineHeight: 1.1,
-                    letterSpacing: "-0.02em",
+                    lineHeight: 1.15,
+                    letterSpacing: "-0.025em",
+                    mb: { xs: 1, sm: 1.5 },
+                    textShadow: "0 2px 10px rgba(0,0,0,0.2)",
                   }}
                 >
                   Craving something{" "}
-                  <Box 
-                    component="span" 
-                    sx={{ 
-                      color: "secondary.main",
+                  <Box
+                    component="span"
+                    sx={{
+                      color: "#FFE082", // High-contrast warm accent on blue (contrast ratio > 6:1)
+                      display: "inline-block",
                       position: "relative",
-                      "&::after": {
-                        content: '""',
-                        position: "absolute",
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: "4px",
-                        bgcolor: "secondary.main",
-                        opacity: 0.3,
-                        borderRadius: 2,
-                      }
                     }}
                   >
                     delicious?
@@ -131,127 +150,153 @@ const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats
               </motion.div>
 
               {/* Subtitle */}
-              <motion.div variants={fadeInUp}>
+              <motion.div variants={itemVariants}>
                 <Typography
-                  variant="h5"
+                  variant="h6"
                   sx={{
-                    mb: { xs: 2, sm: 2.5, md: 3 },
-                    opacity: 0.9,
-                    fontSize: { xs: "0.95rem", sm: "1.1rem", md: "1.25rem" },
+                    fontSize: { xs: "0.95rem", sm: "1.1rem", md: "1.2rem" },
                     fontWeight: 400,
+                    color: "rgba(255,255,255,0.92)",
+                    maxWidth: 540,
+                    lineHeight: 1.45,
+                    mb: { xs: 2.5, sm: 3 },
+                    textShadow: "0 1px 4px rgba(0,0,0,0.2)",
                   }}
                 >
-                  Order food from the best restaurants near you
+                  Order freshly prepared food from curated local kitchens delivered fast to your door.
                 </Typography>
               </motion.div>
 
-              {/* Search Bar - More Compact */}
-              <motion.div variants={fadeInUp}>
+              {/* Search Bar */}
+              <motion.div variants={itemVariants}>
                 <Paper
                   component="form"
                   onSubmit={handleSearch}
+                  elevation={4}
                   sx={{
-                    p: "3px",
+                    p: "4px",
                     display: "flex",
                     alignItems: "center",
-                    borderRadius: 4,
+                    borderRadius: 3,
                     bgcolor: "white",
-                    maxWidth: { xs: "100%", sm: "90%", md: "80%" },
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-                    transition: "box-shadow 0.3s ease",
-                    "&:hover": {
-                      boxShadow: "0 12px 32px rgba(0,0,0,0.25)",
-                    },
+                    maxWidth: { xs: "100%", sm: 520 },
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+                    border: "1px solid rgba(255,255,255,0.4)",
                   }}
                 >
                   <InputBase
-                    sx={{ 
-                      ml: { xs: 1.5, sm: 2 }, 
-                      flex: 1, 
+                    sx={{
+                      ml: { xs: 1.5, sm: 2 },
+                      flex: 1,
                       fontSize: { xs: "0.9rem", sm: "1rem" },
-                      py: { xs: 0.5, sm: 0.75 },
+                      py: 0.75,
                       color: "text.primary",
                     }}
-                    placeholder="Search for restaurants or dishes..."
+                    placeholder="Search restaurants, cuisines, dishes..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    inputProps={{
+                      "aria-label": "Search restaurants or dishes",
+                    }}
                   />
                   <IconButton
                     type="submit"
+                    aria-label="Search"
                     sx={{
-                      p: { xs: "8px", sm: "10px", md: "12px" },
+                      p: { xs: 1, sm: 1.25 },
                       bgcolor: "primary.main",
                       color: "white",
-                      borderRadius: 3,
-                      mr: "3px",
+                      borderRadius: 2.5,
+                      minWidth: 44,
+                      minHeight: 44, // WCAG 2.1 touch target
                       "&:hover": {
                         bgcolor: "primary.dark",
-                        transform: "scale(1.05)",
                       },
-                      transition: "all 0.2s ease",
+                      transition: "background-color 0.2s ease",
                     }}
                   >
-                    <Search sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                    <Search />
                   </IconButton>
                 </Paper>
               </motion.div>
 
-              {/* Quick Stats - More Compact */}
-              <motion.div variants={fadeInUp}>
+              {/* Secondary CTA & Quick Navigation */}
+              {onBrowseAll && (
+                <motion.div variants={itemVariants}>
+                  <Box sx={{ mt: 1.5 }}>
+                    <Button
+                      onClick={onBrowseAll}
+                      size="small"
+                      endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+                      sx={{
+                        color: "white",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                        px: 1,
+                        opacity: 0.95,
+                        "&:hover": {
+                          bgcolor: "rgba(255,255,255,0.12)",
+                          opacity: 1,
+                        },
+                      }}
+                    >
+                      Or browse all restaurants
+                    </Button>
+                  </Box>
+                </motion.div>
+              )}
+
+              {/* Live Metric Chips */}
+              <motion.div variants={itemVariants}>
                 <Stack
                   direction="row"
-                  spacing={{ xs: 2, sm: 3, md: 4 }}
-                  sx={{ 
-                    mt: { xs: 2.5, sm: 3, md: 4 }, 
-                    flexWrap: "wrap", 
-                    gap: { xs: 1, sm: 2 },
-                    justifyContent: { xs: "center", sm: "flex-start" },
+                  spacing={{ xs: 1.5, sm: 2 }}
+                  sx={{
+                    mt: { xs: 2.5, sm: 3 },
+                    flexWrap: "wrap",
+                    gap: { xs: 1, sm: 1.5 },
                   }}
                 >
                   {displayStats.map((stat, index) => (
-                    <Box 
-                      key={index} 
-                      sx={{ 
+                    <Box
+                      key={index}
+                      sx={{
                         textAlign: "center",
-                        px: { xs: 1, sm: 2 },
-                        py: { xs: 0.5, sm: 1 },
-                        borderRadius: 2,
-                        bgcolor: "rgba(255,255,255,0.05)",
-                        backdropFilter: "blur(8px)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        minWidth: { xs: "70px", sm: "80px" },
+                        px: { xs: 1.5, sm: 2 },
+                        py: { xs: 0.75, sm: 1 },
+                        borderRadius: 2.5,
+                        bgcolor: "rgba(255,255,255,0.1)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255,255,255,0.16)",
+                        minWidth: { xs: 75, sm: 90 },
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                       }}
                     >
-                      <Stack 
-                        direction="row" 
-                        spacing={0.5} 
-                        alignItems="center" 
-                        justifyContent="center"
-                      >
-                        {Boolean(stat.icon) && (
-                          React.isValidElement(stat.icon)
+                      <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                        {Boolean(stat.icon) &&
+                          (React.isValidElement(stat.icon)
                             ? stat.icon
                             : React.createElement(stat.icon, {
                                 sx: {
-                                  fontSize: { xs: 18, sm: 22, md: 26 },
-                                  opacity: 0.9,
-                                  color: "secondary.light",
+                                  fontSize: { xs: 18, sm: 22 },
+                                  color: "#FFE082",
                                 },
-                              })
-                        )}
+                              }))}
                         {loading ? (
                           <Skeleton
                             variant="text"
                             width={32}
                             height={28}
-                            sx={{ bgcolor: 'rgba(255,255,255,0.25)' }}
+                            sx={{ bgcolor: "rgba(255,255,255,0.25)" }}
                           />
                         ) : (
-                          <Typography 
-                            variant="h4" 
-                            fontWeight={700}
+                          <Typography
+                            variant="h6"
+                            fontWeight={800}
                             sx={{
-                              fontSize: { xs: "1.2rem", sm: "1.5rem", md: "1.8rem" },
+                              fontSize: { xs: "1.1rem", sm: "1.35rem" },
+                              lineHeight: 1,
                             }}
                           >
                             {stat.value}
@@ -261,10 +306,10 @@ const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats
                       </Stack>
                       <Typography
                         variant="caption"
-                        sx={{ 
-                          opacity: 0.8, 
-                          mt: 0.25,
-                          fontSize: { xs: "0.6rem", sm: "0.7rem" },
+                        sx={{
+                          opacity: 0.9,
+                          mt: 0.5,
+                          fontSize: { xs: "0.68rem", sm: "0.75rem" },
                           display: "block",
                           fontWeight: 500,
                         }}
@@ -278,101 +323,51 @@ const Hero = ({handleSearch, searchQuery, setSearchQuery, heroImageLoaded, stats
             </motion.div>
           </Grid>
 
-          {/* Right Image - Hidden on Mobile, Smaller on Tablet */}
-          <Grid 
-            size={{ xs: 12, md: 5 }} 
-            sx={{ 
+          {/* Right Hero Image (Desktop & Tablet) */}
+          <Grid
+            size={{ xs: 12, md: 5 }}
+            sx={{
               display: { xs: "none", md: "block" },
             }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: 50 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              transition={{ duration: 0.6, type: "spring", delay: 0.2 }}
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
               <Box
                 sx={{
                   position: "relative",
                   width: "100%",
-                  maxWidth: { md: 400, lg: 500 },
+                  maxWidth: { md: 380, lg: 440 },
+                  aspectRatio: "4/3",
                   ml: "auto",
+                  borderRadius: 4,
+                  overflow: "hidden",
+                  boxShadow: "0 24px 48px rgba(0,0,0,0.32)",
+                  border: "2px solid rgba(255,255,255,0.2)",
+                  bgcolor: "rgba(0,0,0,0.15)",
                 }}
               >
-                <Box
-                  component="img"
-                  src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&auto=format&fit=crop"
-                  alt="Food Delivery"
-                  onLoad={() => setHeroImageLoaded(false)}
-                  sx={{
+                <SafeImage
+                  src={heroImage || ""}
+                  alt="Featured culinary highlight"
+                  loading="eager"
+                  fetchPriority="high"
+                  onLoad={() => setHeroImageLoaded?.(true)}
+                  style={{
                     width: "100%",
-                    height: { md: 280, lg: 320 },
+                    height: "100%",
                     objectFit: "cover",
-                    borderRadius: 4,
-                    boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
-                    transform: "perspective(1000px) rotateY(-3deg)",
-                    transition: "transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)",
-                    "&:hover": {
-                      transform: "perspective(1000px) rotateY(0deg) scale(1.02)",
-                    },
                   }}
                 />
-                {/* Decorative element */}
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: -20,
-                    right: -20,
-                    width: 100,
-                    height: 100,
-                    borderRadius: "50%",
-                    bgcolor: "secondary.main",
-                    opacity: 0.15,
-                    filter: "blur(40px)",
-                    zIndex: -1,
-                  }}
-                />
-                <Box
-                  sx={{
-                    position: "absolute",
-                    bottom: -20,
-                    left: -20,
-                    width: 80,
-                    height: 80,
-                    borderRadius: "50%",
-                    bgcolor: "primary.light",
-                    opacity: 0.1,
-                    filter: "blur(30px)",
-                    zIndex: -1,
-                  }}
-                />
-                {!heroImageLoaded && (
-                  <Skeleton
-                    variant="rectangular"
-                    width="100%"
-                    height={320}
-                    sx={{ borderRadius: 4 }}
-                  />
-                )}
               </Box>
             </motion.div>
           </Grid>
         </Grid>
       </Container>
-
-      {/* Decorative Bottom Wave */}
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: -2,
-          left: 0,
-          right: 0,
-          height: { xs: 20, sm: 30, md: 40 },
-          background: "linear-gradient(to bottom right, transparent 49%, #f5f7fa 50%)",
-          zIndex: 1,
-        }}
-      />
     </Box>
   );
 };
 
-export default Hero;
+export default HeroCompact;
