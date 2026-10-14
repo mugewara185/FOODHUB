@@ -21,6 +21,7 @@ import {
   Notifications,
   Settings
 } from '@pages/index';
+import Showcase from '../../../pages/Showcase';
 import { appConfig } from '../../../core/config/app.config';
 import { useSearchParams } from 'react-router-dom';
 
@@ -52,6 +53,8 @@ export const UserRoutes = (
     <Route path="notification" element={<Notifications />} />
     <Route path="search" element={<SearchRouteRedirect />} />
     <Route path="settings" element={<Settings />} />
+    <Route path="showcase" element={<Showcase />} />
+    <Route path="tour" element={<Navigate to="/showcase" replace />} />
     <Route path="orders/confirmation" element={<Orderconfirmation />} />
     
     {/* Protected Routes */}

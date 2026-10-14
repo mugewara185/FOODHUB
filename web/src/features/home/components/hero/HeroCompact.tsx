@@ -13,7 +13,8 @@ import {
   Skeleton,
   useTheme,
 } from "@mui/material";
-import { Search, Restaurant, LocalOffer, AccessTime, ArrowForward } from "@mui/icons-material";
+import { Search, Restaurant, LocalOffer, AccessTime, ArrowForward, RocketLaunch } from "@mui/icons-material";
+import { Link as RouterLink } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { SafeImage } from "@/shared/components/ui/SafeImage";
 
@@ -27,6 +28,7 @@ export type HeroProps = {
   loading?: boolean;
   heroImage?: string;
   onBrowseAll?: () => void;
+  defaultCardStyle?: 'legacy' | 'compact';
 };
 
 export const HeroCompact: React.FC<HeroProps> = ({
@@ -39,9 +41,25 @@ export const HeroCompact: React.FC<HeroProps> = ({
   loading = false,
   heroImage,
   onBrowseAll,
+  defaultCardStyle,
 }) => {
   const theme = useTheme();
   const shouldReduceMotion = useReducedMotion();
+
+  const [cardStyle, setCardStyle] = React.useState<'legacy' | 'compact'>(() => {
+    try {
+      const saved = localStorage.getItem('foodhub_hero_card_style');
+      if (saved === 'legacy' || saved === 'compact') return saved;
+    } catch {}
+    return defaultCardStyle || 'legacy';
+  });
+
+  const handleSwitchStyle = (style: 'legacy' | 'compact') => {
+    setCardStyle(style);
+    try {
+      localStorage.setItem('foodhub_hero_card_style', style);
+    } catch {}
+  };
 
   const defaultStats = [
     { label: "Restaurants", value: "Curated", icon: Restaurant },
@@ -221,9 +239,9 @@ export const HeroCompact: React.FC<HeroProps> = ({
               </motion.div>
 
               {/* Secondary CTA & Quick Navigation */}
-              {onBrowseAll && (
-                <motion.div variants={itemVariants}>
-                  <Box sx={{ mt: 1.5 }}>
+              <motion.div variants={itemVariants}>
+                <Box sx={{ mt: 1.5, display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
+                  {onBrowseAll && (
                     <Button
                       onClick={onBrowseAll}
                       size="small"
@@ -243,9 +261,30 @@ export const HeroCompact: React.FC<HeroProps> = ({
                     >
                       Or browse all restaurants
                     </Button>
-                  </Box>
-                </motion.div>
-              )}
+                  )}
+                  <Button
+                    component={RouterLink}
+                    to="/showcase"
+                    size="small"
+                    startIcon={<RocketLaunch sx={{ fontSize: 16 }} />}
+                    sx={{
+                      color: "#38bdf8",
+                      bgcolor: "rgba(56, 189, 248, 0.15)",
+                      border: "1px solid rgba(56, 189, 248, 0.4)",
+                      textTransform: "none",
+                      fontWeight: 700,
+                      fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                      px: 1.5,
+                      borderRadius: 2,
+                      "&:hover": {
+                        bgcolor: "rgba(56, 189, 248, 0.28)",
+                      },
+                    }}
+                  >
+                    ⚡ Engineering Showcase
+                  </Button>
+                </Box>
+              </motion.div>
 
               {/* Live Metric Chips */}
               <motion.div variants={itemVariants}>
@@ -330,39 +369,137 @@ export const HeroCompact: React.FC<HeroProps> = ({
               display: { xs: "none", md: "block" },
             }}
           >
-            <motion.div
-              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-              animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            >
+            {/* Visual Style Switcher */}
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
               <Box
                 sx={{
-                  position: "relative",
-                  width: "100%",
-                  maxWidth: { md: 380, lg: 440 },
-                  aspectRatio: "4/3",
-                  ml: "auto",
-                  borderRadius: 4,
-                  overflow: "hidden",
-                  boxShadow: "0 24px 48px rgba(0,0,0,0.32)",
-                  border: "2px solid rgba(255,255,255,0.2)",
-                  bgcolor: "rgba(0,0,0,0.15)",
+                  display: "inline-flex",
+                  p: "3px",
+                  borderRadius: 3,
+                  bgcolor: "rgba(0,0,0,0.28)",
+                  backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
                 }}
               >
-                <SafeImage
-                  src={heroImage || ""}
-                  alt="Featured culinary highlight"
-                  loading="eager"
-                  fetchPriority="high"
-                  onLoad={() => setHeroImageLoaded?.(true)}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
+                <Button
+                  size="small"
+                  onClick={() => handleSwitchStyle("legacy")}
+                  sx={{
+                    py: 0.35,
+                    px: 1.5,
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    borderRadius: 2.5,
+                    textTransform: "none",
+                    color: cardStyle === "legacy" ? "primary.main" : "rgba(255,255,255,0.9)",
+                    bgcolor: cardStyle === "legacy" ? "white" : "transparent",
+                    boxShadow: cardStyle === "legacy" ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      bgcolor: cardStyle === "legacy" ? "white" : "rgba(255,255,255,0.12)",
+                    },
                   }}
-                />
+                >
+                  🍕 3D Gourmet (Legacy)
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => handleSwitchStyle("compact")}
+                  sx={{
+                    py: 0.35,
+                    px: 1.5,
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    borderRadius: 2.5,
+                    textTransform: "none",
+                    color: cardStyle === "compact" ? "primary.main" : "rgba(255,255,255,0.9)",
+                    bgcolor: cardStyle === "compact" ? "white" : "transparent",
+                    boxShadow: cardStyle === "compact" ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      bgcolor: cardStyle === "compact" ? "white" : "rgba(255,255,255,0.12)",
+                    },
+                  }}
+                >
+                  🏬 Restaurant View
+                </Button>
               </Box>
-            </motion.div>
+            </Box>
+
+            {cardStyle === "legacy" ? (
+              <motion.div
+                key="legacy-3d"
+                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.85, x: 50 }}
+                animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, x: 0 }}
+                transition={{ duration: 0.7, type: "spring", bounce: 0.25 }}
+              >
+                <Box
+                  sx={{
+                    position: "relative",
+                    width: "100%",
+                    maxWidth: { md: 400, lg: 440 },
+                    ml: "auto",
+                    perspective: "1000px",
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&auto=format&fit=crop"
+                    alt="Delicious Gourmet Dish"
+                    onLoad={() => setHeroImageLoaded?.(true)}
+                    sx={{
+                      width: "100%",
+                      borderRadius: 4,
+                      boxShadow: "0 22px 46px rgba(0,0,0,0.36)",
+                      transform: "perspective(1000px) rotateY(-6deg) rotateX(2deg)",
+                      transition: "transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease",
+                      display: "block",
+                      cursor: "pointer",
+                      "&:hover": {
+                        transform: "perspective(1000px) rotateY(0deg) rotateX(0deg) scale(1.02)",
+                        boxShadow: "0 30px 60px rgba(0,0,0,0.45)",
+                      },
+                    }}
+                  />
+                </Box>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="compact-photo"
+                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+                animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+              >
+                <Box
+                  sx={{
+                    position: "relative",
+                    width: "100%",
+                    maxWidth: { md: 380, lg: 440 },
+                    aspectRatio: "4/3",
+                    ml: "auto",
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    boxShadow: "0 24px 48px rgba(0,0,0,0.32)",
+                    border: "2px solid rgba(255,255,255,0.2)",
+                    bgcolor: "rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <SafeImage
+                    src={heroImage || ""}
+                    alt="Featured culinary highlight"
+                    loading="eager"
+                    fetchPriority="high"
+                    onLoad={() => setHeroImageLoaded?.(true)}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                </Box>
+              </motion.div>
+            )}
           </Grid>
         </Grid>
       </Container>

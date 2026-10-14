@@ -13,6 +13,7 @@
 - Phase 8 — Live Tracking Demo & Concurrency Hardening: Build, Runtime & E2E-verified.
 - Phase 9 — Cross-domain Socket Chat & E2E Safety Hardening: Build, Runtime & E2E-verified.
 - Phase 10 — Deployment Readiness (Azure SWA + Render): Code & Build-verified; Pending Cloud Provisioning.
+- Phase 11 — Showcase-First Experience: Build, Runtime & Vitest-verified. Interactive multi-actor topology grid, component version swapper, telemetry console, honest status classification, and recruiter quick-scan.
 
 ## EVIDENCE
 **API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
@@ -139,7 +140,22 @@ NotificationBell / Toast
   - CORS Origin Resolution: PASS (Flexible multi-origin resolver in `API/src/config/corsOrigin.ts` handles comma-separated origins and Azure Static Web Apps domains for both HTTP and Socket.IO)
   - Frontend Production Configuration: PASS (Production data source defaults to `api`; `socketUrl` automatically falls back to origin of `baseUrl` when omitted; `staticwebapp.config.json` excludes `/api/*` from SPA fallback and blocks `/dev/*` with 404)
   - Hosted Infrastructure Status: PENDING (Cloud provisioning required on Azure Static Web Apps and Render; public URLs not yet assigned)
+
+- **Showcase-First Experience (Phase 11):**
+  - Architecture Topology Grid: PASS (Interactive 5-node actor map Customer, Owner, Partner, Admin, Dev Core rendering live event loops, event channels, and contract schemas).
+  - Interactive In-Browser Demos: PASS
+    - GPS Tracking Simulator: Interactive stepped Leaflet map projection with courier marker interpolation.
+    - Component Version Swapper: In-browser hot-swapping across `Home_V`, `Home_V2`, and `Home_V3` demonstrating `DevVersionRenderer`.
+    - Live Telemetry & Logger: Dynamic subscription to `logger.subscribe()` with interactive trigger buttons for API, Socket, and Redux trace events.
+  - Engineering Trade-Offs Accordion: PASS (5 deep-dive technical breakdowns: Atomic Transitions, Envelope Normalization, Dynamic Versioning, Socket Listener Cleanup, and Puppeteer Multi-Context E2E).
+  - Recruiter Quick-Scan Mode: PASS (2-minute high-density summary toggle with key metric highlights, actor capabilities, and deep dive links).
+  - Truthful Status Tags: PASS (Strict categorization into Verified E2E, Deterministic Simulation, Dual Transport, and Architectural Prototype).
+  - Unit & Integration Test Suite: PASS (`src/features/showcase/__tests__/showcase.test.tsx` 9/9 tests pass; verified source file existence on disk, status tag validity, credential absence, and rendering).
+  - Full Regression Test Suite: PASS (`src/features/showcase/`, `src/features/deliveryPartner/`, `src/features/orders/` 21/21 tests pass).
+  - TypeScript Type Check: PASS (`npx tsc --noEmit` 0 errors).
+  - Frontend Production Build: PASS (`npm run build` in `web` compiles cleanly in 1m 11s, exit code 0).
 ## HISTORICAL DIAGNOSIS
+
 
 *(Note: The following diagnosis describes the repository state at the beginning of the E2E completion effort and is preserved for historical engineering context. The issues described below have been resolved.)*
 

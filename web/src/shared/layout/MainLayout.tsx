@@ -518,7 +518,8 @@ import {
   History,
   Help,
   Settings,
-  Login, Logout
+  Login, Logout,
+  Code,
 } from '@mui/icons-material';
 import { APP_NAME } from '../../core/constants/food';
 import { useAuth } from '../../contexts/AuthContext';
@@ -545,6 +546,7 @@ const MainLayout: React.FC = () => {
 
   const menuItems = [
     { text: 'Home', icon: <Home />, path: '/' },
+    { text: 'Engineering Showcase', icon: <Code />, path: '/showcase' },
     { text: 'Restaurants', icon: <Restaurant />, path: '/restaurants' },
     { text: 'My Orders', icon: <LocalMall />, path: '/orders' },
     { text: 'Favorites', icon: <FavoriteBorder />, path: '/favorites' },
@@ -582,6 +584,27 @@ const MainLayout: React.FC = () => {
             >
               {APP_NAME}
             </Typography>
+
+            {/* Engineering Showcase Quick Link */}
+            <Button
+              color="inherit"
+              startIcon={<Code />}
+              onClick={() => navigate('/showcase')}
+              sx={{
+                mr: 1.5,
+                fontWeight: 700,
+                textTransform: 'none',
+                bgcolor: 'rgba(255, 255, 255, 0.14)',
+                borderRadius: 2,
+                px: 1.5,
+                display: { xs: 'none', sm: 'inline-flex' },
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.25)',
+                },
+              }}
+            >
+              Showcase
+            </Button>
 
             <DevVersionSwitcher />
 

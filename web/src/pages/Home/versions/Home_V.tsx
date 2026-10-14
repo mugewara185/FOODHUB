@@ -14,8 +14,8 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../app/store';
-import { 
-  fetchRestaurants, 
+import {
+  fetchRestaurants,
   fetchMenuHighlights,
   selectFeaturedRestaurants,
   selectAllRestaurants,
@@ -44,7 +44,7 @@ const Home_V: React.FC = () => {
   useHideGlobalSearch();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  
+
   const featuredRestaurants = useAppSelector(selectFeaturedRestaurants);
   const allRestaurants = useAppSelector(selectAllRestaurants);
   const loading = useAppSelector(selectRestaurantLoading);
@@ -104,19 +104,19 @@ const Home_V: React.FC = () => {
   // Authentic hero photography candidate from featured kitchens or cuisine cover
   const heroImageCandidate =
     featuredRestaurants[0]?.imageUrl ||
-    featuredRestaurants[0]?.image ||
+    featuredRestaurants[3]?.image ||
     cuisineSummary[0]?.coverImage ||
     '';
 
   return (
     <Box sx={{ overflowX: 'hidden', bgcolor: 'background.default', minHeight: '100vh' }}>
       {/* 1. Hero Section with truthful stats, search, & responsive composition */}
-      <HeroCompact 
+      <HeroCompact
         heroImageLoaded={heroImageLoaded}
         setHeroImageLoaded={setHeroImageLoaded}
-        searchQuery={searchQuery} 
-        setSearchQuery={setSearchQuery} 
-        handleSearch={handleSearch} 
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        handleSearch={handleSearch}
         stats={stats}
         loading={loading}
         heroImage={heroImageCandidate}
@@ -126,13 +126,13 @@ const Home_V: React.FC = () => {
       {/* Global Restaurant Fetch Error Alert */}
       {error && (
         <SectionContainer sx={{ py: 2 }}>
-          <Alert 
-            severity="error" 
+          <Alert
+            severity="error"
             sx={{ borderRadius: 2 }}
             action={
-              <Button 
-                color="inherit" 
-                size="small" 
+              <Button
+                color="inherit"
+                size="small"
                 startIcon={<Refresh />}
                 onClick={() => {
                   dispatch(fetchRestaurants())
@@ -151,17 +151,17 @@ const Home_V: React.FC = () => {
 
       {/* 2. Featured Restaurants */}
       <SectionContainer id="featured-restaurants">
-        <FeaturedRestaurantsSection 
-          restaurants={featuredRestaurants} 
-          loading={loading} 
-          onViewAll={() => handleViewAll('featured')}  
+        <FeaturedRestaurantsSection
+          restaurants={featuredRestaurants}
+          loading={loading}
+          onViewAll={() => handleViewAll('featured')}
         />
       </SectionContainer>
 
       {/* 3. Menu Highlights (Real Items with Add-to-Cart) */}
       <SectionContainer id="menu-highlights" alternateBg>
-        <MenuHighlightsSection 
-          highlights={menuHighlightsState.items} 
+        <MenuHighlightsSection
+          highlights={menuHighlightsState.items}
           loading={menuHighlightsState.status === 'loading'}
           error={menuHighlightsState.error ? 'Could not load menu highlights' : null}
           onRetry={() => dispatch(fetchMenuHighlights())}
@@ -170,16 +170,16 @@ const Home_V: React.FC = () => {
 
       {/* 4. Fastest Delivery (Real Restaurants by Delivery Time) */}
       <SectionContainer id="fastest-delivery">
-        <FastestDeliverySection 
-          restaurants={fastestRestaurants} 
-          loading={loading} 
+        <FastestDeliverySection
+          restaurants={fastestRestaurants}
+          loading={loading}
         />
       </SectionContainer>
 
       {/* 5. Browse by Cuisine (Real Distinct Cuisines) */}
       <SectionContainer id="browse-by-cuisine" alternateBg>
-        <CuisineGridSection 
-          cuisines={cuisineSummary} 
+        <CuisineGridSection
+          cuisines={cuisineSummary}
           loading={loading}
           onCuisineClick={handleCuisineClick}
         />
