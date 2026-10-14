@@ -226,12 +226,12 @@ export const Restaurants: React.FC = () => {
           variant="outlined"
           sx={{
             p: 2,
-            borderRadius: 2,
+            borderRadius: 2.5,
             bgcolor: 'background.paper',
             borderColor: 'divider',
           }}
         >
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5, color: 'text.primary' }}>
+          <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5, color: 'text.primary' }}>
             Quick Filters
           </Typography>
           <FormGroup sx={{ gap: 1 }}>
@@ -249,7 +249,13 @@ export const Restaurants: React.FC = () => {
                   <Typography variant="body2" fontWeight={500}>
                     Featured Only
                   </Typography>
-                  <Chip label="Popular" size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: '0.6875rem' }} />
+                  <Chip
+                    label="Popular"
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ height: 20, fontSize: '0.6875rem', fontWeight: 600, borderRadius: 1 }}
+                  />
                 </Box>
               }
             />
@@ -264,9 +270,19 @@ export const Restaurants: React.FC = () => {
                 />
               }
               label={
-                <Typography variant="body2" fontWeight={500}>
-                  Open Now
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Typography variant="body2" fontWeight={500}>
+                    Open Now
+                  </Typography>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: filters.isOpen ? 'success.main' : 'action.disabled',
+                    }}
+                  />
+                </Box>
               }
             />
 
@@ -298,7 +314,7 @@ export const Restaurants: React.FC = () => {
           sx={{
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: '8px !important',
+            borderRadius: '10px !important',
             '&:before': { display: 'none' },
             boxShadow: 'none',
           }}
@@ -306,7 +322,7 @@ export const Restaurants: React.FC = () => {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <RestaurantIcon fontSize="small" color="primary" />
-              <Typography variant="subtitle2" fontWeight={700}>
+              <Typography variant="subtitle2" fontWeight={800}>
                 Cuisines
               </Typography>
               {filters.cuisines.length > 0 && (
@@ -314,7 +330,7 @@ export const Restaurants: React.FC = () => {
                   label={filters.cuisines.length}
                   size="small"
                   color="primary"
-                  sx={{ height: 20, fontSize: '0.75rem' }}
+                  sx={{ height: 20, fontSize: '0.75rem', fontWeight: 700 }}
                 />
               )}
             </Box>
@@ -330,13 +346,20 @@ export const Restaurants: React.FC = () => {
                       onClick={() => handleCuisineToggle(cuisine.name)}
                       color={isSelected ? 'primary' : 'default'}
                       variant={isSelected ? 'filled' : 'outlined'}
-                      icon={isSelected ? <CheckCircle fontSize="small" /> : undefined}
+                      icon={isSelected ? <CheckCircle fontSize="small" sx={{ color: 'inherit !important' }} /> : undefined}
                       sx={{
                         width: '100%',
                         justifyContent: 'flex-start',
                         cursor: 'pointer',
-                        fontWeight: isSelected ? 600 : 400,
+                        fontWeight: isSelected ? 700 : 500,
+                        fontSize: '0.75rem',
+                        height: 32,
+                        borderRadius: 2,
                         transition: 'all 0.15s ease',
+                        borderColor: isSelected ? 'primary.main' : 'divider',
+                        bgcolor: isSelected ? 'primary.main' : 'background.paper',
+                        color: isSelected ? 'primary.contrastText' : 'text.primary',
+                        boxShadow: isSelected ? '0 2px 6px rgba(255, 107, 53, 0.25)' : 'none',
                         '&:hover': {
                           bgcolor: isSelected ? 'primary.dark' : 'action.hover',
                         },
@@ -356,7 +379,7 @@ export const Restaurants: React.FC = () => {
           sx={{
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: '8px !important',
+            borderRadius: '10px !important',
             '&:before': { display: 'none' },
             boxShadow: 'none',
           }}
@@ -364,7 +387,7 @@ export const Restaurants: React.FC = () => {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <AccessTime fontSize="small" color="primary" />
-              <Typography variant="subtitle2" fontWeight={700}>
+              <Typography variant="subtitle2" fontWeight={800}>
                 Delivery Time
               </Typography>
             </Box>
@@ -373,6 +396,16 @@ export const Restaurants: React.FC = () => {
             <RadioGroup
               value={filters.deliveryTime || 'all'}
               onChange={handleDeliveryTimeChange}
+              sx={{
+                '& .MuiFormControlLabel-root': {
+                  mx: 0,
+                  px: 0.5,
+                  py: 0.25,
+                  borderRadius: 1.5,
+                  transition: 'background-color 0.15s ease',
+                  '&:hover': { bgcolor: 'action.hover' },
+                },
+              }}
             >
               <FormControlLabel
                 value="all"
@@ -410,7 +443,7 @@ export const Restaurants: React.FC = () => {
           sx={{
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: '8px !important',
+            borderRadius: '10px !important',
             '&:before': { display: 'none' },
             boxShadow: 'none',
           }}
@@ -418,7 +451,7 @@ export const Restaurants: React.FC = () => {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Star fontSize="small" sx={{ color: 'warning.main' }} />
-              <Typography variant="subtitle2" fontWeight={700}>
+              <Typography variant="subtitle2" fontWeight={800}>
                 Rating
               </Typography>
             </Box>
@@ -427,6 +460,16 @@ export const Restaurants: React.FC = () => {
             <RadioGroup
               value={filters.minRating ?? ''}
               onChange={handleRatingChange}
+              sx={{
+                '& .MuiFormControlLabel-root': {
+                  mx: 0,
+                  px: 0.5,
+                  py: 0.25,
+                  borderRadius: 1.5,
+                  transition: 'background-color 0.15s ease',
+                  '&:hover': { bgcolor: 'action.hover' },
+                },
+              }}
             >
               {[4, 3, 2, 1].map((rating) => (
                 <FormControlLabel
@@ -454,7 +497,7 @@ export const Restaurants: React.FC = () => {
           sx={{
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: '8px !important',
+            borderRadius: '10px !important',
             '&:before': { display: 'none' },
             boxShadow: 'none',
           }}
@@ -462,7 +505,7 @@ export const Restaurants: React.FC = () => {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <LocalOffer fontSize="small" color="primary" />
-              <Typography variant="subtitle2" fontWeight={700}>
+              <Typography variant="subtitle2" fontWeight={800}>
                 Minimum Order
               </Typography>
             </Box>
@@ -480,10 +523,10 @@ export const Restaurants: React.FC = () => {
                 color="primary"
               />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
                   ₹{filters.minPrice ?? 0}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
                   ₹{filters.maxPrice ?? 1000}+
                 </Typography>
               </Box>
@@ -541,265 +584,391 @@ export const Restaurants: React.FC = () => {
   // Render: Main Listing Page
   // ---------------------------------------------------------------------------
   return (
-    <Container
-      maxWidth="xl"
-      sx={{
-        py: { xs: 2.5, sm: 3.5, md: 5 },
-        px: { xs: 2, sm: 3, md: 4 },
-        boxSizing: 'border-box',
-      }}
-    >
-      {/* =================================================================== */}
-      {/* 1. Page Discovery Header                                            */}
-      {/* =================================================================== */}
-      <Box
+    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', py: { xs: 2.5, sm: 3.5, md: 4.5 }, overflowX: 'hidden' }}>
+      <Container
+        maxWidth="xl"
         sx={{
-          mb: { xs: 2.5, sm: 3, md: 4 },
-          pb: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
+          px: { xs: 1.5, sm: 3, md: 4 },
+          boxSizing: 'border-box',
         }}
       >
-        <Box
+        {/* =================================================================== */}
+        {/* 1. Page Discovery Header                                            */}
+        {/* =================================================================== */}
+        <Paper
+          elevation={0}
           sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            justifyContent: 'space-between',
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            gap: 1.5,
+            mb: { xs: 3, md: 4 },
+            p: { xs: 2, sm: 3.5 },
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Typography
-                component="h1"
-                variant="h4"
-                sx={{
-                  fontWeight: 800,
-                  fontSize: { xs: '1.5rem', sm: '1.875rem', md: '2.25rem' },
-                  letterSpacing: '-0.02em',
-                  color: 'text.primary',
-                  lineHeight: 1.2,
-                }}
-              >
-                Explore Restaurants
-              </Typography>
-              {!initialLoading && (
-                <Chip
-                  label={`${filteredRestaurants.length} ${filteredRestaurants.length === 1 ? 'place' : 'places'}`}
-                  size="small"
-                  color="primary"
-                  variant="outlined"
-                  sx={{ fontWeight: 600, height: 24 }}
-                />
-              )}
-            </Box>
+          {/* Category Tag */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <RestaurantIcon sx={{ fontSize: 16, color: 'primary.main' }} />
             <Typography
-              variant="body2"
-              color="text.secondary"
+              variant="caption"
               sx={{
-                mt: 0.5,
-                fontSize: { xs: '0.875rem', sm: '0.95rem' },
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                fontWeight: 800,
+                color: 'primary.main',
               }}
             >
-              Discover top-rated dining, fast delivery, and authentic cuisines near you.
+              FoodHub Discovery
             </Typography>
           </Box>
-        </Box>
-      </Box>
 
-      {/* =================================================================== */}
-      {/* 2. Main Page Layout (Desktop Sidebar + Results Column)              */}
-      {/* =================================================================== */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: { md: 3.5, lg: 4 },
-          alignItems: 'flex-start',
-        }}
-      >
-        {/* ================================================================= */}
-        {/* Desktop Filter Sidebar                                            */}
-        {/* ================================================================= */}
-        {!isMobile && (
-          <Box
-            component="aside"
-            aria-label="Restaurant filters"
-            sx={{
-              flex: `0 0 ${SIDEBAR_WIDTH}px`,
-              width: SIDEBAR_WIDTH,
-              minWidth: SIDEBAR_WIDTH,
-              maxWidth: SIDEBAR_WIDTH,
-              position: 'sticky',
-              top: 84,
-              maxHeight: 'calc(100vh - 100px)',
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              pr: 1,
-              pb: 2,
-              '&::-webkit-scrollbar': {
-                width: 6,
-              },
-              '&::-webkit-scrollbar-thumb': {
-                bgcolor: 'divider',
-                borderRadius: 3,
-              },
-            }}
-          >
-            {/* Sidebar header */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                mb: 2,
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <FilterList color="primary" />
-                <Typography variant="h6" fontWeight={700} fontSize="1.125rem">
-                  Filters
-                </Typography>
-                {activeFiltersCount > 0 && (
-                  <Chip
-                    label={activeFiltersCount}
-                    size="small"
-                    color="primary"
-                    sx={{ height: 22, fontWeight: 700 }}
-                  />
-                )}
-              </Box>
-
-              {activeFiltersCount > 0 && (
-                <Button
-                  onClick={handleClearAllFilters}
-                  size="small"
-                  color="secondary"
-                  sx={{ textTransform: 'none', fontWeight: 600, minHeight: 32 }}
-                >
-                  Clear All
-                </Button>
-              )}
-            </Box>
-
-            {filterContent}
-          </Box>
-        )}
-
-        {/* ================================================================= */}
-        {/* Results Area                                                      */}
-        {/* ================================================================= */}
-        <Box
-          component="main"
-          sx={{
-            flex: '1 1 auto',
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {/* =============================================================== */}
-          {/* Toolbar (Search, Filter Trigger on Mobile, Sort Selector)        */}
-          {/* =============================================================== */}
+          {/* Heading Row */}
           <Box
             sx={{
               display: 'flex',
               flexDirection: { xs: 'column', sm: 'row' },
               justifyContent: 'space-between',
-              alignItems: { xs: 'stretch', sm: 'center' },
-              gap: 2,
-              mb: 2.5,
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              gap: 1.5,
             }}
           >
-            {/* Search Input */}
-            <TextField
-              placeholder="Search restaurants, cuisines, or tags..."
-              value={localSearch}
-              onChange={handleSearchChange}
-              size="small"
-              fullWidth
-              sx={{
-                flex: { xs: 1, sm: 1, md: 0.6, lg: 0.5 },
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  bgcolor: 'background.paper',
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: localSearch ? (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
-                      <Close fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ) : null,
-              }}
-            />
-
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1.5,
-                alignItems: 'center',
-                justifyContent: { xs: 'space-between', sm: 'flex-end' },
-              }}
-            >
-              {/* Mobile Filter Trigger */}
-              {isMobile && (
-                <Badge badgeContent={activeFiltersCount} color="primary">
-                  <Button
-                    variant="outlined"
-                    startIcon={<FilterList />}
-                    onClick={() => setFilterDrawerOpen(true)}
-                    sx={{
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      minHeight: 40,
-                      px: 2,
-                    }}
-                  >
-                    Filters
-                  </Button>
-                </Badge>
-              )}
-
-              {/* Sort Dropdown */}
-              <FormControl size="small" sx={{ minWidth: 165 }}>
-                <InputLabel id="restaurant-sort-label">Sort by</InputLabel>
-                <Select
-                  labelId="restaurant-sort-label"
-                  id="restaurant-sort-select"
-                  value={filters.sortBy || 'rating'}
-                  label="Sort by"
-                  onChange={handleSortChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <Sort fontSize="small" color="action" />
-                    </InputAdornment>
-                  }
-                  sx={{ borderRadius: 2, bgcolor: 'background.paper' }}
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                <Typography
+                  component="h1"
+                  variant="h4"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: { xs: '1.625rem', sm: '2rem', md: '2.375rem' },
+                    letterSpacing: '-0.025em',
+                    color: 'text.primary',
+                    lineHeight: 1.2,
+                  }}
                 >
-                  <MenuItem value="rating">Rating: High to Low</MenuItem>
-                  <MenuItem value="deliveryTime">Delivery Time</MenuItem>
-                  <MenuItem value="price">Min. order: Low to High</MenuItem>
-                  <MenuItem value="price_desc">Min. order: High to Low</MenuItem>
-                  <MenuItem value="name">Name: A to Z</MenuItem>
-                </Select>
-              </FormControl>
+                  Explore Restaurants
+                </Typography>
+                {!initialLoading && (
+                  <Chip
+                    label={`${filteredRestaurants.length} ${filteredRestaurants.length === 1 ? 'place' : 'places'}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{
+                      fontWeight: 700,
+                      borderRadius: '16px',
+                      height: 26,
+                      fontSize: '0.8125rem',
+                      bgcolor: 'rgba(255, 107, 53, 0.08)',
+                    }}
+                  />
+                )}
+              </Box>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mt: 0.75,
+                  maxWidth: 650,
+                  fontSize: { xs: '0.875rem', sm: '0.95rem' },
+                  lineHeight: 1.5,
+                }}
+              >
+                Discover top-rated dining, fast delivery, and authentic cuisines near you.
+              </Typography>
             </Box>
           </Box>
 
-          {/* =============================================================== */}
-          {/* Active Filter Chips                                              */}
+          {/* Quick Cuisine Carousel / Bar */}
+          <Box
+            sx={{
+              mt: 2.5,
+              pt: 2,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              overflowX: 'auto',
+              maxWidth: '100%',
+              minWidth: 0,
+              pb: 0.5,
+              WebkitOverflowScrolling: 'touch',
+              '&::-webkit-scrollbar': { height: 4 },
+              '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
+            }}
+          >
+            <Typography
+              variant="caption"
+              fontWeight={700}
+              color="text.secondary"
+              sx={{ whiteSpace: 'nowrap', mr: 0.5 }}
+            >
+              Quick Select:
+            </Typography>
+            {CUISINES.slice(0, 8).map((cuisine) => {
+              const isSelected = filters.cuisines.includes(cuisine.name);
+              return (
+                <Chip
+                  key={cuisine.id}
+                  label={`${cuisine.icon} ${cuisine.name}`}
+                  onClick={() => handleCuisineToggle(cuisine.name)}
+                  color={isSelected ? 'primary' : 'default'}
+                  variant={isSelected ? 'filled' : 'outlined'}
+                  size="small"
+                  sx={{
+                    cursor: 'pointer',
+                    fontWeight: isSelected ? 700 : 500,
+                    fontSize: '0.75rem',
+                    height: 28,
+                    borderRadius: '14px',
+                    transition: 'all 0.15s ease',
+                    bgcolor: isSelected ? 'primary.main' : 'background.paper',
+                    borderColor: isSelected ? 'primary.main' : 'divider',
+                    color: isSelected ? 'primary.contrastText' : 'text.primary',
+                    '&:hover': {
+                      bgcolor: isSelected ? 'primary.dark' : 'action.hover',
+                      transform: 'translateY(-1px)',
+                    },
+                  }}
+                />
+              );
+            })}
+          </Box>
+        </Paper>
+
+        {/* =================================================================== */}
+        {/* 2. Main Page Layout (Desktop Sidebar + Results Column)              */}
+        {/* =================================================================== */}
+        <Box
+          sx={{
+            display: 'flex',
+            gap: { md: 3.5, lg: 4 },
+            alignItems: 'flex-start',
+          }}
+        >
+          {/* ================================================================= */}
+          {/* Desktop Filter Sidebar                                            */}
+          {/* ================================================================= */}
+          {!isMobile && (
+            <Box
+              component="aside"
+              aria-label="Restaurant filters"
+              sx={{
+                flex: `0 0 ${SIDEBAR_WIDTH}px`,
+                width: SIDEBAR_WIDTH,
+                minWidth: SIDEBAR_WIDTH,
+                maxWidth: SIDEBAR_WIDTH,
+                position: 'sticky',
+                top: 84,
+                maxHeight: 'calc(100vh - 100px)',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                pr: 0.5,
+                pb: 2,
+                '&::-webkit-scrollbar': {
+                  width: 6,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  bgcolor: 'divider',
+                  borderRadius: 3,
+                },
+              }}
+            >
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2.5,
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                }}
+              >
+                {/* Sidebar header */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: 2,
+                    pb: 1.5,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FilterList color="primary" />
+                    <Typography variant="h6" fontWeight={800} fontSize="1.1rem">
+                      Filters
+                    </Typography>
+                    {activeFiltersCount > 0 && (
+                      <Chip
+                        label={activeFiltersCount}
+                        size="small"
+                        color="primary"
+                        sx={{ height: 22, fontWeight: 700 }}
+                      />
+                    )}
+                  </Box>
+
+                  {activeFiltersCount > 0 && (
+                    <Button
+                      onClick={handleClearAllFilters}
+                      size="small"
+                      color="secondary"
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        minHeight: 28,
+                        color: 'text.secondary',
+                        '&:hover': { color: 'error.main' },
+                      }}
+                    >
+                      Clear All
+                    </Button>
+                  )}
+                </Box>
+
+                {filterContent}
+              </Paper>
+            </Box>
+          )}
+
+          {/* ================================================================= */}
+          {/* Results Area                                                      */}
+          {/* ================================================================= */}
+          <Box
+            component="main"
+            sx={{
+              flex: '1 1 auto',
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* =============================================================== */}
+            {/* Toolbar (Search, Filter Trigger on Mobile, Sort Selector)        */}
+            {/* =============================================================== */}
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: 2,
+                mb: 2.5,
+              }}
+            >
+              {/* Search Input */}
+              <TextField
+                placeholder="Search restaurants, cuisines, or tags..."
+                value={localSearch}
+                onChange={handleSearchChange}
+                size="small"
+                fullWidth
+                sx={{
+                  flex: { xs: 1, sm: 1, md: 0.65, lg: 0.6 },
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2.5,
+                    bgcolor: 'background.paper',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                    },
+                    '&.Mui-focused': {
+                      boxShadow: '0 0 0 3px rgba(255, 107, 53, 0.15)',
+                    },
+                  },
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: 'primary.main', fontSize: 22 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: localSearch ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={handleClearSearch} aria-label="Clear search">
+                        <Close fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1.5,
+                  alignItems: 'center',
+                  justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                  width: { xs: '100%', sm: 'auto' },
+                }}
+              >
+                {/* Mobile Filter Trigger */}
+                {isMobile && (
+                  <Badge badgeContent={activeFiltersCount} color="primary">
+                    <Button
+                      variant="outlined"
+                      startIcon={<FilterList />}
+                      onClick={() => setFilterDrawerOpen(true)}
+                      sx={{
+                        borderRadius: 2.5,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        minHeight: 40,
+                        px: { xs: 1.5, sm: 2.5 },
+                        borderColor: 'divider',
+                        bgcolor: 'background.paper',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      Filters
+                    </Button>
+                  </Badge>
+                )}
+
+                {/* Sort Dropdown */}
+                <FormControl size="small" sx={{ minWidth: { xs: 130, sm: 190 }, flex: { xs: 1, sm: 'none' } }}>
+                  <InputLabel id="restaurant-sort-label">Sort by</InputLabel>
+                  <Select
+                    labelId="restaurant-sort-label"
+                    id="restaurant-sort-select"
+                    value={filters.sortBy || 'rating'}
+                    label="Sort by"
+                    onChange={handleSortChange}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <Sort fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    }
+                    sx={{
+                      borderRadius: 2.5,
+                      bgcolor: 'background.paper',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    <MenuItem value="rating">Rating: High to Low</MenuItem>
+                    <MenuItem value="deliveryTime">Fastest Delivery</MenuItem>
+                    <MenuItem value="price">Min. order: Low to High</MenuItem>
+                    <MenuItem value="price_desc">Min. order: High to Low</MenuItem>
+                    <MenuItem value="name">Name: A to Z</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+
+            {/* =============================================================== */}
+            {/* Active Filter Chips                                              */}
           {/* =============================================================== */}
           {activeFiltersCount > 0 && (
-            <Box
+            <Paper
+              elevation={0}
               data-testid="active-filter-chips"
               sx={{
                 display: 'flex',
@@ -807,14 +976,20 @@ export const Restaurants: React.FC = () => {
                 gap: 1,
                 flexWrap: 'wrap',
                 mb: 3,
-                p: 1.5,
-                borderRadius: 2,
-                bgcolor: 'action.hover',
+                p: 1.75,
+                borderRadius: 2.5,
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
               }}
             >
-              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mr: 0.5 }}>
-                Active:
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mr: 0.5 }}>
+                <FilterList sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Typography variant="caption" fontWeight={700} color="text.secondary">
+                  Active Filters ({activeFiltersCount}):
+                </Typography>
+              </Box>
 
               {filters.searchQuery && (
                 <Chip
@@ -823,6 +998,7 @@ export const Restaurants: React.FC = () => {
                   size="small"
                   color="primary"
                   variant="outlined"
+                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
                 />
               )}
 
@@ -832,6 +1008,7 @@ export const Restaurants: React.FC = () => {
                   onDelete={() => dispatch(setFeaturedOnly(false))}
                   size="small"
                   color="primary"
+                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
                 />
               )}
 
@@ -842,6 +1019,7 @@ export const Restaurants: React.FC = () => {
                   onDelete={() => handleCuisineToggle(cuisine)}
                   size="small"
                   color="primary"
+                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
                 />
               ))}
 
@@ -852,6 +1030,7 @@ export const Restaurants: React.FC = () => {
                   size="small"
                   color="primary"
                   variant="outlined"
+                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
                 />
               )}
 
@@ -862,6 +1041,7 @@ export const Restaurants: React.FC = () => {
                   size="small"
                   color="primary"
                   variant="outlined"
+                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
                 />
               )}
 
@@ -872,6 +1052,7 @@ export const Restaurants: React.FC = () => {
                   size="small"
                   color="success"
                   variant="outlined"
+                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
                 />
               )}
 
@@ -881,6 +1062,7 @@ export const Restaurants: React.FC = () => {
                   onDelete={() => dispatch(setVegFilter(false))}
                   size="small"
                   color="success"
+                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
                 />
               )}
 
@@ -891,24 +1073,27 @@ export const Restaurants: React.FC = () => {
                   size="small"
                   color="primary"
                   variant="outlined"
+                  sx={{ fontWeight: 600, borderRadius: 1.5 }}
                 />
               )}
 
               <Button
-                size="small"
                 onClick={handleClearAllFilters}
+                size="small"
+                color="secondary"
                 sx={{
                   ml: 'auto',
                   textTransform: 'none',
-                  fontSize: '0.75rem',
                   fontWeight: 600,
-                  py: 0.25,
-                  minHeight: 24,
+                  fontSize: '0.8125rem',
+                  minHeight: 28,
+                  color: 'text.secondary',
+                  '&:hover': { color: 'error.main' },
                 }}
               >
                 Clear all
               </Button>
-            </Box>
+            </Paper>
           )}
 
           {/* =============================================================== */}
@@ -986,16 +1171,28 @@ export const Restaurants: React.FC = () => {
           {/* Pagination                                                      */}
           {/* =============================================================== */}
           {totalPages > 1 && (
-            <Box
+            <Paper
+              elevation={0}
               sx={{
                 display: 'flex',
-                justifyContent: 'center',
-                mt: { xs: 4, md: 6 },
-                pt: 3,
-                borderTop: '1px solid',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mt: { xs: 4, md: 5 },
+                p: 2.5,
+                borderRadius: 3,
+                border: '1px solid',
                 borderColor: 'divider',
+                bgcolor: 'background.paper',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+                gap: 2,
               }}
             >
+              <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                Showing {Math.min((currentPage - 1) * 12 + 1, filteredRestaurants.length)}–
+                {Math.min(currentPage * 12, filteredRestaurants.length)} of {filteredRestaurants.length} places
+              </Typography>
+
               <Pagination
                 count={totalPages}
                 page={currentPage}
@@ -1005,8 +1202,19 @@ export const Restaurants: React.FC = () => {
                 showFirstButton
                 showLastButton
                 aria-label="Restaurant pagination navigation"
+                sx={{
+                  '& .MuiPaginationItem-root': {
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    '&.Mui-selected': {
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      boxShadow: '0 2px 8px rgba(255, 107, 53, 0.25)',
+                    },
+                  },
+                }}
               />
-            </Box>
+            </Paper>
           )}
         </Box>
       </Box>
@@ -1042,7 +1250,7 @@ export const Restaurants: React.FC = () => {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <FilterList color="primary" />
-              <Typography variant="h6" fontWeight={700}>
+              <Typography variant="h6" fontWeight={800}>
                 Filters
               </Typography>
               {activeFiltersCount > 0 && (
@@ -1097,6 +1305,7 @@ export const Restaurants: React.FC = () => {
         </Drawer>
       )}
     </Container>
+  </Box>
   );
 };
 

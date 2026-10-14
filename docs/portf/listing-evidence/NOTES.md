@@ -3,54 +3,52 @@
 Recorded: 2026-10-14  
 Repository: `https://github.com/mugewara185/FOODHUB.git` (local remote: `https://github.com/mugewara185/Zom2.git`)  
 Target Branch: `dev/development`  
-Authoritative Brief: `docs/portf/slices/SLICE-04.md` / Restaurant Listing Page Redesign & Functional Polish  
+Authoritative Brief: `docs/portf/slices/SLICE-04.md` / Restaurant Listing Page Redesign & Functional Polish (V2 Visual Pass)  
 
 ---
 
 ## 1. Summary of Changes Implemented
 
-The restaurant listing page (`web/src/pages/restaurantListings/V/Restaurants_V.tsx`) has been redesigned and polished to achieve a responsive, portfolio-quality discovery experience matching the high standard of the Home page, while respecting its distinct purpose: **restaurant discovery, filtering, comparison, and navigation**.
+The restaurant listing page (`web/src/pages/restaurantListings/V/Restaurants_V.tsx`) and card component (`web/src/features/restaurant/components/RestaurantCard/RestaurantCard_V.tsx`) have undergone an extensive visual redesign and polish pass to elevate the discovery experience to portfolio quality (~4.5/5), perfectly matching the polished aesthetic of the FoodHub home page while honoring the listing page's core utility: **restaurant discovery, filtering, comparison, and navigation**.
 
-### Architectural & State Extensions (`web/src/features/restaurant/restaurantSlice/V/restaurantSlice_V.ts`)
+### A. Visual Identity & Elevated Surfaces (V2 Visual Pass)
+- **Contrast Canvas**: Wrapped the entire page in subtle `grey.50` (`#F8F9FA`), providing soft depth and high-contrast separation for white paper cards and filter surfaces (matching the alternating section rhythm of the homepage).
+- **Discovery Header Banner**:
+  - Replaced plain text with a distinctive, elevated `Paper` banner (`elevation={0}`, `borderRadius: 3`, soft shadow).
+  - Upper category badge with restaurant icon: `"FOODHUB DISCOVERY"`.
+  - Prominent `<h1>` `"Explore Restaurants"` heading paired with a live, truthful count badge (`100 places`).
+  - Integrated 1-tap horizontal Quick Cuisine selector bar (`CUISINES.slice(0, 8)`) allowing immediate cuisine filtering without opening sidebars.
+- **Unified Sidebar & Filter Controls**:
+  - Filter column wrapped in a cohesive Paper card with structured header, active count badge, and clear-all link.
+  - Accordion panels styled with 10px rounded borders (`divider`), eliminating harsh default accordion lines.
+  - Interactive cuisine chips redesigned as pill buttons with checkmark icons, active primary fills, and smooth micro-interactions.
+- **Search & Sort Toolbar**:
+  - Unified search input with rounded 10px contours, soft inset shadow, and brand-primary search icon.
+  - Sort selector styled with matching rounded border and sort icon.
+  - Full mobile responsiveness: stacks cleanly on `<600px` without cramped wrapping.
+- **Active Filter Chips & Empty States**:
+  - Active filters bar displayed inside an elevated card with active count indicator (`Active Filters (N)`), individual delete triggers, and secondary Clear All action.
+  - Empty state redesigned with friendly iconography, actionable guidance, and a prominent "Reset All Filters" primary button.
+- **Pagination Card**:
+  - Bottom pagination enclosed in an elevated Paper card showing contextual summary (`Showing X–Y of Z places`) alongside modern rounded pagination buttons with subtle primary drop shadow on the selected page.
+
+### B. Restaurant Card Polish (`RestaurantCard_V.tsx`)
+- **Card Geometry & Elevation**: Upgraded container to `borderRadius: 3`, 1px subtle divider border, and 2-stage elevation: soft resting shadow (`0 2px 6px rgba(0,0,0,0.04)`) transitioning smoothly on hover to an elevated float (`translateY(-4px)`, `0 12px 24px -4px rgba(0,0,0,0.09)`).
+- **Image Media Presentation**: Smooth zoom effect (`scale(1.05)`) with ease-in-out bezier on hover; subtle dark gradient scrim overlay at the image bottom for enhanced contrast against bright backgrounds.
+- **Modern Rating Pill**: Replaced raw text/star with a high-contrast pill badge: bold green (`#16a34a`) for $\ge 4.0$, amber (`#ca8a04`) for $>0$, and slate for unrated places.
+- **Pricing & Tags**: Free delivery highlighted in emerald green (`₹0 delivery fee`); tag chips rounded to `borderRadius: 1.5` with dedicated styling for "Top Rated" and "Best Seller".
+- **Skeleton Alignment**: `RestaurantCardSkeleton.tsx` updated with identical `borderRadius: 3` and matching elevation geometry.
+
+### C. Architectural & Functional Integrity (Preserved from V1)
 - **Resolved Slice Defects (D-10, D-11, D-12, D-13)**:
-  - **D-10**: Fixed `filterByCuisine` reducer that was resetting all other filters. Now preserves other filters or uses dedicated toggle.
-  - **D-11**: Fixed `setSearchQuery` reducer to reset `currentPage` to 1 on search input change.
-  - **D-12**: Fixed delivery time filter to parse numerical upper bound (`<= maxMinutes`) rather than strict equality matching.
-  - **D-13**: Evaluated pure boolean `isVeg === true` rather than truthy non-empty check.
-- **Added Redux Capabilities**:
-  - `featuredOnly` boolean filter property in state and URL.
-  - `hydrateFilters` action for atomic batch hydration from URLSearchParams without multi-step re-renders.
-  - `lastFetchedAt` timestamp with 60-second cache condition on `fetchRestaurants` to eliminate skeleton flash on route returns.
-- **Added Selectors**:
-  - `selectHasVegData`: checks whether catalogue data contains any explicit vegetarian flags.
-  - `selectIsInitialLoading`: differentiates initial cold-start catalogue loading from filter changes.
-  - `selectTotalPages`: clamped safely to `>= 1`.
-  - `selectPaginatedRestaurants`: pagination slicing with bounds clamping.
-
-### URL State Synchronization Contract (`web/src/features/restaurant/hooks/useRestaurantUrlState.ts`)
-- Implemented pure `parseUrlParams` and `serializeUrlParams` functions supporting `q`, `cuisine`, `rating`, `time`, `open`, `featured`, `sort`, and `page`.
-- Bidirectional synchronization between URL query parameters and Redux store with `isSyncingFromUrlRef` loop guard.
-- Uses `replace: true` for typing and debounce search input, and `push: true` for discrete filter selections to preserve clean browser back/forward history.
-
-### Listing Page Redesign (`web/src/pages/restaurantListings/V/Restaurants_V.tsx`)
-- **Natural Layout & Sticky Sidebar**:
-  - Eliminated rigid viewport height constraints (`calc(100vh - 140px)`).
-  - Single natural page scrollbar; zero nested container scrollbars.
-  - Sticky desktop sidebar (`SIDEBAR_WIDTH = 290px`, `top: 84px`) with independent internal overflow scroll.
-  - Natural bottom placement for pagination controls.
-- **Responsive Card Grid**:
-  - Responsive breakpoints: `size={{ xs: 12, sm: 6, md: 6, lg: 4 }}`.
-  - On `md` screens (beside the 290px sidebar), cards comfortably render in 2 columns instead of cramped 3 columns. On `lg`/`xl`, renders 3 columns. On mobile (`xs`), full-width single column.
-- **Discovery Hierarchy**:
-  - Clean compact `<h1>` "Explore Restaurants" heading with truthful count badge (`X places` / `1 place`).
-  - Discovery toolbar with search input (with debounced dispatch and clear button) and sort selector.
-  - Active filter chips bar (`data-testid="active-filter-chips"`) with individual chip removal and "Clear all" button.
-  - Refined filter accordions with clean borders and active count badges.
-  - Mobile filter drawer with independent scrolling and fixed bottom actions ("Clear all", "Apply filters").
-- **States & Truthfulness**:
-  - Grid skeleton loader matching card dimensions during cold starts.
-  - Truthful empty state with "Reset all filters" button when filters yield 0 results.
-  - Retryable error state alert box when catalogue fetch fails.
+  - **D-10**: Multi-cuisine toggle preserves existing filter state.
+  - **D-11**: `setSearchQuery` automatically resets pagination to page 1.
+  - **D-12**: Numerical upper bound matching for delivery time (`<= maxMinutes`).
+  - **D-13**: Evaluates boolean `isVeg === true`.
+- **URL ↔ Redux Synchronization Contract (`useRestaurantUrlState.ts`)**:
+  - Full bidirectional sync supporting `q`, `cuisine`, `rating`, `time`, `open`, `featured`, `sort`, and `page`.
+  - Push navigation for discrete filters; replace navigation with debounce for text search.
+  - Hydration guard ref preventing re-entrant loop re-renders.
 
 ---
 
@@ -99,9 +97,24 @@ Stored in [`docs/portf/listing-evidence/`](./):
 - `restaurants-1024.png`: Small desktop listing view (sidebar + 2 card columns)
 - `restaurants-1280.png`: Standard desktop listing view (sidebar + 3 card columns)
 - `restaurants-1440.png`: Large desktop listing view
-- `restaurants-filtered-1280.png`: Filtered URL state (`?cuisine=Indian&featured=1`) showing active chips and truthful matching count
+- `restaurants-filtered-1280.png`: Filtered URL state (`?cuisine=Pizza&time=30&sort=rating`) showing active chips and truthful matching count
 
 ### D. Production Build Verification
 - Command: `npm run build`
 - Exit Code: **0**
-- Module size: `dist/assets/Restaurants_V-*.js` ~17.04 kB (gzip: ~5.10 kB)
+- Module size: `dist/assets/Restaurants_V-*.js` ~19.19 kB (gzip: ~5.07 kB)
+- Zero TypeScript diagnostics or compilation errors.
+
+---
+
+## 3. Visual Before/After Gap Analysis
+
+| Surface Element | Baseline (V0/V1) | Redesign V2 |
+|:---|:---|:---|
+| **Page Canvas** | Flat white `#ffffff`, lack of visual depth or hierarchy. | Soft `#F8F9FA` background providing high contrast against elevated cards. |
+| **Discovery Header** | Plain text title floating with no category context or quick actions. | Elevated Paper banner with "FOODHUB DISCOVERY" pill, count chip, and 1-tap Quick Cuisine carousel. |
+| **Filter Sidebar** | Loose accordion list with default MUI lines. | Unified card container with clean borders, active count badge, and pill cuisine buttons. |
+| **Restaurant Cards** | Standard 1px border with generic placeholder and minimal hover feedback. | `borderRadius: 3`, smooth 4px upward float, image zoom with gradient scrim, high-contrast rating pill, green delivery accent. |
+| **Active Filters** | Basic grey box. | Elevated card with icon label, themed chips, and clean Clear All button. |
+| **Pagination** | Simple centered pagination on divider. | Dedicated Paper card with "Showing X-Y of Z places" context and active button glow. |
+| **Responsiveness** | Mobile cards occasionally wrapped tightly or had awkward toolbar sizing. | Clean 2-column layout on 1024px, 1-column on mobile, responsive toolbar controls, 0px horizontal overflow on all viewports down to 320px. |

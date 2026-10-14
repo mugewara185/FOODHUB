@@ -15,6 +15,7 @@ import {
   DeliveryDining,
   FavoriteBorder,
   Favorite,
+  Star,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 //core
@@ -73,14 +74,25 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 2,
+        borderRadius: 3,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
         overflow: 'hidden',
         cursor: 'pointer',
         position: 'relative',
-        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
+        transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease',
         '&:hover': {
           transform: 'translateY(-4px)',
-          boxShadow: (theme) => theme.shadows[8],
+          boxShadow: '0 12px 24px -4px rgba(0, 0, 0, 0.09), 0 4px 12px rgba(0, 0, 0, 0.04)',
+          borderColor: 'primary.light',
+          '& .restaurant-card-title': {
+            color: 'primary.main',
+          },
+          '& .restaurant-card-image': {
+            transform: 'scale(1.05)',
+          },
         },
       }}
     >
@@ -96,6 +108,7 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
         }}
       >
         <SafeImage
+          className="restaurant-card-image"
           src={imageSrc}
           alt={name}
           loading="lazy"
@@ -108,6 +121,20 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
             height: '100%',
             display: 'block',
             objectFit: 'cover',
+            transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        />
+
+        {/* Subtle bottom gradient scrim */}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '35%',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.18) 0%, transparent 100%)',
+            pointerEvents: 'none',
           }}
         />
 
@@ -129,7 +156,7 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
             borderRadius: '50%',
             bgcolor: 'background.paper',
             color: isFavorite ? 'error.main' : 'text.secondary',
-            boxShadow: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             '&:hover': {
               bgcolor: 'background.paper',
               color: 'error.main',
@@ -163,11 +190,13 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
             alignItems: 'center',
             mb: 1,
             minHeight: 28,
+            gap: 1,
           }}
         >
           <Typography
+            className="restaurant-card-title"
             variant="h6"
-            fontWeight={600}
+            fontWeight={700}
             noWrap
             title={restaurant.name}
             sx={{
@@ -175,6 +204,8 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
               mr: 1,
               fontSize: '1.05rem',
               lineHeight: 1.25,
+              letterSpacing: '-0.015em',
+              transition: 'color 0.2s ease',
             }}
           >
             {restaurant.name}
@@ -184,28 +215,28 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
-              bgcolor: restaurant.rating && restaurant.rating > 0 ? 'success.light' : 'action.selected',
-              color: restaurant.rating && restaurant.rating > 0 ? 'success.dark' : 'text.secondary',
-              px: 0.75,
+              bgcolor:
+                restaurant.rating && restaurant.rating >= 4.0
+                  ? '#16a34a'
+                  : restaurant.rating && restaurant.rating > 0
+                  ? '#ca8a04'
+                  : 'grey.600',
+              color: '#FFFFFF',
+              px: 0.85,
               py: 0.25,
-              borderRadius: 1,
+              borderRadius: 1.5,
               flexShrink: 0,
-              gap: 0.5,
+              gap: 0.4,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
             }}
           >
-            <Typography variant="caption" fontWeight={700}>
+            <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem', lineHeight: 1 }}>
               {restaurant.rating && restaurant.rating > 0
                 ? restaurant.rating.toFixed(1)
                 : 'New'}
             </Typography>
             {restaurant.rating && restaurant.rating > 0 ? (
-              <Rating
-                value={1}
-                max={1}
-                readOnly
-                size="small"
-                sx={{ '& .MuiRating-icon': { fontSize: 13 } }}
-              />
+              <Star sx={{ fontSize: 13, color: '#FFFFFF' }} />
             ) : null}
           </Box>
         </Box>
@@ -228,14 +259,29 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
               label={cuisine}
               size="small"
               variant="outlined"
-              sx={{ fontSize: '0.7rem', height: 22 }}
+              sx={{
+                fontSize: '0.7rem',
+                height: 22,
+                borderRadius: 1.5,
+                bgcolor: 'action.hover',
+                borderColor: 'transparent',
+                color: 'text.secondary',
+                fontWeight: 500,
+              }}
             />
           ))}
           {(restaurant.cuisine || []).length > 2 && (
             <Chip
               label={`+${restaurant.cuisine.length - 2}`}
               size="small"
-              sx={{ fontSize: '0.7rem', height: 22 }}
+              sx={{
+                fontSize: '0.7rem',
+                height: 22,
+                borderRadius: 1.5,
+                bgcolor: 'action.hover',
+                color: 'text.secondary',
+                fontWeight: 600,
+              }}
             />
           )}
         </Stack>
@@ -259,7 +305,13 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minHeight: 18 }}>
             <DeliveryDining sx={{ color: 'text.secondary', fontSize: 15, flexShrink: 0 }} />
             <Typography variant="body2" color="text.secondary" noWrap sx={{ fontSize: '0.8rem' }}>
-              ₹{restaurant.deliveryFee ?? 0} delivery fee
+              {restaurant.deliveryFee === 0 ? (
+                <Box component="span" sx={{ color: 'success.main', fontWeight: 600 }}>
+                  ₹0 delivery fee
+                </Box>
+              ) : (
+                `₹${restaurant.deliveryFee ?? 0} delivery fee`
+              )}
               {restaurant.minOrder && restaurant.minOrder > 0 ? ` • Min ₹${restaurant.minOrder}` : ''}
             </Typography>
           </Box>
@@ -274,9 +326,14 @@ export const RestaurantsCard: React.FC<RestaurantsCardProps> = React.memo<Restau
                   key={tag}
                   label={tag}
                   size="small"
-                  color="primary"
+                  color={tag.toLowerCase().includes('top') ? 'warning' : 'primary'}
                   variant="outlined"
-                  sx={{ fontSize: '0.65rem', height: 20 }}
+                  sx={{
+                    fontSize: '0.6875rem',
+                    height: 22,
+                    fontWeight: 600,
+                    borderRadius: 1.5,
+                  }}
                 />
               ))}
             </Stack>
