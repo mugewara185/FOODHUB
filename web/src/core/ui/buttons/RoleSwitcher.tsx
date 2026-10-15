@@ -72,7 +72,7 @@ export const RoleSwitcher: React.FC = () => {
       label: 'Customer App',
       subtitle: 'Standard User Interface & Food Catalog',
       badgeText: 'PUBLIC VIEW',
-      path: '/',
+      path: '/user',
       icon: <Person sx={{ fontSize: 22 }} />,
       activeColor: '#3b82f6',
       glowColor: 'rgba(59, 130, 246, 0.4)',
