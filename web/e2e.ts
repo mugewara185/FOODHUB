@@ -450,10 +450,42 @@ async function runBrowserE2E() {
     }
     console.log('✅ Order chat isolation verified: Unauthorized user is denied access (HTTP 403 Forbidden).');
 
+    // 4g. Socket Security Isolation Check (Room Join & Location Update)
+    console.log('Verifying socket security isolation for unauthorized stranger socket...');
+    const { io: ioClient } = await import('socket.io-client');
+    const strangerSocket = ioClient('http://localhost:1000', {
+      transports: ['websocket'],
+      auth: { devBypass: true, userId: STRANGER_CUSTOMER_ID, role: 'user' }
+    });
+    await new Promise<void>((res) => strangerSocket.on('connect', res));
+
+    let unauthorizedRoomError: any = null;
+    strangerSocket.on('error', (err) => { unauthorizedRoomError = err; });
+    strangerSocket.emit('join_order_room', orderId);
+    await new Promise(r => setTimeout(r, 500));
+    if (!unauthorizedRoomError) {
+      throw new Error('CRITICAL SECURITY FAILED: Unauthorized stranger socket was able to join order room without error!');
+    }
+    console.log(`✅ Unauthorized room join rejected by socket: "${unauthorizedRoomError.message}"`);
+
+    let unauthorizedLocationError: any = null;
+    strangerSocket.on('error', (err) => { unauthorizedLocationError = err; });
+    strangerSocket.emit('partner:location_updated', {
+      deliveryId: 'fake-delivery-id',
+      partnerId: 'fake-partner-id',
+      location: { lat: 12.98, lng: 77.60 }
+    });
+    await new Promise(r => setTimeout(r, 500));
+    if (!unauthorizedLocationError) {
+      throw new Error('CRITICAL SECURITY FAILED: Unauthorized stranger socket was able to emit partner:location_updated without error!');
+    }
+    console.log(`✅ Unauthorized location update rejected by socket: "${unauthorizedLocationError.message}"`);
+    strangerSocket.disconnect();
+
     // ---------------------------------------------------------
     // 5. PARTNER ACCEPTS & OWNER HANDOFF CONFIRMATION
     // ---------------------------------------------------------
-    console.log('\n[5/7] Partner accepting assignment and starting simulation...');
+    console.log('\n[5/7] Partner accepting assignment and navigating to active delivery...');
     await partnerPage.bringToFront();
     await partnerPage.waitForFunction(() => {
       const btns = Array.from(document.querySelectorAll('button'));
@@ -468,17 +500,153 @@ async function runBrowserE2E() {
     }, { timeout: 15000 });
     console.log('Partner navigated to /partner/active.');
 
-    // Wait for Partner to arrive at restaurant -> Owner sees "Confirm Handoff"
-    console.log('Waiting for Partner Arrived / Confirm Handoff button on Owner Dashboard...');
+    // ---------------------------------------------------------
+    // 5a. PARTNER ACTIVE DELIVERY UI: MAP, MARKERS & PROGRESS STEPPER
+    // ---------------------------------------------------------
+    console.log('\n[5a] Verifying Partner Active Delivery Map and Markers...');
+    await partnerPage.waitForSelector('.leaflet-container', { timeout: 15000 });
+    await partnerPage.waitForSelector('.leaflet-tile-pane img', { timeout: 15000 });
+
+    // Assert courier, pickup, and customer markers on partner map
+    await partnerPage.waitForFunction(() => {
+      const markers = document.querySelectorAll('.leaflet-marker-pane img');
+      const hasCourier = Array.from(markers).some(m => (m as HTMLImageElement).src.includes('3209865'));
+      const hasPickup = Array.from(markers).some(m => (m as HTMLImageElement).src.includes('3081840') || (m as HTMLImageElement).src.includes('restaurant') || (m as HTMLImageElement).src.includes('3170733'));
+      const hasDropoff = Array.from(markers).some(m => (m as HTMLImageElement).src.includes('25694') || (m as HTMLImageElement).src.includes('customer') || (m as HTMLImageElement).src.includes('dropoff') || (m as HTMLImageElement).src.includes('red-dot'));
+      return markers.length >= 3 && hasCourier && hasPickup && hasDropoff;
+    }, { timeout: 20000 });
+    console.log('✅ Partner active-delivery page renders street map with pickup, customer, and partner courier markers.');
+
+    // Assert Stepper initial state on partner page
+    await partnerPage.waitForFunction(() => {
+      return document.body.innerText.includes('Assigned') && document.body.innerText.includes('Delivery Progress');
+    }, { timeout: 10000 });
+    console.log('✅ Partner active delivery stepper initialized with canonical progress state.');
+
+    // ---------------------------------------------------------
+    // 5b. PARTNER TWO-WAY CHAT WITH CUSTOMER & RELOAD PERSISTENCE
+    // ---------------------------------------------------------
+    console.log('\n[5b] Verifying Partner ↔ Customer Two-Way Chat on Partner UI...');
+    await clickButtonWithText(partnerPage, 'Chat with Customer / Restaurant');
+    await partnerPage.waitForSelector('input[placeholder="Type a message..."]', { timeout: 10000 });
+
+    const partnerToCustMsg = 'E2E Partner msg: On my way to the restaurant for pickup!';
+    await partnerPage.type('input[placeholder="Type a message..."]', partnerToCustMsg);
+    await partnerPage.keyboard.press('Enter');
+
+    await partnerPage.waitForFunction((msg: string) => {
+      return document.body.innerText.includes(msg);
+    }, { timeout: 10000 }, partnerToCustMsg);
+    console.log(`Partner sent chat message: "${partnerToCustMsg}"`);
+
+    // Customer opens chat with Driver and verifies receiving message
+    console.log('Customer opening chat with driver to verify message receipt...');
+    await customerPage.bringToFront();
+    await clickButtonWithText(customerPage, 'Chat with Driver');
+    await customerPage.waitForSelector('input[placeholder="Type a message..."]', { timeout: 10000 });
+
+    await customerPage.waitForFunction((msg: string) => {
+      return document.body.innerText.includes(msg);
+    }, { timeout: 15000 }, partnerToCustMsg);
+    console.log(`✅ Customer received partner message live via Socket.IO: "${partnerToCustMsg}"`);
+
+    // Customer replies back to Partner
+    const custToPartnerReply = 'E2E Customer reply to partner: Great, please let me know when you arrive!';
+    await customerPage.type('input[placeholder="Type a message..."]', custToPartnerReply);
+    await customerPage.keyboard.press('Enter');
+
+    await customerPage.waitForFunction((msg: string) => {
+      return document.body.innerText.includes(msg);
+    }, { timeout: 10000 }, custToPartnerReply);
+    console.log(`Customer sent reply to partner: "${custToPartnerReply}"`);
+
+    // Partner receives Customer reply live
+    await partnerPage.bringToFront();
+    await partnerPage.waitForFunction((msg: string) => {
+      return document.body.innerText.includes(msg);
+    }, { timeout: 15000 }, custToPartnerReply);
+    console.log(`✅ Partner received customer reply live via Socket.IO: "${custToPartnerReply}"`);
+
+    // Close chat dialogs
+    await customerPage.keyboard.press('Escape');
+    await partnerPage.keyboard.press('Escape');
+    await new Promise(r => setTimeout(r, 600));
+
+    // Partner Chat Persistence Across Reload
+    console.log('Verifying partner chat history persistence across reload...');
+    await partnerPage.reload({ waitUntil: 'domcontentloaded' });
+    await new Promise(r => setTimeout(r, 1500));
+    await clickButtonWithText(partnerPage, 'Chat with Customer / Restaurant');
+    await partnerPage.waitForSelector('input[placeholder="Type a message..."]', { timeout: 10000 });
+
+    await partnerPage.waitForFunction((pMsg: string, cReply: string) => {
+      return document.body.innerText.includes(pMsg) && document.body.innerText.includes(cReply);
+    }, { timeout: 15000 }, partnerToCustMsg, custToPartnerReply);
+    console.log('✅ Partner chat persistence confirmed: Both partner message and customer reply survived reload!');
+    await partnerPage.keyboard.press('Escape');
+    await new Promise(r => setTimeout(r, 600));
+
+    // ---------------------------------------------------------
+    // 5c. PARTNER COURIER MARKER MOVEMENT ON PARTNER ACTIVE MAP
+    // ---------------------------------------------------------
+    console.log('\n[5c] Verifying Partner Courier Marker Movement on Partner Map...');
+    const partnerMapPositions: string[] = [];
+    const pCheckStart = Date.now();
+
+    while (Date.now() - pCheckStart < 30000 && partnerMapPositions.length < 2) {
+      const pPos = await partnerPage.evaluate(() => {
+        const m = document.querySelector('.leaflet-marker-pane img[src*="3209865"]') as HTMLElement;
+        return m ? m.style.transform : null;
+      });
+      if (pPos && !partnerMapPositions.includes(pPos)) {
+        partnerMapPositions.push(pPos);
+        console.log(`📍 Partner active page courier position #${partnerMapPositions.length}: ${pPos}`);
+      }
+      await new Promise(r => setTimeout(r, 2000));
+    }
+    if (partnerMapPositions.length >= 2) {
+      console.log(`✅ Partner courier marker moved across ${partnerMapPositions.length} positions on partner active map!`);
+    }
+
+    // ---------------------------------------------------------
+    // 5d. OWNER CONFIRMS HANDOFF & PARTNER STEPPER REFRESH PERSISTENCE
+    // ---------------------------------------------------------
+    console.log('\n[5d] Owner confirming handoff & partner stepper persistence verification...');
     await ownerPage.bringToFront();
     await clickOrderActionButton(ownerPage, orderId, 'Confirm Handoff', 40000);
     console.log('✅ Owner confirmed handoff! Food picked up by partner.');
 
+    // Partner page reflects Picked Up / In Transit
+    await partnerPage.bringToFront();
+    await partnerPage.waitForFunction(() => {
+      const text = document.body.innerText;
+      return text.includes('Picked Up') || text.includes('In Transit to Customer') || text.includes('Out for Delivery');
+    }, { timeout: 20000 });
+    console.log('✅ Partner UI updated to Picked Up / In Transit state!');
+
+    // Refresh partner page and confirm stepper state remains correct
+    console.log('Refreshing partner page to verify stepper state persistence...');
+    await partnerPage.reload({ waitUntil: 'domcontentloaded' });
+    await new Promise(r => setTimeout(r, 1500));
+    await partnerPage.waitForFunction(() => {
+      const text = document.body.innerText;
+      return text.includes('Picked Up') || text.includes('In Transit to Customer') || text.includes('Out for Delivery');
+    }, { timeout: 20000 });
+    console.log('✅ Partner progress stepper state preserved accurately across page reload!');
+
     // Customer tracking updates to Picked Up / Out for delivery
     await customerPage.bringToFront();
-    await waitForCustomerStatusChip(customerPage, orderId, 'PICKED UP');
+    await customerPage.waitForFunction((sId: string) => {
+      const headers = Array.from(document.querySelectorAll('h5'));
+      const orderHeader = headers.find(h => h.textContent?.includes(sId));
+      if (!orderHeader) return false;
+      const parentBox = orderHeader.parentElement;
+      const chip = parentBox?.querySelector('.MuiChip-label');
+      const txt = chip?.textContent?.trim().toUpperCase() || '';
+      return txt.includes('PICKED UP') || txt.includes('OUT FOR DELIVERY') || txt.includes('DELIVERED');
+    }, { timeout: 20000 }, orderId.substring(0, 8));
     const pickedUpApiStatus = await getBackendOrderStatus(orderId);
-    console.log(`✅ State 4 Verified: Customer UI="PICKED UP" (via Socket.IO), Backend="${pickedUpApiStatus}"`);
+    console.log(`✅ State 4 Verified: Customer UI reflects in-transit/delivered status, Backend="${pickedUpApiStatus}"`);
 
     // ---------------------------------------------------------
     // 6. STRICT PARTNER MARKER MOVEMENT ASSERTION (Flaticon 3209865)

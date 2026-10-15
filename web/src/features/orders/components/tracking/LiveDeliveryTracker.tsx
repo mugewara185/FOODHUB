@@ -242,7 +242,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                 <Divider sx={{ my: 2 }} />
                 <Stack direction="row" spacing={2}>
                   <Button fullWidth variant="contained" startIcon={<Phone />} href={`tel:${partner.phone}`}>Call</Button>
-                  <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('partner')}>Chat</Button>
+                  <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('partner')}>Chat with Driver</Button>
                 </Stack>
               </>
             ) : (

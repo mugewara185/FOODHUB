@@ -224,55 +224,162 @@ export const initSocket = (server: HttpServer) => {
     });
 
     socket.on('order:chat:send', async (payload) => {
-      if (!payload || !payload.orderId || !payload.message || typeof payload.message !== 'string') {
-        return;
-      }
-
-      const user = socket.data.user || await resolveSocketUser(socket, payload.auth);
-      if (user) socket.data.user = user;
-
-      const authorized = await isUserAuthorizedForOrder(user, payload.orderId);
-      if (!authorized) {
-        console.warn(`[SECURITY] Socket ${socket.id} (user ${user?.id}) unauthorized to send chat for order ${payload.orderId}`);
-        socket.emit('error', { message: 'Unauthorized to send chat message for this order' });
-        return;
-      }
-
-      const timestamp = payload.timestamp || new Date().toISOString();
-      const messageToSave = {
-        ...payload,
-        senderId: user ? user.id : payload.senderId,
-        timestamp
-      };
-
       try {
-        await Order.findByIdAndUpdate(payload.orderId, {
-          $push: { chatMessages: messageToSave }
-        });
+        if (!payload || !payload.orderId || !payload.message || typeof payload.message !== 'string') {
+          socket.emit('error', { message: 'Malformed chat payload: orderId and message string are required' });
+          return;
+        }
+
+        const trimmedMessage = payload.message.trim();
+        if (!trimmedMessage || trimmedMessage.length > 2000) {
+          socket.emit('error', { message: 'Message cannot be empty or exceed 2000 characters' });
+          return;
+        }
+
+        const user = socket.data.user || await resolveSocketUser(socket, payload.auth);
+        if (user) socket.data.user = user;
+
+        if (!user) {
+          socket.emit('error', { message: 'Authentication required to send chat message' });
+          return;
+        }
+
+        const authorized = await isUserAuthorizedForOrder(user, payload.orderId);
+        if (!authorized) {
+          console.warn(`[SECURITY] Socket ${socket.id} (user ${user?.id}) unauthorized to send chat for order ${payload.orderId}`);
+          socket.emit('error', { message: 'Unauthorized to send chat message for this order' });
+          return;
+        }
+
+        // Determine sender role strictly from authenticated user roles
+        let senderRole = payload.senderRole;
+        if (!senderRole || !user.roles.includes(senderRole)) {
+          senderRole = user.roles.includes('partner') ? 'partner' :
+                       user.roles.includes('owner') ? 'owner' :
+                       user.roles.includes('admin') ? 'admin' : 'user';
+        }
+
+        const timestamp = new Date().toISOString();
+        const messageToSave = {
+          orderId: payload.orderId,
+          senderId: user.id,
+          senderRole,
+          senderName: user.name || payload.senderName || 'User',
+          targetRole: payload.targetRole,
+          message: trimmedMessage,
+          timestamp
+        };
+
+        const updateResult = await Order.findByIdAndUpdate(
+          payload.orderId,
+          { $push: { chatMessages: messageToSave } },
+          { new: true }
+        );
+
+        if (!updateResult) {
+          socket.emit('error', { message: 'Order not found, message not persisted' });
+          return;
+        }
+
+        // Broadcast to everyone in the order room ONLY after successful database persistence
+        io.to(payload.orderId).emit('order:chat:message', messageToSave);
       } catch (err) {
         console.error('Failed to save chat message:', err);
+        socket.emit('error', { message: 'Failed to persist chat message' });
+        return;
       }
-
-      // Broadcast to everyone in the order room, including the sender
-      io.to(payload.orderId).emit('order:chat:message', messageToSave);
     });
 
     socket.on('partner:location_updated', async (payload) => {
       try {
-        const geo = toGeoJSON(payload.location);
+        // 1. Authenticate user and verify partner or admin role
+        const user = socket.data.user || await resolveSocketUser(socket, payload?.auth);
+        if (user) socket.data.user = user;
+
+        if (!user || !user.roles || (!user.roles.includes('partner') && !user.roles.includes('admin'))) {
+          console.warn(`[SECURITY] Socket ${socket.id} (user ${user?.id}) unauthorized for partner:location_updated`);
+          socket.emit('error', { message: 'Authentication required with partner role' });
+          return;
+        }
+
+        // 2. Validate payload structure and coordinates
+        if (!payload || !payload.deliveryId || !payload.location) {
+          socket.emit('error', { message: 'Malformed payload: deliveryId and location are required' });
+          return;
+        }
+
+        const { lat, lng } = payload.location;
+        if (
+          typeof lat !== 'number' || typeof lng !== 'number' ||
+          !Number.isFinite(lat) || !Number.isFinite(lng) ||
+          lat < -90 || lat > 90 ||
+          lng < -180 || lng > 180
+        ) {
+          socket.emit('error', { message: 'Invalid coordinates: lat must be between -90 and 90, lng between -180 and 180' });
+          return;
+        }
+
+        // 3. Resolve DeliveryPartner from authenticated user identity (never trust payload.partnerId)
+        let partnerDoc: any = null;
+        if (user.roles.includes('partner')) {
+          partnerDoc = await DeliveryPartner.findOne({ userId: user.id });
+          if (!partnerDoc) {
+            socket.emit('error', { message: 'Partner profile not found for authenticated user' });
+            return;
+          }
+
+          // If client supplied a partnerId, reject if it does not match resolved partner ID (spoof attempt)
+          if (payload.partnerId && payload.partnerId.toString() !== partnerDoc._id.toString()) {
+            console.warn(`[SECURITY] Partner ID spoof attempt by user ${user.id}: payload.partnerId ${payload.partnerId} != resolved ${partnerDoc._id}`);
+            socket.emit('error', { message: 'Partner ID mismatch / spoof attempt rejected' });
+            return;
+          }
+        } else if (user.roles.includes('admin')) {
+          if (payload.partnerId) {
+            partnerDoc = await DeliveryPartner.findById(payload.partnerId);
+          }
+          if (!partnerDoc) {
+            socket.emit('error', { message: 'Partner not found' });
+            return;
+          }
+        }
+
+        // 4. Verify Delivery exists and is assigned to this partner
+        const delivery = await Delivery.findById(payload.deliveryId);
+        if (!delivery) {
+          socket.emit('error', { message: 'Delivery not found' });
+          return;
+        }
+
+        if (!delivery.partnerId || delivery.partnerId.toString() !== partnerDoc._id.toString()) {
+          console.warn(`[SECURITY] Unauthorized delivery update: Delivery ${delivery._id} assigned to ${delivery.partnerId}, but socket partner is ${partnerDoc._id}`);
+          socket.emit('error', { message: 'Unauthorized: delivery is not assigned to this partner' });
+          return;
+        }
+
+        // 5. Persist to Delivery and DeliveryPartner only after authorization
+        const geo = toGeoJSON({ lat, lng });
+
         await Delivery.updateOne(
-          { _id: payload.deliveryId },
+          { _id: delivery._id },
           { $set: { currentLocation: geo } }
         );
 
         await DeliveryPartner.updateOne(
-          { _id: payload.partnerId },
+          { _id: partnerDoc._id },
           { $set: { currentLocation: geo } }
         );
 
-        emitDeliveryLocation(payload);
+        // 6. Emit broadcast event only after successful authorization and persistence
+        emitDeliveryLocation({
+          deliveryId: delivery._id.toString(),
+          orderId: delivery.orderId.toString(),
+          partnerId: partnerDoc._id.toString(),
+          location: { lat, lng }
+        });
       } catch (err) {
         console.error('Socket partner:location_updated error:', err);
+        socket.emit('error', { message: 'Failed to process partner location update' });
       }
     });
 

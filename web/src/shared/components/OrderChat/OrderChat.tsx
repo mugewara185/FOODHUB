@@ -224,7 +224,8 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
         <TextField
           fullWidth
           size="small"
-          placeholder={`Message ${selectedTargetRole === 'owner' ? 'restaurant' : selectedTargetRole === 'partner' ? 'driver' : 'customer'}...`}
+          placeholder="Type a message..."
+          inputProps={{ 'data-testid': 'chat-message-input' }}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSend()}
