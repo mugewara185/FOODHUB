@@ -9,6 +9,7 @@ import { sendSuccess } from '../../shared/utils/response';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
 import { getIO } from '../../socket';
 import { Delivery } from '../delivery/delivery.model';
+import { DeliveryPartner } from '../delivery/delivery-partner.model';
 
 import { assignDelivery, releaseDeliveryForOrder } from '../delivery/delivery.service';
 
@@ -187,27 +188,31 @@ export async function getOrderChat(req: AuthRequest, res: Response, next: NextFu
     const order = await Order.findById(req.params.id).select('chatMessages userId restaurantId');
     if (!order) throw new AppError('Order not found', 404);
 
-    const isCustomer = order.userId.toString() === req.user!.id;
-    const isAdmin = req.user!.roles.includes('admin');
+    const roles = req.user?.roles || [];
+    const userId = req.user?.id;
+    const isCustomer = userId && order.userId.toString() === userId;
+    const isAdmin = roles.includes('admin');
 
-    let isOwnerOfRestaurant = false;
-    if (req.user!.roles.includes('owner')) {
+    let isAuthorized = Boolean(isCustomer || isAdmin);
+
+    if (!isAuthorized && userId) {
       const restaurant = await Restaurant.findById(order.restaurantId).select('ownerId');
-      isOwnerOfRestaurant = restaurant?.ownerId?.toString() === req.user!.id;
-    }
-
-    let isAssignedPartner = false;
-    if (req.user!.roles.includes('partner')) {
-      const { Delivery } = require('../delivery/delivery.model');
-      const { DeliveryPartner } = require('../delivery/delivery-partner.model');
-      const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
-      if (delivery && delivery.partnerId) {
-        const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
-        isAssignedPartner = partner?.userId?.toString() === req.user!.id;
+      if (restaurant?.ownerId?.toString() === userId) {
+        isAuthorized = true;
       }
     }
 
-    if (!isCustomer && !isAdmin && !isOwnerOfRestaurant && !isAssignedPartner) {
+    if (!isAuthorized && userId) {
+      const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
+      if (delivery?.partnerId) {
+        const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
+        if (partner?.userId?.toString() === userId) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
       throw new AppError('Not authorized to view this chat', 403);
     }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Paper, Typography, Grid, Chip, LinearProgress, Avatar, Divider, Stack, Button, Dialog, DialogContent } from '@mui/material';
 import { CheckCircle, RadioButtonUnchecked, RadioButtonChecked, Cancel, Star, LocalShipping, LocationOn, AccessTime, Phone, Person, Message } from '@mui/icons-material';
-import { formatDuration } from '../../../../core/utils/location';
+import { formatDuration, fetchRoadRoute } from '../../../../core/utils/location';
 import Map from '../../../../shared/components/maps/Map';
 import { useDeliveryTracking } from '../../hooks/useDeliveryTracking';
 import { useAppSelector } from '../../../../app/store/hooks';
@@ -54,6 +54,12 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
   const [status, setStatus] = useState<string>(globalState.status === 'created' ? initialStatus : globalState.status);
   const [etaSeconds, setEtaSeconds] = useState(globalState.etaSeconds || 0);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(globalState.lastUpdatedAt || Date.now());
+  const [deliveryMetrics, setDeliveryMetrics] = useState<{
+    deliveredAt?: string;
+    pickedUpAt?: string;
+    actualTransitMinutes?: number;
+    estimatedMinutes?: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -71,6 +77,14 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
       if (p.orderId === orderId) {
         setStatus(p.status);
         setLastUpdatedAt(Date.now());
+        if (p.status === 'delivered') {
+          setDeliveryMetrics({
+            deliveredAt: p.deliveredAt,
+            pickedUpAt: p.pickedUpAt || p.timestamps?.pickedUpAt,
+            actualTransitMinutes: p.actualTransitMinutes,
+            estimatedMinutes: p.estimatedMinutes || 15
+          });
+        }
       }
     };
     const handleAssigned = (p: any) => {
@@ -109,11 +123,11 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
     globalState.etaSeconds
   ]);
 
-  return { partner, location, status, etaSeconds, distance: globalState.distance, lastUpdatedAt };
+  return { partner, location, status, etaSeconds, distance: globalState.distance, lastUpdatedAt, deliveryMetrics };
 };
 
 const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, restaurantLocation, customerLocation, rejectionReason }) => {
-  const { partner, location, status, etaSeconds, distance, lastUpdatedAt } = useLocalDeliveryTracking(orderId, orderStatus);
+  const { partner, location, status, etaSeconds, distance, lastUpdatedAt, deliveryMetrics } = useLocalDeliveryTracking(orderId, orderStatus);
   const { user } = useAuth();
   const currentOrder = useAppSelector(selectCurrentOrder);
 
@@ -165,15 +179,37 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
 
   // Map follows partner if tracking is active
   const mapCenter = location || resLoc;
-  const routeCoordinates = location ? [location, cusLoc] : [resLoc, cusLoc];
+  const [routeCoordinates, setRouteCoordinates] = useState<Coordinates[]>([resLoc, cusLoc]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    fetchRoadRoute(resLoc, cusLoc, 2500)
+      .then((res) => {
+        if (!isCancelled && res.coordinates.length > 1) {
+          setRouteCoordinates(res.coordinates);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isCancelled = true;
+    };
+  }, [resLoc.lat, resLoc.lng, cusLoc.lat, cusLoc.lng]);
 
   const renderEtaText = () => {
     if (['delivered', 'completed', 'reviewed'].includes(status)) {
-      if (currentOrder?.createdAt && currentOrder?.updatedAt) {
-        const duration = (new Date(currentOrder.updatedAt).getTime() - new Date(currentOrder.createdAt).getTime()) / 1000;
-        return `Delivered in ${formatDuration(duration)}`;
+      if (deliveryMetrics?.actualTransitMinutes) {
+        const est = deliveryMetrics.estimatedMinutes || 15;
+        return `Delivered in ${deliveryMetrics.actualTransitMinutes} min · Estimated ${est} min`;
       }
-      return 'Delivered';
+      const orderDeliveredAt = (currentOrder as any)?.timestamps?.deliveredAt || currentOrder?.updatedAt;
+      const orderPickedUpAt = (currentOrder as any)?.timestamps?.pickedUpAt || (currentOrder as any)?.timestamps?.assignedAt || currentOrder?.createdAt;
+      if (orderDeliveredAt && orderPickedUpAt) {
+        const diffMs = new Date(orderDeliveredAt).getTime() - new Date(orderPickedUpAt).getTime();
+        const transitMinutes = Math.max(1, Math.round(diffMs / 60000));
+        const est = (currentOrder as any)?.deliveryTime || 15;
+        return `Delivered in ${transitMinutes} min · Estimated ${est} min`;
+      }
+      return 'Delivered in 15 min · Estimated 15 min';
     }
     if (liveEta > 0) return formatDuration(liveEta);
     if (location) return 'Calculating...';

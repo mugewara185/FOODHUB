@@ -62,6 +62,16 @@ export async function transitionOrderStatus(
   const prevStatus = order.status;
   order.status = newStatus;
   
+  order.timestamps = order.timestamps || {};
+  const now = new Date();
+  if (newStatus === 'partner_assigned') {
+    order.timestamps.assignedAt = now;
+  } else if (newStatus === 'picked_up') {
+    order.timestamps.pickedUpAt = now;
+  } else if (newStatus === 'delivered') {
+    order.timestamps.deliveredAt = now;
+  }
+
   // 6. Saves the order
   await order.save();
 
@@ -97,30 +107,32 @@ export async function transitionOrderStatus(
   }
 
   const io = getIO();
+  const pickedUpAt = order.timestamps?.pickedUpAt;
+  const transitMinutes = (newStatus === 'delivered' && pickedUpAt)
+    ? Math.max(1, Math.round((now.getTime() - new Date(pickedUpAt).getTime()) / 60000))
+    : (newStatus === 'delivered' ? Math.max(1, Math.round((now.getTime() - new Date(order.createdAt).getTime()) / 60000)) : undefined);
+
+  const statusPayload = {
+    orderId: order.id,
+    status: newStatus,
+    actorRole: actor.role,
+    timestamps: order.timestamps,
+    actualTransitMinutes: transitMinutes,
+    estimatedMinutes: 15
+  };
+
   // 7. Emits order_status_update to the order room (existing pattern)
-  io.to(order.id).emit('order_status_update', { orderId: order.id, status: newStatus });
+  io.to(order.id).emit('order_status_update', statusPayload);
   
   // 8. Emits order:status_changed to owner room, admin_fleet, and customer user room
   if (restaurant?.ownerId) {
-    io.to(restaurant.ownerId.toString()).emit('order:status_changed', {
-      orderId: order.id,
-      status: newStatus,
-      actorRole: actor.role,
-    });
+    io.to(restaurant.ownerId.toString()).emit('order:status_changed', statusPayload);
   }
   
   // Emit to customer's user room
-  io.to(order.userId.toString()).emit('order:status_changed', {
-    orderId: order.id,
-    status: newStatus,
-    actorRole: actor.role,
-  });
+  io.to(order.userId.toString()).emit('order:status_changed', statusPayload);
 
-  io.to('admin_fleet').emit('order:status_changed', {
-    orderId: order.id,
-    status: newStatus,
-    actorRole: actor.role,
-  });
+  io.to('admin_fleet').emit('order:status_changed', statusPayload);
 
   // If transitioning to ready_for_pickup, automatically transition to awaiting_partner
   if (newStatus === 'ready_for_pickup') {

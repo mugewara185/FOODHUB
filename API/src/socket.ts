@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
+import { Types } from 'mongoose';
 
 import { isOriginAllowed } from './config/corsOrigin';
 import { config } from './config/env';
@@ -107,7 +108,8 @@ export async function resolveSocketUser(socket: Socket, payloadAuth?: any): Prom
 
 export async function isUserAuthorizedForOrder(user: SocketUser | null, orderId: string): Promise<boolean> {
   if (!user || !orderId) return false;
-  if (user.roles.includes('admin')) return true;
+  const roles = user.roles || [];
+  if (roles.includes('admin')) return true;
 
   try {
     const order = await Order.findById(orderId).select('userId restaurantId');
@@ -117,18 +119,17 @@ export async function isUserAuthorizedForOrder(user: SocketUser | null, orderId:
     if (order.userId?.toString() === user.id) return true;
 
     // Restaurant owner check
-    if (user.roles.includes('owner')) {
+    if (roles.includes('owner') || roles.includes('restaurant_owner')) {
       const restaurant = await Restaurant.findById(order.restaurantId).select('ownerId');
       if (restaurant?.ownerId?.toString() === user.id) return true;
     }
 
-    // Delivery partner assignment check
-    if (user.roles.includes('partner')) {
-      const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
-      if (delivery && delivery.partnerId) {
-        const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
-        if (partner?.userId?.toString() === user.id) return true;
-      }
+    // Delivery partner assignment check:
+    // Any partner assigned to the delivery for this order is authorized
+    const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
+    if (delivery && delivery.partnerId) {
+      const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
+      if (partner?.userId?.toString() === user.id) return true;
     }
 
     return false;
@@ -251,16 +252,48 @@ export const initSocket = (server: HttpServer) => {
           return;
         }
 
-        // Determine sender role strictly from authenticated user roles
+        // Determine sender role strictly from authenticated context
         let senderRole = payload.senderRole;
-        if (!senderRole || !user.roles.includes(senderRole)) {
-          senderRole = user.roles.includes('partner') ? 'partner' :
-                       user.roles.includes('owner') ? 'owner' :
-                       user.roles.includes('admin') ? 'admin' : 'user';
+        const roles = user.roles || [];
+
+        let isAssignedPartner = false;
+        const delivery = await Delivery.findOne({ orderId: payload.orderId }).select('partnerId');
+        if (delivery && delivery.partnerId) {
+          const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
+          if (partner?.userId?.toString() === user.id) {
+            isAssignedPartner = true;
+          }
+        }
+
+        let isRestaurantOwner = false;
+        const orderDoc = await Order.findById(payload.orderId).select('restaurantId userId');
+        if (orderDoc && orderDoc.restaurantId) {
+          const restaurant = await Restaurant.findById(orderDoc.restaurantId).select('ownerId');
+          if (restaurant?.ownerId?.toString() === user.id) {
+            isRestaurantOwner = true;
+          }
+        }
+
+        if (senderRole === 'partner' && (roles.includes('partner') || isAssignedPartner)) {
+          senderRole = 'partner';
+        } else if (senderRole === 'owner' && (roles.includes('owner') || isRestaurantOwner)) {
+          senderRole = 'owner';
+        } else if (senderRole === 'admin' && roles.includes('admin')) {
+          senderRole = 'admin';
+        } else if (senderRole === 'user' || senderRole === 'customer') {
+          senderRole = 'user';
+        } else {
+          // Automatic resolution
+          senderRole = isAssignedPartner || roles.includes('partner') ? 'partner' :
+                       isRestaurantOwner || roles.includes('owner') ? 'owner' :
+                       roles.includes('admin') ? 'admin' : 'user';
         }
 
         const timestamp = new Date().toISOString();
+        const messageId = new Types.ObjectId();
         const messageToSave = {
+          _id: messageId,
+          clientMessageId: payload.clientMessageId || undefined,
           orderId: payload.orderId,
           senderId: user.id,
           senderRole,
@@ -282,7 +315,11 @@ export const initSocket = (server: HttpServer) => {
         }
 
         // Broadcast to everyone in the order room ONLY after successful database persistence
-        io.to(payload.orderId).emit('order:chat:message', messageToSave);
+        const broadcastPayload = {
+          ...messageToSave,
+          _id: messageId.toString(),
+        };
+        io.to(payload.orderId).emit('order:chat:message', broadcastPayload);
       } catch (err) {
         console.error('Failed to save chat message:', err);
         socket.emit('error', { message: 'Failed to persist chat message' });

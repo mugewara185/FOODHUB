@@ -26,6 +26,8 @@ export interface PartnerLocationUpdatedPayload extends DeliveryBasePayload {
 }
 
 export interface OrderChatMessage {
+  _id?: string;
+  clientMessageId?: string;
   orderId: string;
   senderId: string;
   senderRole: 'user' | 'owner' | 'partner' | 'admin';

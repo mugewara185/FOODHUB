@@ -128,16 +128,16 @@ const ActiveDelivery: React.FC = () => {
   const activeStep = getStepIndex();
 
   // Bounded road route calculation (immediate fallback line + non-blocking road fetch)
+  const isCustomerLeg = activeStep >= 2;
   useEffect(() => {
     if (!activeAssignment) return;
 
     let isCancelled = false;
-    const startPoint = activeStep >= 2 ? partnerPos : pickupPos;
-    const endPoint = dropoffPos;
+    const startPoint = isCustomerLeg ? pickupPos : (currentLocation || pickupPos);
+    const endPoint = isCustomerLeg ? dropoffPos : pickupPos;
 
-    // Immediate direct fallback line
-    setRouteCoords([startPoint, endPoint]);
-    setRouteStatus('direct');
+    // Set initial fallback line only if routeCoords is empty
+    setRouteCoords((prev) => (prev.length > 0 ? prev : [startPoint, endPoint]));
 
     // Bounded fetch: max 2.5s timeout, never hangs
     fetchRoadRoute(startPoint, endPoint, 2500)
@@ -156,7 +156,7 @@ const ActiveDelivery: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [activeAssignment?.orderId, activeStep, partnerPos.lat, partnerPos.lng]);
+  }, [activeAssignment?.orderId, isCustomerLeg]);
 
   if (isLoading) {
     return (
@@ -472,7 +472,6 @@ const ActiveDelivery: React.FC = () => {
               currentUserId={user.id}
               currentUserRole="partner"
               currentUserName={user.name || 'Delivery Partner'}
-              targetRole="user"
             />
           )}
         </DialogContent>

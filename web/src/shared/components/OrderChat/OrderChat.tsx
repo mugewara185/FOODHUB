@@ -75,11 +75,29 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
     const handleNewMessage = (msg: OrderChatMessage) => {
       if (msg.orderId !== orderId) return;
       setLocalMessages((prev) => {
-        const exists = prev.some(
-          m => m.timestamp === msg.timestamp && m.message === msg.message && m.senderId === msg.senderId
-        );
-        return exists ? prev : [...prev, msg];
+        const existingIdx = prev.findIndex(m => {
+          if (msg._id && m._id && msg._id === m._id) return true;
+          if (msg.clientMessageId && m.clientMessageId && msg.clientMessageId === m.clientMessageId) return true;
+          if (
+            m.senderId === msg.senderId &&
+            m.message === msg.message &&
+            m.senderRole === msg.senderRole &&
+            m.targetRole === msg.targetRole &&
+            Math.abs(new Date(m.timestamp || 0).getTime() - new Date(msg.timestamp || 0).getTime()) < 5000
+          ) {
+            return true;
+          }
+          return false;
+        });
+
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = { ...next[existingIdx], ...msg };
+          return next;
+        }
+        return [...prev, msg];
       });
+
       if (isCustomerReduxActive) {
         dispatch(addLiveTrackingChatMessage({ message: msg, isChatOpen: true }));
       }
@@ -99,7 +117,9 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
   const handleSend = () => {
     if (!inputText.trim()) return;
 
+    const clientMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const payload: OrderChatMessage = {
+      clientMessageId,
       orderId,
       senderId: currentUserId,
       senderRole: currentUserRole,
@@ -195,7 +215,7 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
           filteredMessages.map((msg, i) => {
             const isMe = msg.senderId === currentUserId && msg.senderRole === currentUserRole;
             return (
-              <Box key={i} sx={{ display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 1 }}>
+              <Box key={msg._id || msg.clientMessageId || `${msg.timestamp}-${i}`} sx={{ display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 1 }}>
                 <Avatar sx={{ width: 28, height: 28, bgcolor: isMe ? 'primary.main' : 'grey.400' }}>
                   {getRoleIcon(msg.senderRole)}
                 </Avatar>
