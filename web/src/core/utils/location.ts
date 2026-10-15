@@ -108,3 +108,53 @@ export const getMarkerIcon = (type: string, status?: string) => {
       return 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
   }
 };
+
+const routeCache = new Map<string, Coordinates[]>();
+
+/**
+ * Optional, bounded road route fetcher.
+ * Uses a strict timeout (default 3s). If OSRM is unreachable, offline, or times out,
+ * it safely and immediately returns the straight-line fallback without blocking.
+ */
+export const fetchRoadRoute = async (
+  start: Coordinates,
+  end: Coordinates,
+  timeoutMs: number = 3000
+): Promise<{ coordinates: Coordinates[]; isRoadRoute: boolean }> => {
+  if (!start || !end || typeof start.lat !== 'number' || typeof end.lat !== 'number') {
+    return { coordinates: [], isRoadRoute: false };
+  }
+
+  const fallback: Coordinates[] = [start, end];
+  const cacheKey = `${start.lat.toFixed(4)},${start.lng.toFixed(4)};${end.lat.toFixed(4)},${end.lng.toFixed(4)}`;
+
+  if (routeCache.has(cacheKey)) {
+    return { coordinates: routeCache.get(cacheKey)!, isRoadRoute: true };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      return { coordinates: fallback, isRoadRoute: false };
+    }
+
+    const data = await res.json();
+    if (data.code === 'Ok' && data.routes && data.routes[0]?.geometry?.coordinates?.length > 1) {
+      const roadCoords: Coordinates[] = data.routes[0].geometry.coordinates.map(
+        (c: [number, number]) => ({ lat: c[1], lng: c[0] })
+      );
+      routeCache.set(cacheKey, roadCoords);
+      return { coordinates: roadCoords, isRoadRoute: true };
+    }
+    return { coordinates: fallback, isRoadRoute: false };
+  } catch {
+    clearTimeout(timer);
+    return { coordinates: fallback, isRoadRoute: false };
+  }
+};

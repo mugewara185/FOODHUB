@@ -184,10 +184,30 @@ export async function getOrderById(req: AuthRequest, res: Response, next: NextFu
 
 export async function getOrderChat(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const order = await Order.findById(req.params.id).select('chatMessages userId');
+    const order = await Order.findById(req.params.id).select('chatMessages userId restaurantId');
     if (!order) throw new AppError('Order not found', 404);
 
-    if (order.userId.toString() !== req.user!.id && !req.user!.roles.includes('admin') && !req.user!.roles.includes('owner') && !req.user!.roles.includes('partner')) {
+    const isCustomer = order.userId.toString() === req.user!.id;
+    const isAdmin = req.user!.roles.includes('admin');
+
+    let isOwnerOfRestaurant = false;
+    if (req.user!.roles.includes('owner')) {
+      const restaurant = await Restaurant.findById(order.restaurantId).select('ownerId');
+      isOwnerOfRestaurant = restaurant?.ownerId?.toString() === req.user!.id;
+    }
+
+    let isAssignedPartner = false;
+    if (req.user!.roles.includes('partner')) {
+      const { Delivery } = require('../delivery/delivery.model');
+      const { DeliveryPartner } = require('../delivery/delivery-partner.model');
+      const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
+      if (delivery && delivery.partnerId) {
+        const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
+        isAssignedPartner = partner?.userId?.toString() === req.user!.id;
+      }
+    }
+
+    if (!isCustomer && !isAdmin && !isOwnerOfRestaurant && !isAssignedPartner) {
       throw new AppError('Not authorized to view this chat', 403);
     }
 

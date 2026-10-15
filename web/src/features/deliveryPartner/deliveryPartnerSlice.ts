@@ -215,17 +215,19 @@ const deliveryPartnerSlice = createSlice({
       state,
       action: PayloadAction<{ deliveryId: string; status: DeliveryAssignment['status'] }>
     ) => {
-      if (state.activeAssignment && state.activeAssignment.deliveryId === action.payload.deliveryId) {
+      if (
+        state.activeAssignment &&
+        (String(state.activeAssignment.deliveryId) === String(action.payload.deliveryId) ||
+         String(state.activeAssignment.orderId) === String(action.payload.deliveryId))
+      ) {
         state.activeAssignment.status = action.payload.status;
 
         if (action.payload.status === 'delivered') {
           state.history.unshift(state.activeAssignment);
           state.stats.todayDeliveries += 1;
-          state.stats.todayEarnings += state.activeAssignment.amount;
-          state.stats.weeklyEarnings += state.activeAssignment.amount;
-          state.stats.totalEarnings += state.activeAssignment.amount;
-
-          state.activeAssignment = null;
+          state.stats.todayEarnings += state.activeAssignment.amount || 0;
+          state.stats.weeklyEarnings += state.activeAssignment.amount || 0;
+          state.stats.totalEarnings += state.activeAssignment.amount || 0;
           state.status = state.isOnline ? 'ONLINE' : 'OFFLINE';
         }
       }
@@ -233,6 +235,9 @@ const deliveryPartnerSlice = createSlice({
 
     partnerLocationReceived: (state, action: PayloadAction<{ lat: number; lng: number }>) => {
       state.currentLocation = action.payload;
+      if (state.activeAssignment) {
+        state.activeAssignment.currentLocation = action.payload;
+      }
     },
 
     /**
@@ -251,7 +256,9 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(fetchPartnerStateThunk.fulfilled, (state, action) => {
       state.isLoading = false;
-      const p = action.payload ?? {};
+      const p = (action.payload && typeof action.payload === 'object' && 'data' in action.payload && action.payload.data)
+        ? action.payload.data
+        : (action.payload ?? {});
       if (p.name) state.name = p.name;
       if (p.phone) state.phone = p.phone;
       if (p.vehicle) state.vehicle = p.vehicle;
@@ -294,7 +301,9 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(setOnlineStatusThunk.fulfilled, (state, action) => {
       state.isLoading = false;
-      const p = action.payload ?? {};
+      const p = (action.payload && typeof action.payload === 'object' && 'data' in action.payload && action.payload.data)
+        ? action.payload.data
+        : (action.payload ?? {});
       const serverStatus = p.status ?? (p.isOnline ? 'available' : 'offline');
       state.isOnline = serverStatus === 'available' || serverStatus === 'on_delivery';
       state.status =
@@ -313,7 +322,11 @@ const deliveryPartnerSlice = createSlice({
     });
     builder.addCase(updateAssignmentStatusThunk.fulfilled, (state, action) => {
       state.isLoading = false;
-      const { status, delivery } = action.payload;
+      const { status } = action.payload;
+      const rawDelivery = action.payload.delivery;
+      const delivery = (rawDelivery && typeof rawDelivery === 'object' && 'data' in rawDelivery && rawDelivery.data)
+        ? rawDelivery.data
+        : rawDelivery;
       if (state.activeAssignment) {
         state.activeAssignment.status = status as DeliveryAssignment['status'];
         if (status === 'delivered') {
@@ -343,7 +356,9 @@ const deliveryPartnerSlice = createSlice({
       state.isLoading = false;
       state.status = 'ON_DELIVERY';
       
-      const d = action.payload.data || action.payload; // fallback if unwrapped
+      const d = (action.payload && typeof action.payload === 'object' && 'data' in action.payload && action.payload.data)
+        ? action.payload.data
+        : (action.payload || {});
       const orderId = action.meta.arg.orderId;
       const matched = state.availableAssignments.find(a => a.orderId === orderId);
 

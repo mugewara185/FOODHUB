@@ -88,7 +88,7 @@ const PartnerDashboard: React.FC = () => {
       </Box>
 
       {/* Current Order Alert */}
-      {currentOrder && (
+      {currentOrder && currentOrder.status !== 'delivered' && (
         <Paper
           sx={{
             p: 3,

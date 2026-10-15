@@ -11,9 +11,11 @@ import {
     Collapse,
     IconButton,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import {
+    Search as SearchIcon,
+    KeyboardArrowDown as KeyboardArrowDownIcon,
+    KeyboardArrowRight as KeyboardArrowRightIcon,
+} from '@mui/icons-material';
 import { reduxStateSnapshot } from '../mockData';
 
 // Recursive interactive JSON tree viewer

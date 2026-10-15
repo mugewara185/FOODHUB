@@ -207,7 +207,7 @@ const initialState: RestaurantState = {
   },
   pagination: {
     currentPage: 1,
-    itemsPerPage: 10,
+    itemsPerPage: 12,
   },
   favorites: [],
 };

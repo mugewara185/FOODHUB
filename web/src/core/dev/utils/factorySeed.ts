@@ -200,66 +200,74 @@ const RESTAURANT_TEMPLATES: RestaurantTemplate[] = [
 ];
 
 // Menu templates by cuisine scenario
-const MENU_TEMPLATES_BY_CUISINE: Record<string, Array<{ name: string; category: string; price: number }>> = {
+interface MenuItemTemplate {
+  name: string;
+  category: string;
+  price: number;
+  imageUrl: string;
+  isVeg?: boolean;
+}
+
+const MENU_TEMPLATES_BY_CUISINE: Record<string, MenuItemTemplate[]> = {
   Indian: [
-    { name: 'Butter Chicken', category: 'Main Course', price: 320 },
-    { name: 'Paneer Tikka Masala', category: 'Main Course', price: 280 },
-    { name: 'Dal Tadka', category: 'Main Course', price: 180 },
-    { name: 'Biryani', category: 'Rice', price: 350 },
-    { name: 'Garlic Naan', category: 'Breads', price: 60 },
-    { name: 'Raita', category: 'Sides', price: 80 },
-    { name: 'Gulab Jamun', category: 'Desserts', price: 120 },
+    { name: 'Butter Chicken', category: 'Main Course', price: 320, imageUrl: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Paneer Tikka Masala', category: 'Main Course', price: 280, imageUrl: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Dal Tadka', category: 'Main Course', price: 180, imageUrl: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Biryani', category: 'Rice', price: 350, imageUrl: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Garlic Naan', category: 'Breads', price: 60, imageUrl: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Raita', category: 'Sides', price: 80, imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Gulab Jamun', category: 'Desserts', price: 120, imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500&auto=format&fit=crop', isVeg: true },
   ],
   'South Indian': [
-    { name: 'Masala Dosa', category: 'Breakfast', price: 120 },
-    { name: 'Idli Sambar', category: 'Breakfast', price: 90 },
-    { name: 'Uttapam', category: 'Breakfast', price: 110 },
+    { name: 'Masala Dosa', category: 'Breakfast', price: 120, imageUrl: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Idli Sambar', category: 'Breakfast', price: 90, imageUrl: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Uttapam', category: 'Breakfast', price: 110, imageUrl: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=500&auto=format&fit=crop', isVeg: true },
   ],
   Mughlai: [
-    { name: 'Chicken Seekh Kebab', category: 'Starters', price: 380 },
-    { name: 'Mutton Rogan Josh', category: 'Main Course', price: 450 },
+    { name: 'Chicken Seekh Kebab', category: 'Starters', price: 380, imageUrl: 'https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Mutton Rogan Josh', category: 'Main Course', price: 450, imageUrl: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop', isVeg: false },
   ],
   American: [
-    { name: 'Classic Cheeseburger', category: 'Burgers', price: 250 },
-    { name: 'Crispy Chicken Burger', category: 'Burgers', price: 280 },
-    { name: 'Loaded Fries', category: 'Sides', price: 150 },
-    { name: 'Milkshake', category: 'Beverages', price: 180 },
-    { name: 'Onion Rings', category: 'Sides', price: 120 },
+    { name: 'Classic Cheeseburger', category: 'Burgers', price: 250, imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Crispy Chicken Burger', category: 'Burgers', price: 280, imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Loaded Fries', category: 'Sides', price: 150, imageUrl: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Milkshake', category: 'Beverages', price: 180, imageUrl: 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Onion Rings', category: 'Sides', price: 120, imageUrl: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop', isVeg: true },
   ],
   'Fast Food': [
-    { name: 'Veggie Wrap', category: 'Wraps', price: 190 },
-    { name: 'Spicy Chicken Wings', category: 'Starters', price: 320 },
+    { name: 'Veggie Wrap', category: 'Wraps', price: 190, imageUrl: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Spicy Chicken Wings', category: 'Starters', price: 320, imageUrl: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=500&auto=format&fit=crop', isVeg: false },
   ],
   Italian: [
-    { name: 'Spaghetti Carbonara', category: 'Pasta', price: 380 },
-    { name: 'Penne Arrabbiata', category: 'Pasta', price: 320 },
-    { name: 'Margherita Pizza', category: 'Pizza', price: 420 },
-    { name: 'Quattro Formaggi Pizza', category: 'Pizza', price: 480 },
-    { name: 'Tiramisu', category: 'Desserts', price: 220 },
-    { name: 'Bruschetta', category: 'Starters', price: 180 },
+    { name: 'Spaghetti Carbonara', category: 'Pasta', price: 380, imageUrl: 'https://images.unsplash.com/photo-1546549032-9571cd6b27df?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Penne Arrabbiata', category: 'Pasta', price: 320, imageUrl: 'https://images.unsplash.com/photo-1546549032-9571cd6b27df?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Margherita Pizza', category: 'Pizza', price: 420, imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Quattro Formaggi Pizza', category: 'Pizza', price: 480, imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Tiramisu', category: 'Desserts', price: 220, imageUrl: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Bruschetta', category: 'Starters', price: 180, imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop', isVeg: true },
   ],
   Japanese: [
-    { name: 'Salmon Nigiri (6 pcs)', category: 'Sushi', price: 480 },
-    { name: 'California Roll (8 pcs)', category: 'Sushi', price: 420 },
-    { name: 'Miso Ramen', category: 'Ramen', price: 380 },
-    { name: 'Tonkotsu Ramen', category: 'Ramen', price: 420 },
-    { name: 'Edamame', category: 'Starters', price: 150 },
-    { name: 'Gyoza (6 pcs)', category: 'Starters', price: 280 },
+    { name: 'Salmon Nigiri (6 pcs)', category: 'Sushi', price: 480, imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'California Roll (8 pcs)', category: 'Sushi', price: 420, imageUrl: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Miso Ramen', category: 'Ramen', price: 380, imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Tonkotsu Ramen', category: 'Ramen', price: 420, imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Edamame', category: 'Starters', price: 150, imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Gyoza (6 pcs)', category: 'Starters', price: 280, imageUrl: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=500&auto=format&fit=crop', isVeg: false },
   ],
   Chinese: [
-    { name: 'Kung Pao Chicken', category: 'Main Course', price: 320 },
-    { name: 'Dim Sum Basket (6 pcs)', category: 'Starters', price: 250 },
-    { name: 'Fried Rice', category: 'Rice', price: 220 },
+    { name: 'Kung Pao Chicken', category: 'Main Course', price: 320, imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Dim Sum Basket (6 pcs)', category: 'Starters', price: 250, imageUrl: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Fried Rice', category: 'Rice', price: 220, imageUrl: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&auto=format&fit=crop', isVeg: true },
   ],
   Thai: [
-    { name: 'Pad Thai', category: 'Noodles', price: 280 },
-    { name: 'Green Curry', category: 'Curry', price: 320 },
+    { name: 'Pad Thai', category: 'Noodles', price: 280, imageUrl: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Green Curry', category: 'Curry', price: 320, imageUrl: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=500&auto=format&fit=crop', isVeg: false },
   ],
   Mexican: [
-    { name: 'Chicken Tacos (3 pcs)', category: 'Tacos', price: 280 },
-    { name: 'Veg Burrito', category: 'Burritos', price: 250 },
-    { name: 'Nachos with Salsa', category: 'Starters', price: 190 },
-    { name: 'Quesadilla', category: 'Quesadilla', price: 220 },
+    { name: 'Chicken Tacos (3 pcs)', category: 'Tacos', price: 280, imageUrl: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&auto=format&fit=crop', isVeg: false },
+    { name: 'Veg Burrito', category: 'Burritos', price: 250, imageUrl: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Nachos with Salsa', category: 'Starters', price: 190, imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop', isVeg: true },
+    { name: 'Quesadilla', category: 'Quesadilla', price: 220, imageUrl: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&auto=format&fit=crop', isVeg: true },
   ],
 };
 
@@ -614,13 +622,18 @@ export const buildFactorySeedPayload = (
       const items = [];
       for (let i = 0; i < targetItemsPerRestaurant; i++) {
         const itemTpl = menuTemplates[i % menuTemplates.length];
+        const foodImg = itemTpl.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop';
+        const isVeg = itemTpl.isVeg ?? false;
         items.push({
           _id: generateObjectId(),
           name: `${itemTpl.name} ${i + 1}`,
           description: `Delicious ${itemTpl.name} prepared with fresh ingredients.`,
           price: itemTpl.price,
           category: itemTpl.category,
-          isVegetarian: Math.random() > 0.4,
+          imageUrl: foodImg,
+          image: foodImg,
+          isVegetarian: isVeg,
+          isVeg,
           isAvailable: true,
         });
       }
@@ -629,20 +642,24 @@ export const buildFactorySeedPayload = (
       const baseRating = template.baseRating;
 
       const IMAGE_POOL = [
-        '1550547660-d9450f859349',
-        '1576521925361-2c5a9dc42c92',
+        '1517248135467-4c7edcad34c4',
+        '1552566626-52f8b828add9',
         '1555396273-367ea4eb4db5',
         '1466978913421-dad2ebd01d17',
-        '1604908176997-4318b3e0cfe6',
-      ];
-      const BANNER_POOL = [
-        '1570521944256-e7a1ff3c4d46',
-        '1552566626-52f8b828add9',
-        '1517248135467-4c7edcad34c4',
+        '1550547660-d9450f859349',
+        '1514933651103-005eec06c04b',
+        '1559339352-11d035aa65de',
         '1498654896293-37aacf113fd9',
       ];
-      const imgId = IMAGE_POOL[restaurantIds.length % IMAGE_POOL.length];
-      const bannerId = BANNER_POOL[restaurantIds.length % BANNER_POOL.length];
+      const BANNER_POOL = [
+        '1517248135467-4c7edcad34c4',
+        '1552566626-52f8b828add9',
+        '1498654896293-37aacf113fd9',
+        '1544148103-0773bf10d330',
+        '1550966871-3ed3cdb5ed0c',
+      ];
+      const imgId = IMAGE_POOL[restIdx % IMAGE_POOL.length];
+      const bannerId = BANNER_POOL[restIdx % BANNER_POOL.length];
 
       const ownerUser = ownerUsers[ownerIdx % ownerUsers.length];
       ownerIdx++;
@@ -659,7 +676,9 @@ export const buildFactorySeedPayload = (
         totalRatings: template.scenario === 'underperformer' ? randomInt(80, 200) : randomInt(150, 500),
         priceRange: template.priceRange,
         imageUrl: `https://images.unsplash.com/photo-${imgId}?w=800`,
+        image: `https://images.unsplash.com/photo-${imgId}?w=800`,
         bannerUrl: `https://images.unsplash.com/photo-${bannerId}?w=1200`,
+        bannerImage: `https://images.unsplash.com/photo-${bannerId}?w=1200`,
         tags: template.tags,
         isOpen: template.isOpen,
         isFeatured: template.isFeatured,

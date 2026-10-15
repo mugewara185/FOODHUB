@@ -58,6 +58,8 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
   useEffect(() => {
     if (!orderId) return;
 
+    socketService.joinOrderRoom(orderId);
+
     const handleLoc = (p: any) => {
       if (p.orderId === orderId) {
         setLocation(p.location);
@@ -83,6 +85,7 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
     socketService.onDeliveryAssigned(handleAssigned);
 
     return () => {
+      socketService.unsubscribeFromOrder(orderId);
       socketService.offDeliveryLocation(handleLoc);
       socketService.offDeliveryStatus(handleStatus);
       socketService.offDeliveryAssigned(handleAssigned);
@@ -239,7 +242,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                 <Divider sx={{ my: 2 }} />
                 <Stack direction="row" spacing={2}>
                   <Button fullWidth variant="contained" startIcon={<Phone />} href={`tel:${partner.phone}`}>Call</Button>
-                  <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('partner')}>Chat</Button>
+                  <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('partner')}>Chat with Driver</Button>
                 </Stack>
               </>
             ) : (
