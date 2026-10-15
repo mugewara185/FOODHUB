@@ -7,6 +7,7 @@ const CUSTOMER_ID = '64e8e50f3c5f4a1b8c1a9901';
 const OWNER_ID = '64e8e50f3c5f4a1b8c1a9902';
 const PARTNER_ID = '64e8e50f3c5f4a1b8c1a9903';
 const ADMIN_ID = '64e8e50f3c5f4a1b8c1a9904';
+const STRANGER_CUSTOMER_ID = '64e8e50f3c5f4a1b8c1a9909';
 const RESTAURANT_ID = '64e8e50f3c5f4a1b8c1a9905';
 const MENU_ITEM_ID = '64e8e50f3c5f4a1b8c1a9906';
 const DELIVERY_PARTNER_DOC_ID = '64e8e50f3c5f4a1b8c1a9907';
@@ -52,12 +53,13 @@ async function seedScopedData() {
       collections: [
         {
           modelName: 'User',
-          deleteIds: [CUSTOMER_ID, OWNER_ID, PARTNER_ID, ADMIN_ID],
+          deleteIds: [CUSTOMER_ID, OWNER_ID, PARTNER_ID, ADMIN_ID, STRANGER_CUSTOMER_ID],
           documents: [
             { _id: CUSTOMER_ID, name: 'E2E Customer', email: 'cust@e2e.com', password: 'password', roles: ['user'], phone: '111111' },
             { _id: OWNER_ID, name: 'E2E Owner', email: 'owner@e2e.com', password: 'password', roles: ['owner'], phone: '222222' },
             { _id: PARTNER_ID, name: 'E2E Partner', email: 'partner@e2e.com', password: 'password', roles: ['partner'], phone: '333333' },
-            { _id: ADMIN_ID, name: 'E2E Admin', email: 'admin@e2e.com', password: 'password', roles: ['admin'], phone: '444444' }
+            { _id: ADMIN_ID, name: 'E2E Admin', email: 'admin@e2e.com', password: 'password', roles: ['admin'], phone: '444444' },
+            { _id: STRANGER_CUSTOMER_ID, name: 'E2E Stranger', email: 'stranger@e2e.com', password: 'password', roles: ['user'], phone: '555555' }
           ]
         },
         {
@@ -132,7 +134,7 @@ async function cleanupScopedData() {
     },
     body: JSON.stringify({
       collections: [
-        { modelName: 'User', deleteIds: [CUSTOMER_ID, OWNER_ID, PARTNER_ID, ADMIN_ID] },
+        { modelName: 'User', deleteIds: [CUSTOMER_ID, OWNER_ID, PARTNER_ID, ADMIN_ID, STRANGER_CUSTOMER_ID] },
         { modelName: 'Restaurant', deleteIds: [RESTAURANT_ID] },
         { modelName: 'DeliveryPartner', deleteIds: [DELIVERY_PARTNER_DOC_ID] },
         { modelName: 'Order', deleteFilter: { restaurantId: RESTAURANT_ID } },
@@ -417,6 +419,36 @@ async function runBrowserE2E() {
     await ownerPage.keyboard.press('Escape');
     await new Promise(r => setTimeout(r, 600));
     console.log('✅ Real two-way Socket.IO chat exchange verified successfully!');
+
+    // 4e. Chat Persistence Across Reload
+    console.log('Verifying chat history persistence across customer page reload...');
+    await customerPage.reload({ waitUntil: 'domcontentloaded' });
+    await new Promise(r => setTimeout(r, 1500));
+    console.log('Customer re-opening chat with restaurant after reload...');
+    await clickButtonWithText(customerPage, 'Chat with Restaurant');
+    await customerPage.waitForSelector('input[placeholder="Type a message..."]', { timeout: 10000 });
+
+    await customerPage.waitForFunction((cMsg: string, oReply: string) => {
+      return document.body.innerText.includes(cMsg) && document.body.innerText.includes(oReply);
+    }, { timeout: 15000 }, customerMsg, ownerReply);
+    console.log('✅ Chat persistence confirmed: Both customer message and owner reply survived reload!');
+    await customerPage.keyboard.press('Escape');
+    await new Promise(r => setTimeout(r, 600));
+
+    // 4f. Chat Authorization & Order Isolation Check
+    console.log('Verifying chat authorization and order isolation for unauthorized stranger...');
+    const strangerChatRes = await fetch(`${API_URL}/orders/${orderId}/chat`, {
+      headers: {
+        'x-dev-bypass-auth': 'true',
+        'x-dev-bypass-user-id': STRANGER_CUSTOMER_ID,
+        'x-dev-bypass-role': 'user'
+      }
+    });
+    console.log(`Stranger GET /orders/${orderId}/chat status: ${strangerChatRes.status}`);
+    if (strangerChatRes.status !== 403) {
+      throw new Error(`Expected status 403 Forbidden for unauthorized customer accessing order chat, got ${strangerChatRes.status}`);
+    }
+    console.log('✅ Order chat isolation verified: Unauthorized user is denied access (HTTP 403 Forbidden).');
 
     // ---------------------------------------------------------
     // 5. PARTNER ACCEPTS & OWNER HANDOFF CONFIRMATION

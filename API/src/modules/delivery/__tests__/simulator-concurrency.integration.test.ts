@@ -26,12 +26,19 @@ describe('Simulator Concurrency and Terminal State Integration', () => {
   let partner: any;
   let createdOrder: any;
   let deliveryId: string;
+  let order2: any;
+  let deliveryId2: string;
 
   beforeAll(async () => {
     // Setup logic from original test
     vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'Date'] });
 
     const uri = config.mongoUri || 'mongodb://127.0.0.1:27017/FOODHUB3_TEST_DB';
+    const isDedicatedTestDb = /test|e2e/i.test(uri);
+    if (!isDedicatedTestDb) {
+      throw new Error(`[FAIL-CLOSED SAFETY GUARD] simulator-concurrency test must only run against a dedicated test database containing 'test' or 'e2e' in name, got: ${uri}`);
+    }
+
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(uri);
     }
@@ -80,8 +87,26 @@ describe('Simulator Concurrency and Terminal State Integration', () => {
   afterAll(async () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
-    await mongoose.connection.dropDatabase();
-    await mongoose.connection.close();
+
+    const dbName = mongoose.connection.db?.databaseName || mongoose.connection.name || '';
+    const isDedicatedTestDb = /test|e2e/i.test(dbName);
+    if (!isDedicatedTestDb) {
+      console.warn(`[SAFETY GUARD] Skipping cleanup: ${dbName} is not a dedicated test database.`);
+    } else {
+      // Scoped deterministic cleanup of all created test fixtures
+      if (createdOrder) await Order.findByIdAndDelete(createdOrder._id);
+      if (order2) await Order.findByIdAndDelete(order2._id);
+      if (deliveryId) await Delivery.findByIdAndDelete(deliveryId);
+      if (deliveryId2) await Delivery.findByIdAndDelete(deliveryId2);
+      if (partner) await DeliveryPartner.findByIdAndDelete(partner._id);
+      if (restaurant) await Restaurant.findByIdAndDelete(restaurant._id);
+      if (ownerUser) await User.findByIdAndDelete(ownerUser._id);
+      if (partnerUser) await User.findByIdAndDelete(partnerUser._id);
+    }
+
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
   });
 
   it('Setup: Create order and assign partner', async () => {
@@ -175,7 +200,7 @@ describe('Simulator Concurrency and Terminal State Integration', () => {
 
   it('Test B: Cancellation race does not revive delivery', async () => {
     // Setup a new order and delivery
-    const order2 = new Order({
+    order2 = new Order({
       _id: new mongoose.Types.ObjectId(),
       userId: ownerUser._id,
       customerId: new mongoose.Types.ObjectId(),
@@ -198,7 +223,7 @@ describe('Simulator Concurrency and Terminal State Integration', () => {
     expect(res.status).toBe(200);
 
     const updatedPartner = await DeliveryPartner.findById(partner._id);
-    const deliveryId2 = updatedPartner!.currentAssignedDelivery!.toString();
+    deliveryId2 = updatedPartner!.currentAssignedDelivery!.toString();
 
     // Transition order and delivery to picked_up and place at destination so the tick will attempt completion
     await Order.findByIdAndUpdate(order2._id, { status: 'picked_up' });

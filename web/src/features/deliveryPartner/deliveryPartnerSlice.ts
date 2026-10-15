@@ -215,17 +215,19 @@ const deliveryPartnerSlice = createSlice({
       state,
       action: PayloadAction<{ deliveryId: string; status: DeliveryAssignment['status'] }>
     ) => {
-      if (state.activeAssignment && state.activeAssignment.deliveryId === action.payload.deliveryId) {
+      if (
+        state.activeAssignment &&
+        (String(state.activeAssignment.deliveryId) === String(action.payload.deliveryId) ||
+         String(state.activeAssignment.orderId) === String(action.payload.deliveryId))
+      ) {
         state.activeAssignment.status = action.payload.status;
 
         if (action.payload.status === 'delivered') {
           state.history.unshift(state.activeAssignment);
           state.stats.todayDeliveries += 1;
-          state.stats.todayEarnings += state.activeAssignment.amount;
-          state.stats.weeklyEarnings += state.activeAssignment.amount;
-          state.stats.totalEarnings += state.activeAssignment.amount;
-
-          state.activeAssignment = null;
+          state.stats.todayEarnings += state.activeAssignment.amount || 0;
+          state.stats.weeklyEarnings += state.activeAssignment.amount || 0;
+          state.stats.totalEarnings += state.activeAssignment.amount || 0;
           state.status = state.isOnline ? 'ONLINE' : 'OFFLINE';
         }
       }
@@ -233,6 +235,9 @@ const deliveryPartnerSlice = createSlice({
 
     partnerLocationReceived: (state, action: PayloadAction<{ lat: number; lng: number }>) => {
       state.currentLocation = action.payload;
+      if (state.activeAssignment) {
+        state.activeAssignment.currentLocation = action.payload;
+      }
     },
 
     /**

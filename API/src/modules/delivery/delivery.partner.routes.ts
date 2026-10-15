@@ -30,6 +30,9 @@ router.get(
       const activeDelivery = await Delivery.findOne({
         partnerId: partner._id,
         status: { $ne: 'delivered' },
+      }).populate({
+        path: 'orderId',
+        populate: { path: 'restaurantId', select: 'name address location' }
       });
 
       let availableAssignments: any[] = [];
@@ -45,6 +48,31 @@ router.get(
         }));
       }
 
+      let activeAssignmentData = null;
+      if (activeDelivery) {
+        const orderDoc: any = activeDelivery.orderId;
+        const restaurantDoc: any = orderDoc?.restaurantId;
+        activeAssignmentData = {
+          deliveryId: activeDelivery._id.toString(),
+          orderId: orderDoc ? orderDoc._id.toString() : (activeDelivery.orderId?.toString() || ''),
+          partnerId: partner._id.toString(),
+          status: activeDelivery.status,
+          restaurant: restaurantDoc?.name || 'Restaurant',
+          customer: orderDoc?.deliveryAddress?.name || 'Customer',
+          pickupAddress: restaurantDoc?.address || orderDoc?.restaurantAddress || 'Restaurant Address',
+          dropAddress: typeof orderDoc?.deliveryAddress === 'string'
+            ? orderDoc.deliveryAddress
+            : (orderDoc?.deliveryAddress?.street || 'Delivery Address'),
+          amount: orderDoc?.totalAmount || 0,
+          items: orderDoc?.items || [],
+          distance: activeDelivery.distanceRemainingMeters ? `${(activeDelivery.distanceRemainingMeters / 1000).toFixed(1)} km` : '2.5 km',
+          estimatedTime: activeDelivery.etaSeconds ? `${Math.ceil(activeDelivery.etaSeconds / 60)} mins` : '15 mins',
+          pickupLocation: activeDelivery.pickupLocation ? toLatLng(activeDelivery.pickupLocation) : { lat: 12.9716, lng: 77.5946 },
+          dropoffLocation: activeDelivery.destinationLocation ? toLatLng(activeDelivery.destinationLocation) : { lat: 12.9916, lng: 77.6146 },
+          currentLocation: activeDelivery.currentLocation ? toLatLng(activeDelivery.currentLocation) : null,
+        };
+      }
+
       res.json({
         success: true,
         data: {
@@ -55,21 +83,9 @@ router.get(
           completedDeliveries: (partner as any).completedDeliveries || 0,
           status: partner.status,
           isOnline: partner.status === 'available' || partner.status === 'on_delivery',
-          currentLocation: partner.currentLocation ? toLatLng(partner.currentLocation) : null,
+          currentLocation: partner.currentLocation ? toLatLng(partner.currentLocation) : (activeAssignmentData?.currentLocation || null),
           availableAssignments,
-          activeAssignment: activeDelivery
-            ? {
-              deliveryId: activeDelivery._id.toString(),
-              orderId: activeDelivery.orderId.toString(),
-              partnerId: partner._id.toString(),
-              status: activeDelivery.status,
-              pickupLocation: toLatLng(activeDelivery.pickupLocation),
-              dropoffLocation: toLatLng(activeDelivery.destinationLocation),
-              currentLocation: activeDelivery.currentLocation
-                ? toLatLng(activeDelivery.currentLocation)
-                : null,
-            }
-            : null,
+          activeAssignment: activeAssignmentData,
         },
       });
     } catch (error) {

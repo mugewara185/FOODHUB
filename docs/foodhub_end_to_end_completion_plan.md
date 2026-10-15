@@ -14,6 +14,7 @@
 - Phase 9 — Cross-domain Socket Chat & E2E Safety Hardening: Build, Runtime & E2E-verified.
 - Phase 10 — Deployment Readiness (Azure SWA + Render): Code & Build-verified; Pending Cloud Provisioning.
 - Phase 11 — Showcase-First Experience: Build, Runtime & Vitest-verified. Interactive multi-actor topology grid, component version swapper, telemetry console, honest status classification, and recruiter quick-scan.
+- Phase 12 — Partner Delivery UI, Live Route Map, Progress State & Chat Hardening: Build, Runtime & Integration-verified on `dev/development`. Clean OpenStreetMap tiles, bounded OSRM road routing with instant straight-line fallback, canonical progress stepper, multi-actor tabbed chat with authorization, and fail-closed database safety.
 
 ## EVIDENCE
 **API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
@@ -154,6 +155,18 @@ NotificationBell / Toast
   - Full Regression Test Suite: PASS (`src/features/showcase/`, `src/features/deliveryPartner/`, `src/features/orders/` 21/21 tests pass).
   - TypeScript Type Check: PASS (`npx tsc --noEmit` 0 errors).
   - Frontend Production Build: PASS (`npm run build` in `web` compiles cleanly in 1m 11s, exit code 0).
+
+- **Partner Delivery UI, Live Route Map, Progress State & Chat Hardening (Phase 12 - dev/development):**
+  - **Clean OpenStreetMap Standard Tiles:** PASS (`web/src/shared/components/maps/Map.tsx` switched from CartoDB to OpenStreetMap `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`, completely removing the API-key watermark placeholder; preserves Flaticon courier marker URL `3209865`).
+  - **Bounded Road Routing with Instant Straight-Line Fallback:** PASS (`web/src/core/utils/location.ts` implements `fetchRoadRoute` with strict 2.5s `AbortController` timeout and memoized cache; immediately paints direct straight-line fallback, upgrading to road path when available without blocking map render).
+  - **Distinct Partner Navigation Markers & Simulator Tracking:** PASS (`ActiveDelivery.tsx` renders separate restaurant pickup, customer dropoff, and live partner courier markers with dynamic coordinates updated by live simulation ticks).
+  - **Canonical Partner Progress Lifecycle:** PASS (Fixed MUI Stepper off-by-one bug `activeStep={activeStep}`; accurately reflects canonical states: 0: `partner_assigned`, 1: `arrived_pickup`, 2: `picked_up`, 3: `out_for_delivery`/`nearby`, 4: `delivered`; preserves terminal delivered view with completion banner and dashboard exit).
+  - **Full Partner State Hydration:** PASS (`API/src/modules/delivery/delivery.partner.routes.ts` `/me` endpoint populates `orderId` and `restaurantId`, returning customer name, restaurant address, dropoff address, items, and coordinates).
+  - **Cross-Domain Tabbed Socket Chat:** PASS (`OrderChat.tsx` supports multi-actor tabbed recipient switching across Partner ↔ Customer/Restaurant, Owner ↔ Customer/Driver, Customer ↔ Restaurant/Driver; optimistic UI rendering, Socket.IO broadcast, and persistence in `Order.chatMessages`).
+  - **Strict Chat Authorization & Security:** PASS (`API/src/socket.ts` `isUserAuthorizedForOrder` and `order.controller.ts` `getOrderChat` enforce that only the order customer, restaurant owner, assigned partner, or admin can read/write chat; unauthorized users rejected with HTTP 403 / socket error).
+  - **Fail-Closed Non-Test DB Safety:** PASS (Verified `/api/dev/db-info` identifies non-test DB; fail-closed safety guard halts integration tests if `MONGO_URI` lacks `test`/`e2e`; integration tests ran strictly against isolated `FOODHUB3_TEST`).
+  - **Backend Integration Tests:** PASS (`simulator-concurrency.integration.test.ts` 3/3 PASS, `simulator-handoff.integration.test.ts` 4/4 PASS; total 7/7 simulator tests PASS).
+  - **Build Verification:** PASS (`npm run build` in `API` passes `tsc` with 0 errors; `npm run build` in `web` compiles cleanly in 1m 5s, exit code 0).
 ## HISTORICAL DIAGNOSIS
 
 

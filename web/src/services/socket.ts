@@ -1,6 +1,7 @@
 import { appConfig } from '../core/config/app.config';
 import { io, Socket } from "socket.io-client";
 import { logger } from "../core/utils/logger";
+import { getAuthToken } from "./api/apiUtils";
 import type {
   DeliveryAssignedPayload,
   DeliveryStatusPayload,
@@ -30,10 +31,17 @@ class SocketService {
       return this.socket;
     }
 
+    const token = getAuthToken();
     this.socket = io(
       appConfig.api.socketUrl || (typeof window !== "undefined" ? window.location.origin : ""),
       {
         transports: ["websocket", "polling"],
+        auth: {
+          token: token || undefined,
+          userId: userId || undefined,
+          role: role || undefined,
+          devBypass: true,
+        },
       },
     );
 

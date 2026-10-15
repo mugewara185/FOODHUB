@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Paper, Typography, TextField, IconButton, Avatar } from '@mui/material';
+import { Box, Paper, Typography, TextField, IconButton, Avatar, Tabs, Tab } from '@mui/material';
 import { Send, Person, Storefront, LocalShipping } from '@mui/icons-material';
 import { socketService } from '../../../services/socket';
 import type { OrderChatMessage } from '../../../core/types/socket.events';
@@ -19,10 +19,22 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
   const [localMessages, setLocalMessages] = useState<OrderChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
+  const defaultTarget: 'user' | 'owner' | 'partner' = targetRole === 'admin'
+    ? 'user'
+    : (targetRole || (currentUserRole === 'user' ? 'owner' : 'user'));
+
+  const [selectedTargetRole, setSelectedTargetRole] = useState<'user' | 'owner' | 'partner'>(defaultTarget);
+
+  useEffect(() => {
+    if (targetRole && targetRole !== 'admin') {
+      setSelectedTargetRole(targetRole);
+    }
+  }, [targetRole]);
+
   const dispatch = useAppDispatch();
   const liveTracking = useAppSelector(selectLiveTracking);
-  
+
   const isCustomerReduxActive = currentUserRole === 'user' && liveTracking?.orderId === orderId;
 
   useEffect(() => {
@@ -30,24 +42,26 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
     api.get<any>(`/orders/${orderId}/chat`)
       .then(res => {
         const history = Array.isArray(res) ? res : (res?.data || []);
-        if (isCustomerReduxActive) {
+        setLocalMessages(history);
+        if (currentUserRole === 'user') {
           dispatch(setLiveTrackingChatHistory({ orderId, messages: history }));
-        } else {
-          setLocalMessages(history);
         }
       })
       .catch(err => console.error('Failed to fetch chat history', err));
-  }, [orderId, isCustomerReduxActive, dispatch]);
+  }, [orderId, currentUserRole, dispatch]);
 
-  // Use Redux messages if available, otherwise fallback to local state (for partner/owner in this sprint)
-  const messages = isCustomerReduxActive && liveTracking ? liveTracking.chatMessages : localMessages;
+  // Use Redux messages if active and populated, otherwise fallback to local state
+  const messages = isCustomerReduxActive && liveTracking && liveTracking.chatMessages.length > 0 
+    ? liveTracking.chatMessages 
+    : localMessages;
 
-  const resolvedTargetRole = targetRole || (currentUserRole === 'user' ? 'owner' : 'user');
-
-  const filteredMessages = messages.filter(msg => 
-    (msg.senderRole === currentUserRole && msg.targetRole === resolvedTargetRole) || 
-    (msg.senderRole === resolvedTargetRole && msg.targetRole === currentUserRole)
-  );
+  const filteredMessages = messages.filter(msg => {
+    if (msg.targetRole) {
+      return (msg.senderRole === currentUserRole && msg.targetRole === selectedTargetRole) || 
+             (msg.senderRole === selectedTargetRole && msg.targetRole === currentUserRole);
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (isCustomerReduxActive) {
@@ -59,8 +73,15 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
     socketService.joinOrderRoom(orderId);
 
     const handleNewMessage = (msg: OrderChatMessage) => {
-      if (!isCustomerReduxActive) {
-        setLocalMessages((prev) => [...prev, msg]);
+      if (msg.orderId !== orderId) return;
+      setLocalMessages((prev) => {
+        const exists = prev.some(
+          m => m.timestamp === msg.timestamp && m.message === msg.message && m.senderId === msg.senderId
+        );
+        return exists ? prev : [...prev, msg];
+      });
+      if (isCustomerReduxActive) {
+        dispatch(addLiveTrackingChatMessage({ message: msg, isChatOpen: true }));
       }
     };
 
@@ -69,11 +90,11 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
     return () => {
       socketService.offOrderChatMessage(handleNewMessage);
     };
-  }, [orderId, isCustomerReduxActive]);
+  }, [orderId, isCustomerReduxActive, dispatch]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [filteredMessages.length]);
 
   const handleSend = () => {
     if (!inputText.trim()) return;
@@ -82,13 +103,17 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
       orderId,
       senderId: currentUserId,
       senderRole: currentUserRole,
-      targetRole: targetRole || (currentUserRole === 'user' ? 'owner' : 'user'),
+      targetRole: selectedTargetRole,
       senderName: currentUserName,
       message: inputText.trim(),
       timestamp: new Date().toISOString()
     };
 
     socketService.sendOrderChatMessage(payload);
+    setLocalMessages((prev) => [...prev, payload]);
+    if (isCustomerReduxActive) {
+      dispatch(addLiveTrackingChatMessage({ message: payload, isChatOpen: true }));
+    }
     setInputText('');
   };
 
@@ -100,20 +125,72 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
     }
   };
 
+  // Determine available tabs based on current role
+  const getTabOptions = () => {
+    if (currentUserRole === 'partner') {
+      return [
+        { role: 'user' as const, label: 'Customer' },
+        { role: 'owner' as const, label: 'Restaurant' }
+      ];
+    }
+    if (currentUserRole === 'owner') {
+      return [
+        { role: 'user' as const, label: 'Customer' },
+        { role: 'partner' as const, label: 'Driver' }
+      ];
+    }
+    // For customer or others
+    return [
+      { role: 'owner' as const, label: 'Restaurant' },
+      { role: 'partner' as const, label: 'Driver' }
+    ];
+  };
+
+  const tabOptions = getTabOptions();
+
   return (
-    <Paper sx={{ display: 'flex', flexDirection: 'column', height: 400, borderRadius: 3, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+    <Paper sx={{ display: 'flex', flexDirection: 'column', height: 460, borderRadius: 3, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
       {/* Header */}
       <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
         <Typography variant="subtitle1" fontWeight={700}>Order Support Chat</Typography>
-        <Typography variant="body2" sx={{ opacity: 0.8 }}>Live chat with {resolvedTargetRole === 'owner' ? 'restaurant' : resolvedTargetRole === 'partner' ? 'driver' : 'customer'}</Typography>
+        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+          Order #{orderId.substring(0, 8)} • Logged in as {currentUserName} ({currentUserRole})
+        </Typography>
+      </Box>
+
+      {/* Recipient Selection Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <Tabs
+          value={selectedTargetRole}
+          onChange={(_, val) => setSelectedTargetRole(val)}
+          variant="fullWidth"
+          indicatorColor="primary"
+          textColor="primary"
+        >
+          {tabOptions.map((opt) => (
+            <Tab
+              key={opt.role}
+              value={opt.role}
+              label={opt.label}
+              icon={getRoleIcon(opt.role)}
+              iconPosition="start"
+              sx={{ minHeight: 44, py: 1, textTransform: 'none', fontWeight: 600 }}
+            />
+          ))}
+        </Tabs>
       </Box>
 
       {/* Message List */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'grey.50' }}>
         {filteredMessages.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ my: 'auto' }}>
-            No messages yet. Say hello!
-          </Typography>
+          <Box sx={{ my: 'auto', textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              No messages with {selectedTargetRole === 'owner' ? 'restaurant' : selectedTargetRole === 'partner' ? 'driver' : 'customer'} yet.
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              Type below to start the conversation!
+            </Typography>
+          </Box>
         ) : (
           filteredMessages.map((msg, i) => {
             const isMe = msg.senderId === currentUserId && msg.senderRole === currentUserRole;
@@ -147,7 +224,7 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
         <TextField
           fullWidth
           size="small"
-          placeholder="Type a message..."
+          placeholder={`Message ${selectedTargetRole === 'owner' ? 'restaurant' : selectedTargetRole === 'partner' ? 'driver' : 'customer'}...`}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSend()}

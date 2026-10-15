@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Chip } from '@mui/material';
 import type { Coordinates, MapMarker } from '../../../data/types/location';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -28,17 +28,46 @@ export const decodePolyline = (encoded: string): Coordinates[] => {
   return points;
 };
 
-function MapController({ center, zoom, bounds, recenterTrigger }: { center: Coordinates; zoom: number; bounds?: L.LatLngBoundsExpression; recenterTrigger?: number }) {
+function MapController({
+  center,
+  zoom,
+  bounds,
+  recenterTrigger
+}: {
+  center: Coordinates;
+  zoom: number;
+  bounds?: L.LatLngBoundsExpression;
+  recenterTrigger?: number;
+}) {
   const map = useMap();
   const isInitialLoad = React.useRef(true);
-  
+  const prevRecenterTrigger = React.useRef(recenterTrigger);
+
   useEffect(() => {
-    if (isInitialLoad.current || recenterTrigger !== undefined) {
-      if (bounds) map.fitBounds(bounds, { padding: [50, 50] });
-      else if (center) map.setView([center.lat, center.lng], zoom);
+    map.invalidateSize();
+  }, [map]);
+
+  useEffect(() => {
+    if (isInitialLoad.current) {
+      if (bounds) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      } else if (center && center.lat && center.lng) {
+        map.setView([center.lat, center.lng], zoom);
+      }
       isInitialLoad.current = false;
+      return;
+    }
+
+    if (recenterTrigger !== undefined && recenterTrigger !== prevRecenterTrigger.current) {
+      prevRecenterTrigger.current = recenterTrigger;
+      if (bounds) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      } else if (center && center.lat && center.lng) {
+        map.setView([center.lat, center.lng], zoom);
+      }
     }
   }, [recenterTrigger, bounds, map, center, zoom]);
+
   return null;
 }
 
@@ -55,7 +84,9 @@ export interface MapProps {
   polyline?: string;
   polylines?: string[];
   routeCoordinates?: Coordinates[];
-  recenterTrigger?: number; // Prop to manually trigger recenter
+  recenterTrigger?: number;
+  isFallbackRoute?: boolean;
+  routeStatus?: 'road' | 'direct' | 'none';
 }
 
 const getIconForType = (type: string) => {
@@ -68,14 +99,26 @@ const getIconForType = (type: string) => {
 };
 
 const Map: React.FC<MapProps> = ({
-  markers = [], center = { lat: 19.0760, lng: 72.8777 }, zoom = 12, height = '400px',
-  showUserLocation = false, onMarkerClick, polyline,  routeCoordinates,
-  recenterTrigger
+  markers = [],
+  center = { lat: 19.0760, lng: 72.8777 },
+  zoom = 13,
+  height = '400px',
+  showUserLocation = false,
+  onMarkerClick,
+  polyline,
+  routeCoordinates,
+  recenterTrigger,
+  isFallbackRoute = false,
+  routeStatus
 }) => {
   const [userLocation, setUserLocation] = React.useState<Coordinates | null>(null);
+
   useEffect(() => {
     if (showUserLocation && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude }), (err) => console.error(err));
+      navigator.geolocation.getCurrentPosition(
+        (position) => setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude }),
+        (err) => console.error(err)
+      );
     }
   }, [showUserLocation]);
 
@@ -84,24 +127,85 @@ const Map: React.FC<MapProps> = ({
 
   let bounds: L.LatLngBoundsExpression | undefined = undefined;
   const pointsToBound: [number, number][] = [];
-  if (allRouteCoords.length > 0) allRouteCoords.forEach(c => pointsToBound.push([c.lat, c.lng]));
-  markers.forEach(m => { if (m.position) pointsToBound.push([m.position.lat, m.position.lng]); });
-  if (pointsToBound.length > 1) bounds = L.latLngBounds(pointsToBound);
+  if (allRouteCoords.length > 0) {
+    allRouteCoords.forEach(c => {
+      if (c && typeof c.lat === 'number' && typeof c.lng === 'number' && (c.lat !== 0 || c.lng !== 0)) {
+        pointsToBound.push([c.lat, c.lng]);
+      }
+    });
+  }
+  markers.forEach(m => {
+    if (m.position && typeof m.position.lat === 'number' && typeof m.position.lng === 'number' && (m.position.lat !== 0 || m.position.lng !== 0)) {
+      pointsToBound.push([m.position.lat, m.position.lng]);
+    }
+  });
+  if (pointsToBound.length > 1) {
+    bounds = L.latLngBounds(pointsToBound);
+  }
+
+  const safeCenter = (center && typeof center.lat === 'number' && typeof center.lng === 'number')
+    ? center
+    : { lat: 12.9716, lng: 77.5946 };
 
   return (
     <Box sx={{ position: 'relative', height, width: '100%' }}>
-      <MapContainer center={[center.lat, center.lng]} zoom={zoom} style={{ height: '100%', width: '100%', zIndex: 0 }}>
-        <MapController center={center} zoom={zoom} bounds={bounds} recenterTrigger={recenterTrigger} />
-        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-        {showUserLocation && userLocation && <Marker position={[userLocation.lat, userLocation.lng]} icon={getIconForType('current')} />}
-        {markers.map((marker) => (
-          <Marker key={marker.id} position={[marker.position.lat, marker.position.lng]} icon={getIconForType(marker.type)} eventHandlers={{ click: () => onMarkerClick && onMarkerClick(marker) }}>
-            {(marker.title || marker.info) && (<Popup><Box>{marker.title && <Typography variant="subtitle2" fontWeight="bold">{marker.title}</Typography>}{marker.info && <Typography variant="body2">{marker.info}</Typography>}</Box></Popup>)}
-          </Marker>
-        ))}
-        {allRouteCoords.length > 0 && <Polyline positions={allRouteCoords.map(c => [c.lat, c.lng])} color="#2196F3" weight={4} opacity={0.7} />}
+      <MapContainer
+        center={[safeCenter.lat, safeCenter.lng]}
+        zoom={zoom}
+        style={{ height: '100%', width: '100%', zIndex: 0 }}
+      >
+        <MapController center={safeCenter} zoom={zoom} bounds={bounds} recenterTrigger={recenterTrigger} />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {showUserLocation && userLocation && (
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={getIconForType('current')} />
+        )}
+        {markers.map((marker) => {
+          if (!marker.position || (marker.position.lat === 0 && marker.position.lng === 0)) return null;
+          return (
+            <Marker
+              key={marker.id}
+              position={[marker.position.lat, marker.position.lng]}
+              icon={getIconForType(marker.type)}
+              eventHandlers={{ click: () => onMarkerClick && onMarkerClick(marker) }}
+            >
+              {(marker.title || marker.info) && (
+                <Popup>
+                  <Box>
+                    {marker.title && <Typography variant="subtitle2" fontWeight="bold">{marker.title}</Typography>}
+                    {marker.info && <Typography variant="body2">{marker.info}</Typography>}
+                  </Box>
+                </Popup>
+              )}
+            </Marker>
+          );
+        })}
+        {allRouteCoords.length > 1 && (
+          <Polyline
+            positions={allRouteCoords.map(c => [c.lat, c.lng])}
+            color={isFallbackRoute ? "#ff9800" : "#2196F3"}
+            dashArray={isFallbackRoute ? "8, 8" : undefined}
+            weight={isFallbackRoute ? 3 : 5}
+            opacity={0.85}
+          />
+        )}
       </MapContainer>
+
+      {routeStatus && routeStatus !== 'none' && (
+        <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1000, pointerEvents: 'none' }}>
+          <Chip
+            size="small"
+            label={routeStatus === 'road' ? 'Road Route Active' : 'Direct Path (Road Routing Offline)'}
+            color={routeStatus === 'road' ? 'primary' : 'warning'}
+            variant="filled"
+            sx={{ fontWeight: 600, boxShadow: 1 }}
+          />
+        </Box>
+      )}
     </Box>
   );
 };
+
 export default Map;
