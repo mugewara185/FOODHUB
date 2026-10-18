@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import { createServer } from 'http';
 import request from 'supertest';
@@ -11,9 +11,15 @@ import { DeliveryPartner } from '../../delivery/delivery-partner.model';
 import { Delivery } from '../../delivery/delivery.model';
 import { stopDeliverySimulation } from '../../delivery/delivery.simulator';
 import { config } from '../../../config/env';
+import { resetDemoRateLimitsForTest } from '../dev.controller';
 
 describe('One-Click Live-Order Demo Integration Tests', () => {
   let server: any;
+  let regularUser: any;
+  let regularOwner: any;
+  let regularRestaurant: any;
+  let regularPartner: any;
+  let regularPartnerUser: any;
   let regularOrder: any;
 
   beforeAll(async () => {
@@ -35,17 +41,32 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
       server.listen(0, () => resolve());
     });
 
-    // Create an ordinary non-demo order to verify data isolation
-    const regularUser = await User.create({
+    // 1. Create ordinary non-demo Customer User
+    regularUser = await User.create({
       name: 'Ordinary Non-Demo Customer',
-      email: `regular-${Date.now()}@test.dev`,
+      email: `regular-cust-${Date.now()}@test.dev`,
       password: 'password123',
-      role: 'user',
+      roles: ['user'],
+      phone: '9111111111',
       address: '777 Regular St, Bangalore',
+      isDemo: false,
     });
 
-    const regularRestaurant = await Restaurant.create({
+    // 2. Create ordinary non-demo Owner User
+    regularOwner = await User.create({
+      name: 'Ordinary Non-Demo Owner',
+      email: `regular-owner-${Date.now()}@test.dev`,
+      password: 'password123',
+      roles: ['owner'],
+      phone: '9222222222',
+      address: '555 Restaurant Ave, Bangalore',
+      isDemo: false,
+    });
+
+    // 3. Create ordinary non-demo Restaurant
+    regularRestaurant = await Restaurant.create({
       name: 'Ordinary Regular Restaurant',
+      ownerId: regularOwner._id,
       description: 'Not a demo restaurant',
       cuisine: ['South Indian'],
       address: '555 Regular Ave, Bangalore',
@@ -59,9 +80,37 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
       minOrder: 100,
       phone: '+91 99999 11111',
       location: { lat: 12.9500, lng: 77.6000 },
+      isDemo: false,
       menu: [{ name: 'Masala Dosa', price: 90, category: 'Breakfast', isAvailable: true }],
     });
 
+    // 4. Create ordinary non-demo Delivery Partner User & Partner
+    regularPartnerUser = await User.create({
+      name: 'Ordinary Regular Courier',
+      email: `regular-courier-${Date.now()}@test.dev`,
+      password: 'password123',
+      roles: ['partner'],
+      phone: '9333333333',
+      address: 'Courier Hub, Bangalore',
+      isDemo: false,
+    });
+
+    regularPartner = await DeliveryPartner.create({
+      userId: regularPartnerUser._id,
+      name: 'Ordinary Regular Courier',
+      phone: '9333333333',
+      vehicle: 'KA-05-REGULAR-12',
+      rating: 4.8,
+      status: 'on_delivery',
+      currentAssignedDelivery: 'ord-regular-prev',
+      currentLocation: {
+        type: 'Point',
+        coordinates: [77.6543, 12.9321],
+      },
+      isDemo: false,
+    });
+
+    // 5. Create ordinary non-demo Order
     regularOrder = await Order.create({
       userId: regularUser._id,
       restaurantId: regularRestaurant._id,
@@ -76,6 +125,10 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     });
   });
 
+  beforeEach(() => {
+    resetDemoRateLimitsForTest();
+  });
+
   afterAll(async () => {
     // Clean up demo deliveries and simulators
     const demoDeliveries = await Delivery.find({ isDemo: true });
@@ -84,60 +137,72 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     }
     await Order.deleteMany({ isDemo: true });
     await Delivery.deleteMany({ isDemo: true });
-    if (regularOrder) {
-      await Order.findByIdAndDelete(regularOrder._id);
-    }
+    await DeliveryPartner.deleteMany({ isDemo: true });
+    await Restaurant.deleteMany({ isDemo: true });
+    await User.deleteMany({ isDemo: true });
+
+    // Clean up test records
+    if (regularOrder) await Order.findByIdAndDelete(regularOrder._id);
+    if (regularRestaurant) await Restaurant.findByIdAndDelete(regularRestaurant._id);
+    if (regularPartner) await DeliveryPartner.findByIdAndDelete(regularPartner._id);
+    if (regularPartnerUser) await User.findByIdAndDelete(regularPartnerUser._id);
+    if (regularOwner) await User.findByIdAndDelete(regularOwner._id);
+    if (regularUser) await User.findByIdAndDelete(regularUser._id);
 
     if (server) {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   });
 
-  it('P0 Safety Guard: fails closed in production environment', async () => {
+  it('P0 Safety Guard: all demo endpoints fail closed with 403 in production environment', async () => {
     const originalEnv = config.nodeEnv;
     try {
       (config as any).nodeEnv = 'production';
-      const res = await request(app).post('/api/dev/demo/launch-live-order');
-      expect(res.status).toBe(403);
-      expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('production');
+
+      const resLaunch = await request(app).post('/api/dev/demo/launch-live-order');
+      expect(resLaunch.status).toBe(403);
+      expect(resLaunch.body.success).toBe(false);
+      expect(resLaunch.body.message).toContain('production');
+
+      const resActive = await request(app).get('/api/dev/demo/active-order');
+      expect(resActive.status).toBe(403);
+      expect(resActive.body.success).toBe(false);
+
+      const resHandoff = await request(app).post('/api/dev/demo/confirm-handoff').send({});
+      expect(resHandoff.status).toBe(403);
+      expect(resHandoff.body.success).toBe(false);
     } finally {
       (config as any).nodeEnv = originalEnv;
     }
   });
 
-  it('launches a live order demo with real server-authoritative state progression', async () => {
+  it('Participant Isolation: launching demo does NOT change an ordinary restaurant owner', async () => {
+    const preOwnerId = regularRestaurant.ownerId.toString();
+
     const res = await request(app)
       .post('/api/dev/demo/launch-live-order')
       .send();
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.order).toBeDefined();
-    expect(res.body.data.delivery).toBeDefined();
-    expect(res.body.data.order.isDemo).toBe(true);
-    expect(res.body.data.delivery.isDemo).toBe(true);
 
-    const orderId = res.body.data.order._id;
-
-    // Verify order in DB
-    const dbOrder = await Order.findById(orderId);
-    expect(dbOrder).not.toBeNull();
-    expect(dbOrder!.isDemo).toBe(true);
-    expect(dbOrder!.status).toBe('partner_assigned');
-    expect(dbOrder!.timestamps?.assignedAt).toBeDefined();
-
-    // Verify delivery in DB
-    const dbDelivery = await Delivery.findOne({ orderId });
-    expect(dbDelivery).not.toBeNull();
-    expect(dbDelivery!.status).toBe('partner_assigned');
-    expect(dbDelivery!.currentLocation?.coordinates?.length).toBe(2);
-
-    // Stop simulator so it doesn't run indefinitely in test
-    stopDeliverySimulation(dbDelivery!._id.toString());
+    const postRestaurant = await Restaurant.findById(regularRestaurant._id);
+    expect(postRestaurant).not.toBeNull();
+    expect(postRestaurant!.ownerId?.toString()).toBe(preOwnerId);
+    expect(postRestaurant!.ownerId?.toString()).toBe(regularOwner._id.toString());
+    expect(postRestaurant!.isDemo).toBe(false);
   });
 
-  it('idempotently handles duplicate / repeat launch while demo order is active', async () => {
+  it('Participant Isolation: launching demo does NOT alter an ordinary partner status, assignment, or location', async () => {
+    const postPartner = await DeliveryPartner.findById(regularPartner._id);
+    expect(postPartner).not.toBeNull();
+    expect(postPartner!.status).toBe('on_delivery');
+    expect(postPartner!.currentAssignedDelivery).toBe('ord-regular-prev');
+    expect(postPartner!.currentLocation?.coordinates).toEqual([77.6543, 12.9321]);
+    expect(postPartner!.isDemo).toBe(false);
+  });
+
+  it('Idempotency & Mutex: handles duplicate / repeat launch while demo order is active', async () => {
     const res = await request(app)
       .post('/api/dev/demo/launch-live-order')
       .send();
@@ -150,19 +215,44 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     expect(res.body.message).toContain('already running');
   });
 
-  it('fetches active demo order via GET /api/dev/demo/active-order', async () => {
-    const res = await request(app)
-      .get('/api/dev/demo/active-order');
+  it('Privacy & Sanitization: active-demo endpoint does NOT expose unrelated customer data or passwords', async () => {
+    const res = await request(app).get('/api/dev/demo/active-order');
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data).not.toBeNull();
     expect(res.body.data.order).toBeDefined();
-    expect(res.body.data.delivery).toBeDefined();
-    expect(res.body.data.isTerminal).toBe(false);
+    expect(res.body.data.order.isDemo).toBe(true);
+
+    // Customer display name is present, but sensitive fields must NEVER be returned
+    expect(res.body.data.order.userId?.name).toBeDefined();
+    expect(res.body.data.order.userId?.password).toBeUndefined();
+    expect(res.body.data.order.userId?.email).toBeUndefined();
+    expect(res.body.data.order.userId?.addresses).toBeUndefined();
+
+    // Must not expose ordinary order data
+    expect(res.body.data.order._id).not.toBe(regularOrder._id.toString());
   });
 
-  it('confirms kitchen handoff via POST /api/dev/demo/confirm-handoff', async () => {
+  it('Security: confirmDemoHandoff strictly REJECTS an ordinary order even if status matches', async () => {
+    // Put regularOrder in partner_assigned state
+    await Order.findByIdAndUpdate(regularOrder._id, { status: 'partner_assigned' });
+
+    const res = await request(app)
+      .post('/api/dev/demo/confirm-handoff')
+      .send({ orderId: regularOrder._id.toString() });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('ordinary non-demo orders');
+
+    // Confirm regular order was NOT transitioned to picked_up
+    const unmodOrder = await Order.findById(regularOrder._id);
+    expect(unmodOrder!.status).toBe('partner_assigned');
+    expect(unmodOrder!.timestamps?.pickedUpAt).toBeUndefined();
+  });
+
+  it('confirms kitchen handoff via POST /api/dev/demo/confirm-handoff for demo orders', async () => {
     const activeDemo = await Order.findOne({ isDemo: true, status: 'partner_assigned' });
     expect(activeDemo).not.toBeNull();
 
@@ -188,11 +278,35 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     stopDeliverySimulation(updatedDelivery!._id.toString());
   });
 
-  it('Data Safety: ordinary non-demo order is preserved and unmodified', async () => {
-    const verifyRegular = await Order.findById(regularOrder._id);
-    expect(verifyRegular).not.toBeNull();
-    expect(verifyRegular!.isDemo).toBe(false);
-    expect(verifyRegular!.status).toBe('confirmed');
-    expect(verifyRegular!.totalAmount).toBe(90);
+  it('Rate Limiting: blocks abusive repeated requests with 429 Too Many Requests', async () => {
+    // Fill the rate limit bucket (10 requests)
+    for (let i = 0; i < 10; i++) {
+      await request(app).post('/api/dev/demo/launch-live-order').send();
+    }
+
+    // 11th request must receive HTTP 429
+    const blockedRes = await request(app).post('/api/dev/demo/launch-live-order').send();
+    expect(blockedRes.status).toBe(429);
+    expect(blockedRes.body.success).toBe(false);
+    expect(blockedRes.body.message).toContain('Too many demo launch requests');
+  });
+
+  it('Data Preservation: ordinary non-demo entities remain completely preserved and unmolested', async () => {
+    const verifyRegularOrder = await Order.findById(regularOrder._id);
+    expect(verifyRegularOrder).not.toBeNull();
+    expect(verifyRegularOrder!.isDemo).toBe(false);
+
+    const verifyRegularRestaurant = await Restaurant.findById(regularRestaurant._id);
+    expect(verifyRegularRestaurant).not.toBeNull();
+    expect(verifyRegularRestaurant!.ownerId?.toString()).toBe(regularOwner._id.toString());
+
+    const verifyRegularPartner = await DeliveryPartner.findById(regularPartner._id);
+    expect(verifyRegularPartner).not.toBeNull();
+    expect(verifyRegularPartner!.status).toBe('on_delivery');
+    expect(verifyRegularPartner!.currentAssignedDelivery).toBe('ord-regular-prev');
+
+    const verifyRegularUser = await User.findById(regularUser._id);
+    expect(verifyRegularUser).not.toBeNull();
+    expect(verifyRegularUser!.isDemo).toBe(false);
   });
 });

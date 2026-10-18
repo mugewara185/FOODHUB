@@ -195,13 +195,24 @@ NotificationBell / Toast
     - Added high-visibility `▶ Launch Live Order Demo` CTA in `web/src/features/showcase/components/ShowcaseHero.tsx` and interactive demo controller in `InteractiveDemos.tsx` (Tab 0).
     - Hero CTA scrolls smoothly to `#interactive-demos` and triggers demo launch automatically via `launchTrigger` state pipeline in `web/src/pages/Showcase/index.tsx`.
   - **Server-Authoritative Multi-Actor Lifecycle Progression:** PASS
-    - Dev controller endpoint `POST /api/dev/demo/launch-live-order` steps through real order states: `pending_owner` → `confirmed` → `preparing` → `ready_for_pickup` → `awaiting_partner` → `partner_assigned`.
+    - Dev controller endpoint `POST /api/dev/demo/launch-live-order` steps through real order states via canonical `transitionOrderStatus` (`order.service.ts`): `pending_owner` → `confirmed` → `preparing` → `ready_for_pickup` → `partner_assigned`.
     - Creates genuine MongoDB records: `Order` (`isDemo: true`), `Delivery` (`isDemo: true`), assigned to dedicated demo courier partner near restaurant origin.
     - Emits real Socket.IO events to order room (`order_status_update`, `delivery:location`, `delivery:status`), merchant owner room (`order:status_changed`), customer user room, and fleet room.
     - Automatically spawns `startDeliverySimulation` to step realistic courier road coordinates across Bangalore streets.
+  - **Dedicated Demo Participant Isolation & Zero Mutation to Ordinary Data (P0):** PASS
+    - Strict Participant Isolation: Live-order demo operates exclusively on dedicated demo fixtures (`isDemo: true`) identified by deterministic fixed IDs (`DEMO_FIXTURE_IDS`) and emails (`DEMO_FIXTURE_EMAILS`).
+    - Dedicated Entities: Demo Customer (`demo-customer@foodhub.test`), Demo Restaurant Owner (`demo-owner@foodhub.test`), Demo Restaurant (`FoodHub Demo Kitchen`, Bangalore Indiranagar), and Dedicated Demo Delivery Partner (`Vikram Demo Courier`, `demo-partner@foodhub.test`).
+    - Schema Flags: `isDemo: { type: Boolean, default: false, index: true }` added to `User`, `Restaurant`, and `DeliveryPartner` schemas.
+    - Zero Non-Demo Mutation: Ordinary restaurants are never selected, their `ownerId` is never reassigned, and ordinary delivery partners are never modified or reset in status, location, or assignment.
+    - Fail-Closed Collision Guard: Rejects any fixture ID/email collision with ordinary (non-demo) records with HTTP 409 Conflict.
+  - **Endpoint Access Control, Rate Limiting & Privacy Sanitization:** PASS
+    - Public Sliding-Window Rate Limiter: Enforces a maximum of 10 launch requests per minute per IP on `POST /api/dev/demo/launch-live-order` (HTTP 429 Too Many Requests).
+    - Strict Endpoint Authorization: `POST /api/dev/demo/confirm-handoff` strictly rejects non-demo orders with HTTP 403 Forbidden even if `orderId` is provided and status matches `arrived_pickup`.
+    - Data Sanitization: `GET /api/dev/demo/active-order` filters strictly on `{ isDemo: true }` and returns sanitized participant profiles with public display fields only (passwords, emails, phones, tokens, and unrelated user records are completely excluded).
+    - Production Guard: All demo endpoints fail closed with HTTP 403 Forbidden when `NODE_ENV === 'production'`.
   - **Kitchen Handoff Interaction & Safety Auto-Handoff:** PASS
     - When courier arrives at kitchen (`arrived_pickup`), UI displays prominent warning alert with countdown timer and interactive `⚡ Hand Off Food Now` override button.
-    - Manual button or 3-second safety timer invokes server-authoritative `POST /api/dev/demo/confirm-handoff` which invokes `transitionOrderStatus` to `picked_up` with `{ id: 'system', role: 'system' }`, advancing delivery and order atomically to resume courier progress toward customer drop-off.
+    - Manual button or 3-second safety timer invokes server-authoritative `POST /api/dev/demo/confirm-handoff` which invokes canonical `transitionOrderStatus` to `picked_up` with `{ id: 'system', role: 'system' }`, advancing delivery and order atomically to resume courier progress toward customer drop-off.
   - **Live Interactive Leaflet Map & Synchronized Multi-Actor Deep Links:** PASS
     - Embedded Leaflet OpenStreetMap in `InteractiveDemos.tsx` renders restaurant pickup marker, customer dropoff marker, and live moving courier marker driven by real-time `delivery:location` socket ticks.
     - Real-time telemetry cards display Order ID, Restaurant name/address, Courier Partner contact info, Remaining distance, and dynamic status-aware ETA.
@@ -210,13 +221,19 @@ NotificationBell / Toast
       - Merchant Kitchen View (`/owner`)
       - Courier Navigation View (`/partner/active`)
     - Terminal delivered banner displays actual elapsed transit minutes and one-click re-launch action.
-  - **P0 Data Safety, Production Guard & Idempotency:** PASS
-    - Production Guard: `POST /api/dev/demo/launch-live-order` and `POST /api/dev/demo/confirm-handoff` fail closed with HTTP 403 when `NODE_ENV === 'production'`.
-    - Mutex & Idempotency: Server-side in-flight mutex (`isLaunchingDemo`) returns HTTP 409 on concurrent requests; duplicate launch requests while an active demo order is running return the existing active demo order safely with HTTP 200 without creating duplicate records or restarting the simulator.
-    - Non-Destructive Data Isolation: Demo entities explicitly tagged with `isDemo: true`; zero blanket collection drops (`deleteMany({})`); ordinary development orders, restaurants, users, and deliveries remain completely preserved and unmolested.
   - **Verification Suites:**
-    - Backend Integration Tests: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (6/6 tests PASS) verifying production guard (403), state progression (201), duplicate launch idempotency (200), active order query (200), kitchen handoff confirmation (200), and ordinary non-demo order preservation.
-    - Frontend Component Tests: `web/src/features/showcase/__tests__/liveOrderDemo.test.tsx` (4/4 tests PASS) and `web/src/features/showcase/__tests__/showcase.test.tsx` (10/10 tests PASS) verifying idle state, demo launch, telemetry rendering, stage stepper, deep link attributes, kitchen handoff banner/interaction, socket delivery status updates, and delivered completion banner.
+    - Backend Integration Tests: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (9/9 tests PASS) verifying:
+      1. Production Guard (HTTP 403 when NODE_ENV=production)
+      2. Restaurant Owner Isolation (zero mutation to existing non-demo restaurants and owners)
+      3. Delivery Partner Isolation (zero mutation to existing non-demo couriers, status, or locations)
+      4. Idempotency & In-Flight Mutex (HTTP 409 on concurrent launches, HTTP 200 with existing order on duplicate launch)
+      5. Public Privacy Sanitization (zero leak of passwords, emails, phones, or unrelated user data)
+      6. Non-Demo Handoff Rejection (HTTP 403 Forbidden on ordinary order handoff requests)
+      7. Legitimate Demo Kitchen Handoff (HTTP 200 and transition to picked_up)
+      8. IP Sliding-Window Rate Limiting (HTTP 429 on excessive launch requests)
+      9. Ordinary Customer/Owner/Partner Data Preservation (ordinary records untouched across demo lifecycle)
+    - Delivery Simulator Integration Tests: `25/25 PASS` with isolated `FOODHUB3_TEST` DB (`simulator-handoff.integration.test.ts`, `simulator-concurrency.integration.test.ts`, `road-simulator-chat.integration.test.ts`, `socket-authorization.integration.test.ts`).
+    - Frontend Component & Showcase Tests: `web/src/features/showcase/__tests__/liveOrderDemo.test.tsx` (4/4 tests PASS) and `web/src/features/showcase/__tests__/showcase.test.tsx` (10/10 tests PASS) verifying idle state, demo launch, telemetry rendering, stage stepper, deep link attributes, kitchen handoff banner/interaction, socket delivery status updates, and delivered completion banner.
     - Build Matrix: `npm --prefix API run build` (tsc) PASS (exit code 0), `npm --prefix web run build` (vite build) PASS (exit code 0).
 
 ## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)
@@ -229,7 +246,7 @@ NotificationBell / Toast
    - **Console DOM Nesting Warnings:** Minor MUI `<p>` inside `<p>` (`ListItemText` secondary typography) and nested `<button>` warnings appear in the browser console during dev inspection.
 3. **Top 3 Highest-Leverage Showcase Polish Improvements (After Current Runtime Fixes):**
    - **1. Floating Demo Role-Switcher Bar:** Add a compact floating bar (when in demo/showcase mode) allowing 1-click instant switching or side-by-side deep links between Customer Tracking, Owner Dashboard, and Partner Active Delivery for the active order.
-   - **2. One-Click "Launch Live Order Simulation" Button on `/showcase`:** Allow an evaluator on the `/showcase` landing page to seed a live order at `awaiting_partner` or `partner_assigned` and jump straight into the live tracking view with a single click.
+   - **2. [COMPLETED IN PHASE 14] One-Click "Launch Live Order Simulation" Button on `/showcase`:** Seeding and advancing live demo orders via canonical state machine, rendered on interactive Leaflet map with deep links.
    - **3. Clean Console Hydration Warnings:** Add `secondaryTypographyProps={{ component: 'div' }}` to MUI `ListItemText` components in `DashBoard.tsx` and `OrderTracking` so the browser DevTools console remains spotless during technical interviews.
 ## HISTORICAL DIAGNOSIS
 

@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { Order } from '../orders/order.model';
 import { DeliveryPartner } from '../delivery/delivery-partner.model';
 import { Restaurant } from '../restaurants/restaurant.model';
+import { User } from '../auth/auth.model';
 import { toGeoJSON } from '../../utils/geo';
 import { Delivery } from '../delivery/delivery.model';
 import { emitDeliveryAssigned } from '../delivery/delivery.events';
@@ -276,7 +277,235 @@ export async function assignPartner(req: Request, res: Response) {
   res.json({ success: true, data: delivery });
 }
 
+// ============================================================================
+// ONE-CLICK LIVE-ORDER DEMO CONTROLLERS & FIXTURE ISOLATION
+// ============================================================================
+
+export const DEMO_FIXTURE_IDS = {
+  OWNER_USER: '64e8e50f3c5f4a1b8c1a9902',
+  RESTAURANT: '64e8e50f3c5f4a1b8c1a9905',
+  CUSTOMER_USER: '64e8e50f3c5f4a1b8c1a9901',
+  PARTNER_USER: '64e8e50f3c5f4a1b8c1a9903',
+  DELIVERY_PARTNER: '64e8e50f3c5f4a1b8c1a9907',
+};
+
+export const DEMO_FIXTURE_EMAILS = {
+  OWNER: 'demo-owner@foodhub.test',
+  CUSTOMER: 'demo-customer@foodhub.test',
+  PARTNER: 'demo-partner@foodhub.test',
+};
+
+// In-memory sliding rate limiter for public demo launch protection
+const demoRateLimitWindowMs = 60 * 1000; // 1 minute window
+const maxDemoLaunchesPerWindow = 10;
+const demoLaunchTimestampsByIp = new Map<string, number[]>();
+
+export function checkDemoRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = (demoLaunchTimestampsByIp.get(ip) || []).filter(
+    (ts) => now - ts < demoRateLimitWindowMs
+  );
+  if (timestamps.length >= maxDemoLaunchesPerWindow) {
+    demoLaunchTimestampsByIp.set(ip, timestamps);
+    return false;
+  }
+  timestamps.push(now);
+  demoLaunchTimestampsByIp.set(ip, timestamps);
+  return true;
+}
+
+export function resetDemoRateLimitsForTest() {
+  demoLaunchTimestampsByIp.clear();
+}
+
 let isLaunchingDemo = false;
+
+/**
+ * Resolves or safely creates dedicated demo participants.
+ * Invariant: Never mutates, hijacks, reassigns, or resets ordinary application records.
+ */
+async function resolveDedicatedDemoParticipants() {
+  // 1. Dedicated Demo Owner User
+  let ownerUser = await User.findById(DEMO_FIXTURE_IDS.OWNER_USER);
+  if (!ownerUser) {
+    ownerUser = await User.findOne({ email: DEMO_FIXTURE_EMAILS.OWNER });
+  }
+
+  if (ownerUser) {
+    // Safety check: Ensure this is not an ordinary user
+    if (!ownerUser.isDemo && ownerUser.email !== DEMO_FIXTURE_EMAILS.OWNER) {
+      throw new AppError(
+        'Conflict detected: An ordinary non-demo user exists with the demo owner identity. Demo launch aborted to protect application participants.',
+        409
+      );
+    }
+    if (!ownerUser.isDemo) {
+      ownerUser.isDemo = true;
+      await ownerUser.save();
+    }
+  } else {
+    ownerUser = await User.create({
+      _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.OWNER_USER),
+      name: 'Showcase Kitchen Manager',
+      email: DEMO_FIXTURE_EMAILS.OWNER,
+      password: await bcrypt.hash('devdev', 10),
+      roles: ['owner'],
+      phone: '9888888881',
+      address: '100 Indiranagar 100ft Road, Bangalore',
+      isDemo: true,
+    });
+  }
+
+  // 2. Dedicated Demo Restaurant
+  let restaurant = await Restaurant.findById(DEMO_FIXTURE_IDS.RESTAURANT);
+  if (!restaurant) {
+    restaurant = await Restaurant.findOne({ isDemo: true, ownerId: ownerUser._id });
+  }
+
+  if (restaurant) {
+    // Safety check: Never reassign an ordinary restaurant
+    if (!restaurant.isDemo && restaurant.name !== 'Showcase Spice Kitchen') {
+      throw new AppError(
+        'Conflict detected: An ordinary restaurant exists with the demo ID. Demo launch aborted to protect application participants.',
+        409
+      );
+    }
+    if (restaurant.ownerId && restaurant.ownerId.toString() !== ownerUser._id.toString()) {
+      const currentOwner = await User.findById(restaurant.ownerId);
+      if (currentOwner && !currentOwner.isDemo && currentOwner.email !== DEMO_FIXTURE_EMAILS.OWNER) {
+        throw new AppError(
+          'Conflict detected: Restaurant is owned by an ordinary user. Reassignment aborted to protect application participants.',
+          409
+        );
+      }
+    }
+    if (!restaurant.isDemo || restaurant.ownerId?.toString() !== ownerUser._id.toString()) {
+      restaurant.isDemo = true;
+      restaurant.ownerId = ownerUser._id;
+      await restaurant.save();
+    }
+  } else {
+    restaurant = await Restaurant.create({
+      _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.RESTAURANT),
+      name: 'Showcase Spice Kitchen',
+      ownerId: ownerUser._id,
+      description: 'Dedicated live order showcase restaurant specializing in authentic culinary excellence',
+      cuisine: ['North Indian', 'Biryani'],
+      address: '100 Indiranagar 100ft Road, Bangalore',
+      city: 'Bangalore',
+      rating: 4.8,
+      totalRatings: 128,
+      priceRange: 2,
+      imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4',
+      isOpen: true,
+      deliveryTime: 20,
+      minOrder: 150,
+      phone: '+91 98765 43210',
+      location: { lat: 12.9716, lng: 77.5946 },
+      isDemo: true,
+      menu: [
+        {
+          name: 'Demo Butter Chicken Bowl',
+          description: 'Tender chicken simmered in rich creamy tomato butter gravy with spiced basmati rice',
+          price: 280,
+          category: 'Main Course',
+          isAvailable: true,
+        },
+      ],
+    });
+  }
+
+  // 3. Dedicated Demo Customer User
+  let customerUser = await User.findById(DEMO_FIXTURE_IDS.CUSTOMER_USER);
+  if (!customerUser) {
+    customerUser = await User.findOne({ email: DEMO_FIXTURE_EMAILS.CUSTOMER });
+  }
+
+  if (customerUser) {
+    if (!customerUser.isDemo && customerUser.email !== DEMO_FIXTURE_EMAILS.CUSTOMER) {
+      throw new AppError(
+        'Conflict detected: An ordinary non-demo user exists with the demo customer identity. Demo launch aborted to protect application participants.',
+        409
+      );
+    }
+    if (!customerUser.isDemo) {
+      customerUser.isDemo = true;
+      await customerUser.save();
+    }
+  } else {
+    customerUser = await User.create({
+      _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.CUSTOMER_USER),
+      name: 'Showcase Customer',
+      email: DEMO_FIXTURE_EMAILS.CUSTOMER,
+      password: await bcrypt.hash('devdev', 10),
+      roles: ['user'],
+      phone: '9888888882',
+      address: 'Flat 402, Showcase Heights, Bangalore',
+      isDemo: true,
+    });
+  }
+
+  // 4. Dedicated Demo Partner User & DeliveryPartner
+  let partnerUser = await User.findById(DEMO_FIXTURE_IDS.PARTNER_USER);
+  if (!partnerUser) {
+    partnerUser = await User.findOne({ email: DEMO_FIXTURE_EMAILS.PARTNER });
+  }
+
+  if (partnerUser) {
+    if (!partnerUser.isDemo && partnerUser.email !== DEMO_FIXTURE_EMAILS.PARTNER) {
+      throw new AppError(
+        'Conflict detected: An ordinary non-demo user exists with the demo partner identity. Demo launch aborted to protect application participants.',
+        409
+      );
+    }
+    if (!partnerUser.isDemo) {
+      partnerUser.isDemo = true;
+      await partnerUser.save();
+    }
+  } else {
+    partnerUser = await User.create({
+      _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.PARTNER_USER),
+      name: 'Ramesh Rider',
+      email: DEMO_FIXTURE_EMAILS.PARTNER,
+      password: await bcrypt.hash('devdev', 10),
+      roles: ['partner'],
+      phone: '9888888883',
+      address: 'Fleet Hub 1, Bangalore',
+      isDemo: true,
+    });
+  }
+
+  let partner = await DeliveryPartner.findById(DEMO_FIXTURE_IDS.DELIVERY_PARTNER);
+  if (!partner) {
+    partner = await DeliveryPartner.findOne({ isDemo: true, userId: partnerUser._id });
+  }
+
+  if (partner) {
+    if (!partner.isDemo && partner._id.toString() !== DEMO_FIXTURE_IDS.DELIVERY_PARTNER) {
+      throw new AppError(
+        'Conflict detected: An ordinary non-demo partner exists with the demo partner identity. Demo launch aborted to protect application participants.',
+        409
+      );
+    }
+    partner.isDemo = true;
+    partner.status = 'available';
+    partner.currentAssignedDelivery = undefined;
+    await partner.save();
+  } else {
+    partner = await DeliveryPartner.create({
+      _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.DELIVERY_PARTNER),
+      userId: partnerUser._id,
+      name: partnerUser.name || 'Ramesh Rider',
+      phone: partnerUser.phone || '9888888883',
+      vehicle: 'KA-01-DEMO-99 (Bike)',
+      rating: 4.9,
+      status: 'available',
+      isDemo: true,
+    });
+  }
+
+  return { ownerUser, restaurant, customerUser, partnerUser, partner };
+}
 
 export async function getActiveDemoOrder(req: Request, res: Response, next: NextFunction) {
   try {
@@ -284,16 +513,18 @@ export async function getActiveDemoOrder(req: Request, res: Response, next: Next
       return res.status(403).json({ success: false, message: 'Dev endpoint disabled in production' });
     }
 
+    // Explicitly query demo-owned order only
     const demoOrder = await Order.findOne({ isDemo: true })
       .sort({ createdAt: -1 })
-      .populate('userId', 'name email phone')
+      .populate('userId', 'name') // Never expose email, phone, passwords, or private customer records
       .populate('restaurantId', 'name address location');
 
     if (!demoOrder) {
       return res.json({ success: true, data: null });
     }
 
-    const delivery = await Delivery.findOne({ orderId: demoOrder._id })
+    // Explicitly query demo-owned delivery only
+    const delivery = await Delivery.findOne({ orderId: demoOrder._id, isDemo: true })
       .populate('partnerId', 'name phone vehicle rating status');
 
     const isTerminal = ['delivered', 'cancelled', 'rejected'].includes(demoOrder.status);
@@ -319,12 +550,35 @@ export async function confirmDemoHandoff(req: Request, res: Response, next: Next
 
     const { orderId } = req.body as { orderId?: string };
 
-    let order = orderId
-      ? await Order.findById(orderId)
-      : await Order.findOne({ isDemo: true, status: 'partner_assigned' }).sort({ createdAt: -1 });
+    let order: any;
+
+    if (orderId) {
+      const targetOrder = await Order.findById(orderId);
+      if (!targetOrder) {
+        return res.status(404).json({ success: false, message: 'Order not found' });
+      }
+
+      // Security requirement: Reject ordinary orders even if ID is supplied and status matches
+      if (!targetOrder.isDemo) {
+        return res.status(403).json({
+          success: false,
+          message: 'Operation rejected: Demo endpoints cannot modify ordinary non-demo orders.',
+        });
+      }
+      order = targetOrder;
+    } else {
+      order = await Order.findOne({ isDemo: true, status: 'partner_assigned' }).sort({ createdAt: -1 });
+    }
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Eligible demo order not found' });
+    }
+
+    if (!order.isDemo) {
+      return res.status(403).json({
+        success: false,
+        message: 'Operation rejected: Demo endpoints cannot modify ordinary non-demo orders.',
+      });
     }
 
     if (order.status !== 'partner_assigned') {
@@ -335,20 +589,29 @@ export async function confirmDemoHandoff(req: Request, res: Response, next: Next
       });
     }
 
-    // Server-authoritative transition to picked_up
+    // Verify delivery belongs to demo
+    const delivery = await Delivery.findOne({ orderId: order._id, isDemo: true });
+    if (!delivery) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated demo delivery not found for this order',
+      });
+    }
+
+    // Server-authoritative transition to picked_up using canonical order service
     const updatedOrder = await transitionOrderStatus(order._id.toString(), 'picked_up', {
       id: 'system',
       role: 'system',
     });
 
-    const delivery = await Delivery.findOne({ orderId: order._id });
+    const updatedDelivery = await Delivery.findOne({ orderId: order._id, isDemo: true });
 
     return res.json({
       success: true,
       message: 'Kitchen handoff confirmed; courier is now en route to customer',
       data: {
         order: updatedOrder,
-        delivery,
+        delivery: updatedDelivery,
       },
     });
   } catch (err) {
@@ -360,6 +623,15 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
   try {
     if (config.nodeEnv === 'production' || process.env.NODE_ENV === 'production') {
       return res.status(403).json({ success: false, message: 'Dev endpoint disabled in production' });
+    }
+
+    // Rate Limiting Protection
+    const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
+    if (!checkDemoRateLimit(clientIp)) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many demo launch requests. Please wait a moment before trying again.',
+      });
     }
 
     // Concurrency guard: Mutex check
@@ -377,7 +649,7 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
     });
 
     if (existingActiveOrder) {
-      const existingDelivery = await Delivery.findOne({ orderId: existingActiveOrder._id });
+      const existingDelivery = await Delivery.findOne({ orderId: existingActiveOrder._id, isDemo: true });
       return res.json({
         success: true,
         message: 'An active demo order is already running',
@@ -392,135 +664,22 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
     isLaunchingDemo = true;
 
     try {
-      // 1. Resolve Demo Restaurant
-      let restaurant = await Restaurant.findById('64e8e50f3c5f4a1b8c1a9905');
-      if (!restaurant) {
-        restaurant = await Restaurant.findOne({ isOpen: { $ne: false }, 'menu.0': { $exists: true } });
-      }
-      if (!restaurant) {
-        restaurant = await Restaurant.create({
-          _id: new mongoose.Types.ObjectId('64e8e50f3c5f4a1b8c1a9905'),
-          name: 'Showcase Spice Kitchen',
-          description: 'Live order demo restaurant specializing in authentic culinary excellence',
-          cuisine: ['North Indian', 'Biryani'],
-          address: '100 Indiranagar 100ft Road, Bangalore',
-          city: 'Bangalore',
-          rating: 4.8,
-          totalRatings: 128,
-          priceRange: 2,
-          imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4',
-          isOpen: true,
-          deliveryTime: 20,
-          minOrder: 150,
-          phone: '+91 98765 43210',
-          location: { lat: 12.9716, lng: 77.5946 },
-          menu: [
-            {
-              name: 'Demo Butter Chicken Bowl',
-              description: 'Tender chicken simmered in rich creamy tomato butter gravy with spiced basmati rice',
-              price: 280,
-              category: 'Main Course',
-              isAvailable: true,
-            },
-          ],
-        });
-      }
+      // 1. Resolve strictly isolated dedicated demo participants
+      const { ownerUser, restaurant, customerUser, partnerUser, partner } =
+        await resolveDedicatedDemoParticipants();
 
-      // 2. Resolve Owner User
-      const User = mongoose.model('User');
-      let ownerUser = restaurant.ownerId ? await User.findById(restaurant.ownerId) : null;
-      if (!ownerUser) {
-        ownerUser = await User.findOne({ role: 'owner' });
-      }
-      if (!ownerUser) {
-        ownerUser = await User.findById('64e8e50f3c5f4a1b8c1a9902');
-      }
-      if (!ownerUser) {
-        ownerUser = await User.create({
-          _id: new mongoose.Types.ObjectId('64e8e50f3c5f4a1b8c1a9902'),
-          name: 'Kitchen Manager',
-          email: 'demo-owner@foodhub.test',
-          password: await bcrypt.hash('devdev', 10),
-          role: 'owner',
-          phone: '9888888881',
-          address: 'Demo Kitchen Address',
-        });
-      }
-      if (!restaurant.ownerId || restaurant.ownerId.toString() !== ownerUser._id.toString()) {
-        restaurant.ownerId = ownerUser._id;
-        await restaurant.save();
-      }
-
-      // 3. Resolve Customer User
-      let customerUser = await User.findById('64e8e50f3c5f4a1b8c1a9901');
-      if (!customerUser) {
-        customerUser = await User.findOne({ role: 'user' });
-      }
-      if (!customerUser) {
-        customerUser = await User.create({
-          _id: new mongoose.Types.ObjectId('64e8e50f3c5f4a1b8c1a9901'),
-          name: 'Showcase Customer',
-          email: 'demo-customer@foodhub.test',
-          password: await bcrypt.hash('devdev', 10),
-          role: 'user',
-          phone: '9888888882',
-          address: 'Flat 402, Showcase Heights, Bangalore',
-        });
-      }
-
-      // 4. Resolve Delivery Partner
-      let partner = await DeliveryPartner.findById('64e8e50f3c5f4a1b8c1a9907');
-      if (!partner) {
-        partner = await DeliveryPartner.findOne();
-      }
-      let partnerUser = partner?.userId ? await User.findById(partner.userId) : null;
-      if (!partnerUser) {
-        partnerUser = await User.findById('64e8e50f3c5f4a1b8c1a9903');
-      }
-      if (!partnerUser) {
-        partnerUser = await User.findOne({ role: 'partner' });
-      }
-      if (!partnerUser) {
-        partnerUser = await User.create({
-          _id: new mongoose.Types.ObjectId('64e8e50f3c5f4a1b8c1a9903'),
-          name: 'Ramesh Rider',
-          email: 'demo-partner@foodhub.test',
-          password: await bcrypt.hash('devdev', 10),
-          role: 'partner',
-          phone: '9888888883',
-          address: 'Fleet Hub 1, Bangalore',
-        });
-      }
-      if (!partner) {
-        partner = await DeliveryPartner.create({
-          _id: new mongoose.Types.ObjectId('64e8e50f3c5f4a1b8c1a9907'),
-          userId: partnerUser._id,
-          name: partnerUser.name || 'Ramesh Rider',
-          phone: partnerUser.phone || '9888888883',
-          vehicle: { type: 'bike', registrationNumber: 'KA-01-DEMO-99' },
-          rating: 4.9,
-          status: 'available',
-          isOnline: true,
-        });
-      } else {
-        // Reset partner status cleanly so assignment is guaranteed
-        partner.status = 'available';
-        partner.currentAssignedDelivery = undefined;
-        await partner.save();
-      }
-
-      // Clean up past demo deliveries simulators
+      // Clean up simulators from past demo deliveries only
       const pastDemoDeliveries = await Delivery.find({ isDemo: true });
       for (const pd of pastDemoDeliveries) {
         stopDeliverySimulation(pd._id.toString());
       }
 
-      // 5. Select Menu Item
+      // 2. Select Menu Item from Demo Restaurant
       const menuItem = restaurant.menu && restaurant.menu.length > 0
         ? restaurant.menu[0]
         : { name: 'Demo Butter Chicken Bowl', price: 280 };
 
-      // 6. Create Demo Order in 'pending_owner'
+      // 3. Create Demo Order in 'pending_owner'
       const demoOrder = new Order({
         userId: customerUser._id,
         restaurantId: restaurant._id,
@@ -543,7 +702,7 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
       });
       await demoOrder.save();
 
-      // 7. Legitimate Lifecycle Progression:
+      // 4. Legitimate Lifecycle Progression:
       // pending_owner -> confirmed -> preparing -> ready_for_pickup (auto-advances to awaiting_partner)
       await transitionOrderStatus(demoOrder._id.toString(), 'confirmed', {
         id: ownerUser._id.toString(),
@@ -558,7 +717,14 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
         role: 'owner',
       });
 
-      // 8. Partner Acceptance & Assignment
+      // 5. Canonical Partner Assignment:
+      // awaiting_partner -> partner_assigned via canonical order.service
+      const updatedOrder = await transitionOrderStatus(demoOrder._id.toString(), 'partner_assigned', {
+        id: 'system',
+        role: 'system',
+      });
+
+      // 6. Compute coordinates & initialize Delivery record
       const rLat = restaurant.location?.lat || 12.9716;
       const rLng = restaurant.location?.lng || 77.5946;
       const pickupCoords: [number, number] = [rLng, rLat];
@@ -567,12 +733,6 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
 
       const initialDistanceMeters = calculateDistanceMeters(startCoords, pickupCoords);
       const initialEtaSeconds = Math.max(1, Math.round(initialDistanceMeters / 6.9));
-
-      const updatedOrder = await Order.findByIdAndUpdate(
-        demoOrder._id,
-        { status: 'partner_assigned', 'timestamps.assignedAt': new Date() },
-        { new: true }
-      );
 
       const delivery = new Delivery({
         orderId: demoOrder._id,
@@ -593,28 +753,8 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
       partner.currentLocation = { type: 'Point', coordinates: startCoords };
       await partner.save();
 
-      // 9. Emit real Socket.IO events to all relevant rooms
+      // 7. Emit delivery assignment & location socket events
       const io = getIO();
-      io.to(demoOrder._id.toString()).emit('order_status_update', {
-        orderId: demoOrder._id,
-        status: 'partner_assigned',
-      });
-      io.to(ownerUser._id.toString()).emit('order:status_changed', {
-        orderId: demoOrder._id,
-        status: 'partner_assigned',
-        actorRole: 'system',
-      });
-      io.to(customerUser._id.toString()).emit('order:status_changed', {
-        orderId: demoOrder._id,
-        status: 'partner_assigned',
-        actorRole: 'system',
-      });
-      io.to('admin_fleet').emit('order:status_changed', {
-        orderId: demoOrder._id,
-        status: 'partner_assigned',
-        actorRole: 'system',
-      });
-
       emitDeliveryAssigned({
         deliveryId: delivery._id.toString(),
         orderId: demoOrder._id.toString(),
@@ -641,7 +781,7 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
       io.to(partnerUser._id.toString()).emit('delivery:location', initialLocationPayload);
       io.to(ownerUser._id.toString()).emit('delivery:location', initialLocationPayload);
 
-      // 10. Start the real delivery simulator
+      // 8. Start the real delivery simulator
       startDeliverySimulation(delivery._id.toString());
 
       return res.status(201).json({

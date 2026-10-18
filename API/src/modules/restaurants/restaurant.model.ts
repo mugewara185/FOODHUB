@@ -34,6 +34,7 @@ export interface IRestaurant extends Document {
   openingHours?: Array<{ day: string; open: string; close: string }>;
   menu: IMenuItem[];
   phone: string;
+  isDemo?: boolean;
   createdAt: Date;
 }
 
@@ -80,6 +81,7 @@ const restaurantSchema = new Schema<IRestaurant>(
     openingHours: [{ day: String, open: String, close: String }],
     menu: [menuItemSchema],
     phone: { type: String, required: true },
+    isDemo: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

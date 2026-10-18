@@ -24,6 +24,7 @@ export interface IUser extends Document {
   addresses: IAddress[];
   favoriteRestaurants: Schema.Types.ObjectId[];
   favoriteFoodItems: Schema.Types.ObjectId[];
+  isDemo?: boolean;
   createdAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
@@ -56,6 +57,7 @@ const userSchema = new Schema<IUser>(
       enum: ['active', 'inactive', 'blocked'],
       default: 'active'
     },
+    isDemo: { type: Boolean, default: false, index: true },
     addresses: [addressSchema],
     favoriteRestaurants: [{ type: Schema.Types.ObjectId, ref: 'Restaurant' }],
     favoriteFoodItems: [{ type: Schema.Types.ObjectId }]

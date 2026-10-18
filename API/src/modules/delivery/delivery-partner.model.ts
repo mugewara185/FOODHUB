@@ -11,6 +11,7 @@ export interface IDeliveryPartner extends Document {
   completedDeliveries: number;
   status: DeliveryPartnerStatus;
   currentAssignedDelivery?: string;
+  isDemo?: boolean;
   currentLocation?: {
     type: 'Point';
     coordinates: [number, number]; // [longitude, latitude]
@@ -31,6 +32,7 @@ const deliveryPartnerSchema = new Schema<IDeliveryPartner>(
       default: 'offline' 
     },
     currentAssignedDelivery: { type: String },
+    isDemo: { type: Boolean, default: false, index: true },
     currentLocation: {
       type: {
         type: String,
