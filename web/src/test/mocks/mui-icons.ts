@@ -72,5 +72,9 @@ export const RadioButtonChecked = 'div';
 export const Cancel = 'div';
 export const Phone = 'div';
 export const Message = 'div';
+export const HourglassEmpty = 'div';
+export const FlashOn = 'div';
+export const Wifi = 'div';
+export const WifiOff = 'div';
 
 export default 'div';

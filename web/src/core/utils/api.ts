@@ -63,6 +63,14 @@ export class ApiClient {
         url += (url.includes('?') ? '&' : '?') + qs;
       }
     }
+
+    if (!url.startsWith('http')) {
+      const origin = (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null')
+        ? window.location.origin
+        : 'http://localhost:1000';
+      url = `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+
     return url;
   }
 

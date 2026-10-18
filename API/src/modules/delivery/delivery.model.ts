@@ -38,6 +38,7 @@ export interface IDelivery extends Document {
     deliveredAt?: Date;
     cancelledAt?: Date;
   };
+  isDemo?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,6 +82,7 @@ const deliverySchema = new Schema<IDelivery>(
       deliveredAt: { type: Date },
       cancelledAt: { type: Date },
     },
+    isDemo: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

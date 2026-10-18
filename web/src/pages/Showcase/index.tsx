@@ -22,6 +22,7 @@ const ShowcasePage: React.FC = () => {
   useHideGlobalSearch();
   const navigate = useNavigate();
   const [isQuickScan, setIsQuickScan] = useState<boolean>(false);
+  const [launchTrigger, setLaunchTrigger] = useState<number>(0);
 
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
@@ -87,6 +88,7 @@ const ShowcasePage: React.FC = () => {
           isQuickScan={isQuickScan}
           onToggleQuickScan={setIsQuickScan}
           onScrollToSection={scrollToSection}
+          onLaunchLiveDemo={() => setLaunchTrigger((prev) => prev + 1)}
         />
 
         {/* 2. Quick Scan Summary Mode (if active) */}
@@ -98,7 +100,7 @@ const ShowcasePage: React.FC = () => {
         )}
 
         {/* 3. Interactive Demos (Always visible or in deep-dive) */}
-        <InteractiveDemos />
+        <InteractiveDemos launchTrigger={launchTrigger} />
 
         {/* 4. Distributed Architecture Map */}
         <ArchitectureMap />

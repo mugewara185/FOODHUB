@@ -51,6 +51,7 @@ export interface IOrder extends Document {
     pickedUpAt?: Date;
     deliveredAt?: Date;
   };
+  isDemo?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -109,6 +110,7 @@ const orderSchema = new Schema<IOrder>(
       pickedUpAt: { type: Date },
       deliveredAt: { type: Date },
     },
+    isDemo: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

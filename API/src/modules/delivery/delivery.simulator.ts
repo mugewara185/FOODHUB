@@ -393,6 +393,20 @@ export async function startDeliverySimulation(deliveryId: string) {
           const { transitionOrderStatus } = await import('../orders/order.service');
           if (['picked_up', 'out_for_delivery', 'delivered'].includes(delivery.status)) {
             await transitionOrderStatus(delivery.orderId.toString(), delivery.status, { id: 'system', role: 'system' });
+          } else if (delivery.status === 'arrived_pickup') {
+            const orderDoc = await Order.findById(delivery.orderId);
+            if ((orderDoc as any)?.isDemo) {
+              setTimeout(async () => {
+                try {
+                  const curDelivery = await Delivery.findById(delivery._id);
+                  if (curDelivery && curDelivery.status === 'arrived_pickup') {
+                    await transitionOrderStatus(delivery.orderId.toString(), 'picked_up', { id: 'system', role: 'system' });
+                  }
+                } catch (e) {
+                  // Ignore if already handed off
+                }
+              }, 3000);
+            }
           }
         } catch (e) {
           console.error('[simulator] Failed to transition order status:', e);

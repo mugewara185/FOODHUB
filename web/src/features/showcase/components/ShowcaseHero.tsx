@@ -18,6 +18,7 @@ import {
   OpenInNew,
   CheckCircle,
   CompareArrows,
+  PlayArrow,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -25,12 +26,14 @@ interface ShowcaseHeroProps {
   isQuickScan: boolean;
   onToggleQuickScan: (val: boolean) => void;
   onScrollToSection: (sectionId: string) => void;
+  onLaunchLiveDemo?: () => void;
 }
 
 export const ShowcaseHero: React.FC<ShowcaseHeroProps> = ({
   isQuickScan,
   onToggleQuickScan,
   onScrollToSection,
+  onLaunchLiveDemo,
 }) => {
   return (
     <Paper
@@ -179,6 +182,32 @@ export const ShowcaseHero: React.FC<ShowcaseHeroProps> = ({
 
         {/* Action Jump Buttons */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+          <Button
+            variant="contained"
+            color="warning"
+            startIcon={<PlayArrow sx={{ color: '#0f172a' }} />}
+            onClick={() => {
+              onScrollToSection('interactive-demos');
+              if (onLaunchLiveDemo) {
+                onLaunchLiveDemo();
+              }
+            }}
+            sx={{
+              fontWeight: 800,
+              textTransform: 'none',
+              px: 3,
+              py: 1.2,
+              borderRadius: 2,
+              bgcolor: '#f59e0b',
+              color: '#0f172a',
+              boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
+              '&:hover': {
+                bgcolor: '#d97706',
+              },
+            }}
+          >
+            ▶ Launch Live Order Demo
+          </Button>
           <Button
             variant="contained"
             color="primary"
