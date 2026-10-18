@@ -25,6 +25,7 @@ interface PopulatedRestaurantDTO {
   city?: string;
   address?: string;
   phone?: string;
+  location?: { lat: number; lng: number };
 }
 
 interface OrderApiDTO {
@@ -41,13 +42,29 @@ interface OrderApiDTO {
   chatMessages?: OrderChatMessage[];
   createdAt: string;
   updatedAt?: string;
+  deliveryId?: string;
   deliveryStatus?: string;
-  partner?: { id: string; name: string; phone: string; };
+  partner?: { id: string; name: string; phone: string; vehicle?: string; rating?: number };
+  currentLocation?: { lat: number; lng: number };
+  pickupLocation?: { lat: number; lng: number };
+  dropoffLocation?: { lat: number; lng: number };
+  etaSeconds?: number;
+  distanceRemainingMeters?: number;
+  timestamps?: {
+    assignedAt?: string;
+    pickedUpAt?: string;
+    deliveredAt?: string;
+  };
 }
 
 // Normalization helpers
 const extractRestaurantId = (rid: string | PopulatedRestaurantDTO): string =>
   typeof rid === 'string' ? rid : rid._id;
+
+const extractRestaurantLocation = (rid: string | PopulatedRestaurantDTO): { lat: number; lng: number } | undefined =>
+  typeof rid === 'object' && rid !== null && rid.location && typeof rid.location.lat === 'number' && typeof rid.location.lng === 'number'
+    ? rid.location
+    : undefined;
 
 const normalizePaymentMethod = (
   method: string,
@@ -61,33 +78,44 @@ const normalizePaymentMethod = (
   return 'cash_on_delivery';
 };
 
-export const normalizeOrder = (dto: OrderApiDTO): Order => ({
-  id: dto._id,
-  userId: dto.userId,
-  restaurantId: extractRestaurantId(dto.restaurantId),
-  restaurantName: dto.restaurantName,
-  items: dto.items.map((item) => ({
-    foodItemId: item.menuItemId,
-    name: item.name,
-    price: item.price,
-    quantity: item.quantity,
-  })),
-  subtotal: dto.totalAmount,
-  deliveryFee: 0,
-  tax: 0,
-  discount: 0,
-  total: dto.totalAmount,
-  status: dto.status,
-  paymentMethod: normalizePaymentMethod(dto.paymentMethod),
-  paymentStatus: 'pending',
-  deliveryInfo: {
-    address: dto.deliveryAddress,
-  },
-  createdAt: dto.createdAt,
-  updatedAt: dto.updatedAt ?? dto.createdAt,
+export const normalizeOrder = (dto: OrderApiDTO): Order => {
+  const restLoc = dto.pickupLocation || extractRestaurantLocation(dto.restaurantId);
+  return {
+    id: dto._id,
+    userId: dto.userId,
+    restaurantId: extractRestaurantId(dto.restaurantId),
+    restaurantName: dto.restaurantName,
+    items: dto.items.map((item) => ({
+      foodItemId: item.menuItemId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    })),
+    subtotal: dto.totalAmount,
+    deliveryFee: 0,
+    tax: 0,
+    discount: 0,
+    total: dto.totalAmount,
+    status: dto.status,
+    paymentMethod: normalizePaymentMethod(dto.paymentMethod),
+    paymentStatus: 'pending',
+    deliveryInfo: {
+      address: dto.deliveryAddress,
+      coordinates: dto.dropoffLocation,
+    },
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt ?? dto.createdAt,
+    deliveryId: dto.deliveryId,
     deliveryStatus: dto.deliveryStatus,
     partner: dto.partner,
-});
+    currentLocation: dto.currentLocation,
+    pickupLocation: restLoc,
+    dropoffLocation: dto.dropoffLocation,
+    etaSeconds: dto.etaSeconds,
+    distanceRemainingMeters: dto.distanceRemainingMeters,
+    timestamps: dto.timestamps,
+  };
+};
 
 // Request mapping
 export interface CreateOrderPayload {

@@ -123,6 +123,51 @@ export function advanceAlongWaypoints(
   return { nextCoord: curCoord, nextIndex: idx, distanceRemainingMeters: distanceRemaining };
 }
 
+/**
+ * Computes distance in meters between two [lng, lat] coordinates.
+ */
+export function calculateDistanceMeters(coord1: [number, number], coord2: [number, number]): number {
+  if (
+    !coord1 || !coord2 ||
+    typeof coord1[0] !== 'number' || typeof coord1[1] !== 'number' ||
+    typeof coord2[0] !== 'number' || typeof coord2[1] !== 'number'
+  ) {
+    return 0;
+  }
+  return getDistance(
+    { latitude: coord1[1], longitude: coord1[0] },
+    { latitude: coord2[1], longitude: coord2[0] }
+  );
+}
+
+/**
+ * Computes a deterministic, plausible starting coordinate near the restaurant pickup area
+ * (~450m to ~750m away) so newly assigned partners never start at [0, 0] or at a stale
+ * customer drop-off coordinate from a previous order, while varying across orders/partners.
+ */
+export function computeInitialPartnerOrigin(
+  pickupCoords: [number, number],
+  seedKey = 'default'
+): [number, number] {
+  const [rLng, rLat] = pickupCoords;
+  let hash = 0;
+  const str = String(seedKey || 'default');
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  }
+
+  // Choose from 8 distinct bearings (excluding 45 deg where customer +0.02,+0.02 sits)
+  const bearingsDeg = [120, 150, 180, 210, 240, 270, 300, 330];
+  const angleRad = (bearingsDeg[hash % bearingsDeg.length] * Math.PI) / 180;
+
+  // Radius between 0.0042 and 0.0064 degrees (~470m to ~710m)
+  const radiusDeg = 0.0042 + ((hash >>> 3) % 23) * 0.0001;
+
+  const startLng = Number((rLng + Math.cos(angleRad) * radiusDeg).toFixed(6));
+  const startLat = Number((rLat + Math.sin(angleRad) * radiusDeg).toFixed(6));
+  return [startLng, startLat];
+}
+
 export async function startDeliverySimulation(deliveryId: string) {
   if (activeSimulators.has(deliveryId)) {
     return; // Already running
@@ -144,7 +189,13 @@ export async function startDeliverySimulation(deliveryId: string) {
       const dest = delivery.destinationLocation.coordinates as [number, number];
       let current = (delivery.currentLocation?.coordinates || partner.currentLocation?.coordinates) as [number, number];
 
-      if (!current) current = [pickup[0] + 0.005, pickup[1] + 0.005]; // Fallback start location
+      if (
+        !current ||
+        current.length !== 2 ||
+        (current[0] === 0 && current[1] === 0)
+      ) {
+        current = computeInitialPartnerOrigin(pickup, delivery.orderId?.toString() || deliveryId);
+      }
 
       const isPickedUp = ['picked_up', 'out_for_delivery', 'nearby'].includes(delivery.status);
       const target = isPickedUp ? dest : pickup;
@@ -167,7 +218,7 @@ export async function startDeliverySimulation(deliveryId: string) {
       } else {
         let routeState = activeRoutes.get(deliveryId);
         if (!routeState || routeState.currentLeg !== targetLeg) {
-          const legStart: [number, number] = isPickedUp ? current : current;
+          const legStart: [number, number] = current;
           const legEnd: [number, number] = target;
           const waypoints = await fetchRoadWaypoints(legStart, legEnd);
           routeState = {
@@ -202,14 +253,16 @@ export async function startDeliverySimulation(deliveryId: string) {
       // Update location
       delivery.currentLocation = { type: 'Point', coordinates: [nextLng, nextLat] };
       partner.currentLocation = { type: 'Point', coordinates: [nextLng, nextLat] };
-      delivery.distanceRemainingMeters = newDistance;
-      delivery.etaSeconds = Math.round(newDistance / 6.9);
+      delivery.distanceRemainingMeters = Math.max(0, Math.round(newDistance));
+      delivery.etaSeconds = newDistance < 10 ? 0 : Math.max(1, Math.round(newDistance / 6.9));
 
       // Status updates
       let statusChanged = false;
       const prevStatus = delivery.status;
 
       if (!isPickedUp && newDistance < 10) {
+        delivery.distanceRemainingMeters = 0;
+        delivery.etaSeconds = 0;
         if (delivery.status === 'partner_assigned') {
           delivery.status = 'arrived_pickup';
           statusChanged = true;
@@ -217,6 +270,8 @@ export async function startDeliverySimulation(deliveryId: string) {
       } else if (isPickedUp) {
         if (newDistance < 10) {
           const now = new Date();
+          delivery.distanceRemainingMeters = 0;
+          delivery.etaSeconds = 0;
           // Attempt atomic status transition on Delivery to prevent concurrent ticks from double-completing
           const updatedDelivery = await Delivery.findOneAndUpdate(
             { _id: delivery._id, status: { $in: ['picked_up', 'out_for_delivery', 'nearby'] } },
@@ -224,7 +279,9 @@ export async function startDeliverySimulation(deliveryId: string) {
               $set: { 
                 status: 'delivered', 
                 'timestamps.deliveredAt': now,
-                'currentLocation.coordinates': [nextLng, nextLat]
+                'currentLocation.coordinates': [nextLng, nextLat],
+                distanceRemainingMeters: 0,
+                etaSeconds: 0
               } 
             },
             { new: true }
@@ -277,13 +334,16 @@ export async function startDeliverySimulation(deliveryId: string) {
       // Emit events
       const io = getIO();
       const payload = {
-        deliveryId: delivery.id,
-        orderId: delivery.orderId,
+        deliveryId: delivery.id || delivery._id.toString(),
+        orderId: delivery.orderId.toString(),
+        partnerId: delivery.partnerId.toString(),
         location: { lat: nextLat, lng: nextLng },
         etaSeconds: delivery.etaSeconds,
         distanceRemainingMeters: delivery.distanceRemainingMeters,
         status: delivery.status,
+        timestamp: new Date().toISOString(),
         deliveredAt: delivery.status === 'delivered' ? (delivery.timestamps?.deliveredAt || new Date()).toISOString() : undefined,
+        pickedUpAt: delivery.timestamps?.pickedUpAt ? new Date(delivery.timestamps.pickedUpAt).toISOString() : undefined,
         actualTransitMinutes: transitMinutes,
         estimatedMinutes: 15
       };

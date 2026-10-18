@@ -234,8 +234,19 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  deliveryId?: string;
   deliveryStatus?: string;
-  partner?: { id: string; name: string; phone: string; };
+  partner?: { id: string; name: string; phone: string; vehicle?: string; rating?: number };
+  currentLocation?: Coordinates;
+  pickupLocation?: Coordinates;
+  dropoffLocation?: Coordinates;
+  etaSeconds?: number;
+  distanceRemainingMeters?: number;
+  timestamps?: {
+    assignedAt?: string;
+    pickedUpAt?: string;
+    deliveredAt?: string;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────

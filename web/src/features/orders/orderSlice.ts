@@ -275,7 +275,30 @@ const orderSlice = createSlice({
     },
     setLiveTrackingChatHistory(state, action: PayloadAction<{ orderId: string; messages: OrderChatMessage[] }>) {
       if (state.liveTracking && state.liveTracking.orderId === action.payload.orderId) {
-        state.liveTracking.chatMessages = action.payload.messages;
+        const merged = [...state.liveTracking.chatMessages];
+        for (const msg of action.payload.messages) {
+          const existingIdx = merged.findIndex(m => {
+            if (msg._id && m._id && msg._id === m._id) return true;
+            if (msg.clientMessageId && m.clientMessageId && msg.clientMessageId === m.clientMessageId) return true;
+            if (
+              m.senderId === msg.senderId &&
+              m.message === msg.message &&
+              m.senderRole === msg.senderRole &&
+              m.targetRole === msg.targetRole &&
+              Math.abs(new Date(m.timestamp || 0).getTime() - new Date(msg.timestamp || 0).getTime()) < 5000
+            ) {
+              return true;
+            }
+            return false;
+          });
+          if (existingIdx >= 0) {
+            merged[existingIdx] = { ...merged[existingIdx], ...msg };
+          } else {
+            merged.push(msg);
+          }
+        }
+        merged.sort((a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime());
+        state.liveTracking.chatMessages = merged;
       }
     },
     clearLiveTrackingUnreadCount(state) {

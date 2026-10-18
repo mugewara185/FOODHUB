@@ -13,10 +13,10 @@ const OrderTracking: React.FC = () => {
   const currentOrder = useAppSelector(selectCurrentOrder);
 
   useEffect(() => {
-    if (id && (!currentOrder || currentOrder.id !== id)) {
+    if (id) {
       dispatch(fetchOrderByIdThunk(id));
     }
-  }, [id, currentOrder, dispatch]);
+  }, [id, dispatch]);
 
   if (!currentOrder) {
     return (
@@ -27,9 +27,9 @@ const OrderTracking: React.FC = () => {
   }
 
   // Fallback coords if real one missing
-  const restaurantLocation = { lat: 12.9716, lng: 77.5946 };
+  const restaurantLocation = currentOrder.pickupLocation || { lat: 12.9716, lng: 77.5946 };
   // The backend uses restaurant + 0.02 for demo destination
-  const customerLocation = currentOrder.deliveryInfo?.coordinates || { lat: restaurantLocation.lat + 0.02, lng: restaurantLocation.lng + 0.02 };
+  const customerLocation = currentOrder.dropoffLocation || currentOrder.deliveryInfo?.coordinates || { lat: restaurantLocation.lat + 0.02, lng: restaurantLocation.lng + 0.02 };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -40,8 +40,14 @@ const OrderTracking: React.FC = () => {
       <LiveDeliveryTracker
         orderId={currentOrder.id}
         orderStatus={currentOrder.status}
+        deliveryStatus={currentOrder.deliveryStatus}
         restaurantLocation={restaurantLocation}
         customerLocation={customerLocation}
+        initialPartner={currentOrder.partner}
+        initialLocation={currentOrder.currentLocation}
+        initialEtaSeconds={currentOrder.etaSeconds}
+        initialDistance={currentOrder.distanceRemainingMeters}
+        timestamps={currentOrder.timestamps}
       />
     </Container>
   );

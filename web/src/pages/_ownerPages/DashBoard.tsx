@@ -100,15 +100,24 @@ const OwnerDashboard: React.FC = () => {
         );
       case 'partner_assigned':
         return (
-          <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'center' }}>
+          <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'center', flexWrap: 'wrap', useFlexGap: true }}>
             {order.deliveryStatus === 'arrived_pickup' ? (
               <>
-                <Chip size="small" color="error" label="Partner Arrived — Awaiting Handoff" sx={{ mr: 2, animation: 'pulse 2s infinite' }} />
+                <Chip size="small" color="error" label="Partner Arrived — Awaiting Handoff" sx={{ mr: 1, animation: 'pulse 2s infinite' }} />
                 <Button size="small" variant="contained" color="primary" onClick={() => dispatch(confirmHandoffThunk(order.id))}>Confirm Handoff</Button>
               </>
             ) : (
-              <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', mr: 2 }}>Partner is on the way</Typography>
+              <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary', mr: 1 }}>Partner is on the way</Typography>
             )}
+            <Button size="small" variant="outlined" color="primary" startIcon={<LocationOn />} onClick={() => setTrackingOrderId(order.id)}>Track</Button>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
+          </Stack>
+        );
+      case 'picked_up':
+      case 'out_for_delivery':
+      case 'nearby':
+        return (
+          <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'center' }}>
             <Button size="small" variant="outlined" color="primary" startIcon={<LocationOn />} onClick={() => setTrackingOrderId(order.id)}>Track</Button>
             <Button size="small" variant="outlined" color="secondary" startIcon={<Chat />} onClick={() => setChatOrderId(order.id)}>Chat</Button>
           </Stack>
@@ -121,6 +130,10 @@ const OwnerDashboard: React.FC = () => {
         );
     }
   };
+
+  const trackedOrder = trackingOrderId
+    ? [...(pendingOrders || []), ...(activeOrders || [])].find((o: any) => o.id === trackingOrderId)
+    : null;
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
@@ -271,6 +284,8 @@ const OwnerDashboard: React.FC = () => {
         <DialogContent sx={{ p: 0 }}>
           {chatOrderId && user && (
             <OrderChat 
+              open={!!chatOrderId}
+              onClose={() => setChatOrderId(null)}
               orderId={chatOrderId}
               currentUserId={user.id}
               currentUserRole="owner"
@@ -285,7 +300,15 @@ const OwnerDashboard: React.FC = () => {
           {trackingOrderId && (
             <LiveDeliveryTracker 
               orderId={trackingOrderId}
-              orderStatus="partner_assigned"
+              orderStatus={trackedOrder?.status || 'partner_assigned'}
+              deliveryStatus={trackedOrder?.deliveryStatus}
+              restaurantLocation={trackedOrder?.pickupLocation || restaurant?.location}
+              customerLocation={trackedOrder?.dropoffLocation}
+              initialPartner={trackedOrder?.partner}
+              initialLocation={trackedOrder?.currentLocation}
+              initialEtaSeconds={trackedOrder?.etaSeconds}
+              initialDistance={trackedOrder?.distanceRemainingMeters}
+              timestamps={trackedOrder?.timestamps}
             />
           )}
         </DialogContent>

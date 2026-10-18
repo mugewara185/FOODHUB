@@ -257,26 +257,34 @@ export const initSocket = (server: HttpServer) => {
         const roles = user.roles || [];
 
         let isAssignedPartner = false;
+        let assignedPartnerUserId: string | undefined;
         const delivery = await Delivery.findOne({ orderId: payload.orderId }).select('partnerId');
         if (delivery && delivery.partnerId) {
           const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
-          if (partner?.userId?.toString() === user.id) {
-            isAssignedPartner = true;
+          if (partner?.userId) {
+            assignedPartnerUserId = partner.userId.toString();
+            if (assignedPartnerUserId === user.id) {
+              isAssignedPartner = true;
+            }
           }
         }
 
         let isRestaurantOwner = false;
+        let restaurantOwnerUserId: string | undefined;
         const orderDoc = await Order.findById(payload.orderId).select('restaurantId userId');
         if (orderDoc && orderDoc.restaurantId) {
           const restaurant = await Restaurant.findById(orderDoc.restaurantId).select('ownerId');
-          if (restaurant?.ownerId?.toString() === user.id) {
-            isRestaurantOwner = true;
+          if (restaurant?.ownerId) {
+            restaurantOwnerUserId = restaurant.ownerId.toString();
+            if (restaurantOwnerUserId === user.id) {
+              isRestaurantOwner = true;
+            }
           }
         }
 
-        if (senderRole === 'partner' && (roles.includes('partner') || isAssignedPartner)) {
+        if ((senderRole === 'partner' || senderRole === 'driver' || senderRole === 'delivery_partner') && (roles.includes('partner') || isAssignedPartner)) {
           senderRole = 'partner';
-        } else if (senderRole === 'owner' && (roles.includes('owner') || isRestaurantOwner)) {
+        } else if ((senderRole === 'owner' || senderRole === 'restaurant' || senderRole === 'restaurant_owner') && (roles.includes('owner') || isRestaurantOwner)) {
           senderRole = 'owner';
         } else if (senderRole === 'admin' && roles.includes('admin')) {
           senderRole = 'admin';
@@ -289,16 +297,24 @@ export const initSocket = (server: HttpServer) => {
                        roles.includes('admin') ? 'admin' : 'user';
         }
 
+        let normalizedTargetRole = payload.targetRole;
+        if (normalizedTargetRole === 'customer') normalizedTargetRole = 'user';
+        else if (normalizedTargetRole === 'restaurant' || normalizedTargetRole === 'restaurant_owner') normalizedTargetRole = 'owner';
+        else if (normalizedTargetRole === 'driver' || normalizedTargetRole === 'delivery_partner') normalizedTargetRole = 'partner';
+
+        const orderRoomId = payload.orderId.toString();
+        socket.join(orderRoomId);
+
         const timestamp = new Date().toISOString();
         const messageId = new Types.ObjectId();
         const messageToSave = {
           _id: messageId,
           clientMessageId: payload.clientMessageId || undefined,
-          orderId: payload.orderId,
+          orderId: orderRoomId,
           senderId: user.id,
           senderRole,
           senderName: user.name || payload.senderName || 'User',
-          targetRole: payload.targetRole,
+          targetRole: normalizedTargetRole,
           message: trimmedMessage,
           timestamp
         };
@@ -319,7 +335,32 @@ export const initSocket = (server: HttpServer) => {
           ...messageToSave,
           _id: messageId.toString(),
         };
-        io.to(payload.orderId).emit('order:chat:message', broadcastPayload);
+        io.to(orderRoomId).emit('order:chat:message', broadcastPayload);
+
+        // Also deliver to any authorized participant (customer, owner, assigned partner) connected in their user room who hasn't joined orderRoomId yet
+        const orderRoomSockets = (io as any).sockets?.adapter?.rooms?.get(orderRoomId);
+        const participantUserIds = [
+          orderDoc?.userId?.toString(),
+          restaurantOwnerUserId,
+          assignedPartnerUserId,
+        ].filter(Boolean) as string[];
+
+        for (const uid of participantUserIds) {
+          const userRoomSockets = (io as any).sockets?.adapter?.rooms?.get(uid);
+          if (userRoomSockets) {
+            for (const sid of userRoomSockets) {
+              if (!orderRoomSockets || !orderRoomSockets.has(sid)) {
+                const targetSocket = (io as any).sockets?.sockets?.get(sid);
+                if (targetSocket) {
+                  targetSocket.join(orderRoomId);
+                  targetSocket.emit('order:chat:message', broadcastPayload);
+                } else {
+                  io.to(sid).emit('order:chat:message', broadcastPayload);
+                }
+              }
+            }
+          }
+        }
       } catch (err) {
         console.error('Failed to save chat message:', err);
         socket.emit('error', { message: 'Failed to persist chat message' });

@@ -421,4 +421,152 @@ describe('Road Simulator, Chat Correlation & Multi-Partner Verification', () => 
       expect(elapsedMinutes).toBeLessThanOrEqual(13);
     });
   });
+
+  // =========================================================================
+  // 4. Fix B: Partner Origin Near Restaurant Pickup (Not Stale / Customer Location)
+  // =========================================================================
+  describe('Partner Origin Initialization & Persistence (Fix B)', () => {
+    it('initializes partner origin near the restaurant pickup instead of stale customer destination on accept', async () => {
+      // Simulate partner having finished a previous delivery at a distant customer drop-off [77.6500, 13.0200]
+      await DeliveryPartner.findByIdAndUpdate(assignedPartnerDoc._id, {
+        status: 'available',
+        currentLocation: { type: 'Point', coordinates: [77.6500, 13.0200] }
+      });
+
+      const order2 = await Order.create({
+        userId: customerUser._id,
+        restaurantId: restaurant._id,
+        restaurantName: restaurant.name,
+        status: 'awaiting_partner',
+        totalAmount: 350,
+        items: [{ menuItemId: 'item-1', name: 'Paneer Butter Masala', price: 350, quantity: 1 }],
+        deliveryAddress: 'HSR Layout Sector 2, Bangalore',
+        paymentMethod: 'upi',
+        paymentStatus: 'completed'
+      });
+
+      try {
+        const acceptRes = await request(app)
+          .post(`/api/delivery/partner/${order2._id}/accept`)
+          .set('Authorization', `Bearer ${assignedPartnerToken}`)
+          .send({});
+
+        expect(acceptRes.status).toBe(200);
+        const deliveryData = acceptRes.body.data;
+        expect(deliveryData).toBeDefined();
+
+        const coords = deliveryData.currentLocation?.coordinates;
+        expect(Array.isArray(coords)).toBe(true);
+        expect(coords.length).toBe(2);
+
+        // Restaurant is at [77.5946, 12.9716]. Stale location was [77.6500, 13.0200].
+        const dLng = coords[0] - 77.5946;
+        const dLat = coords[1] - 12.9716;
+        const approxDistMeters = Math.sqrt(dLng * dLng + dLat * dLat) * 111000;
+
+        // Must be near restaurant (between 100m and 1500m), NOT at stale [77.6500, 13.0200] (>8000m) and NOT [0,0]
+        expect(approxDistMeters).toBeGreaterThan(100);
+        expect(approxDistMeters).toBeLessThan(1500);
+        expect(deliveryData.etaSeconds).toBeGreaterThan(0);
+        expect(deliveryData.distanceRemainingMeters).toBeGreaterThan(100);
+
+        // Verify GET /api/delivery/partner/me returns the same persisted origin across reload
+        const meRes = await request(app)
+          .get('/api/delivery/partner/me')
+          .set('Authorization', `Bearer ${assignedPartnerToken}`);
+        expect(meRes.status).toBe(200);
+        expect(meRes.body.data.activeAssignment).toBeDefined();
+        expect(meRes.body.data.activeAssignment.currentLocation.lat).toBeCloseTo(coords[1], 4);
+        expect(meRes.body.data.activeAssignment.currentLocation.lng).toBeCloseTo(coords[0], 4);
+      } finally {
+        const { stopDeliverySimulation } = await import('../delivery.simulator');
+        const del2 = await Delivery.findOne({ orderId: order2._id });
+        if (del2) {
+          stopDeliverySimulation(del2._id.toString());
+          await Delivery.findByIdAndDelete(del2._id);
+        }
+        await Order.findByIdAndDelete(order2._id);
+      }
+    });
+  });
+
+  // =========================================================================
+  // 5. Fix A & D: Order/Owner Hydration at arrived_pickup & Full 6-Way Chat Matrix
+  // =========================================================================
+  describe('Order Tracking Hydration (Fix A) & 6-Way Chat Matrix (Fix D)', () => {
+    it('hydrates deliveryStatus, partner, etaSeconds, and coordinates on GET /api/orders/:id', async () => {
+      await Order.findByIdAndUpdate(testOrder._id, { status: 'partner_assigned' });
+      await Delivery.findByIdAndUpdate(testDelivery._id, {
+        status: 'arrived_pickup',
+        etaSeconds: 0,
+        distanceRemainingMeters: 0,
+        currentLocation: { type: 'Point', coordinates: [77.5946, 12.9716] }
+      });
+
+      const orderRes = await request(app)
+        .get(`/api/orders/${testOrder._id}`)
+        .set('Authorization', `Bearer ${customerToken}`);
+
+      expect(orderRes.status).toBe(200);
+      expect(orderRes.body.data.deliveryStatus).toBe('arrived_pickup');
+      expect(orderRes.body.data.partner).toBeDefined();
+      expect(orderRes.body.data.partner.name).toBe('Rahul Mehta Test');
+      expect(orderRes.body.data.etaSeconds).toBe(0);
+      expect(orderRes.body.data.distanceRemainingMeters).toBe(0);
+      expect(orderRes.body.data.currentLocation).toEqual({ lat: 12.9716, lng: 77.5946 });
+    });
+
+    it('delivers all 6 directional chat pairs across Customer, Owner, and Partner', async () => {
+      const customerSocket = await connectClient(customerToken);
+      const ownerSocket = await connectClient(ownerToken);
+      const partnerSocket = await connectClient(assignedPartnerToken);
+
+      const oid = testOrder._id.toString();
+      customerSocket.emit('join_order_room', oid);
+      ownerSocket.emit('join_order_room', oid);
+      partnerSocket.emit('join_order_room', oid);
+      await new Promise((r) => setTimeout(r, 150));
+
+      const receivedByCustomer: any[] = [];
+      const receivedByOwner: any[] = [];
+      const receivedByPartner: any[] = [];
+
+      customerSocket.on('order:chat:message', (m) => receivedByCustomer.push(m));
+      ownerSocket.on('order:chat:message', (m) => receivedByOwner.push(m));
+      partnerSocket.on('order:chat:message', (m) => receivedByPartner.push(m));
+
+      const directions = [
+        { socket: customerSocket, senderRole: 'user', targetRole: 'owner', text: '6way-1: Cust to Owner' },
+        { socket: ownerSocket, senderRole: 'owner', targetRole: 'user', text: '6way-2: Owner to Cust' },
+        { socket: customerSocket, senderRole: 'user', targetRole: 'partner', text: '6way-3: Cust to Partner' },
+        { socket: partnerSocket, senderRole: 'partner', targetRole: 'user', text: '6way-4: Partner to Cust' },
+        { socket: ownerSocket, senderRole: 'owner', targetRole: 'partner', text: '6way-5: Owner to Partner' },
+        { socket: partnerSocket, senderRole: 'partner', targetRole: 'owner', text: '6way-6: Partner to Owner' },
+      ];
+
+      for (const d of directions) {
+        d.socket.emit('order:chat:send', {
+          clientMessageId: `cid-${d.text}`,
+          orderId: oid,
+          message: d.text,
+          senderRole: d.senderRole,
+          targetRole: d.targetRole,
+        });
+        await new Promise((r) => setTimeout(r, 100));
+      }
+
+      await new Promise((r) => setTimeout(r, 250));
+
+      for (const d of directions) {
+        expect(receivedByCustomer.some((m) => m.message === d.text)).toBe(true);
+        expect(receivedByOwner.some((m) => m.message === d.text)).toBe(true);
+        expect(receivedByPartner.some((m) => m.message === d.text)).toBe(true);
+      }
+
+      customerSocket.disconnect();
+      ownerSocket.disconnect();
+      partnerSocket.disconnect();
+    });
+  });
 });
+

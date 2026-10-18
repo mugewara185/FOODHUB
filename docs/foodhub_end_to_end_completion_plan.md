@@ -15,6 +15,7 @@
 - Phase 10 — Deployment Readiness (Azure SWA + Render): Code & Build-verified; Pending Cloud Provisioning.
 - Phase 11 — Showcase-First Experience: Build, Runtime & Vitest-verified. Interactive multi-actor topology grid, component version swapper, telemetry console, honest status classification, and recruiter quick-scan.
 - Phase 12 — Partner Delivery UI, Live Route Map, Progress State & Chat Hardening: Build, Runtime & Integration-verified on `dev/development`. Clean OpenStreetMap tiles, bounded OSRM road routing with instant straight-line fallback, canonical progress stepper, multi-actor tabbed chat with authorization, and fail-closed database safety.
+- Phase 13 — Definitive Fix for Owner ETA (`arrived_pickup`), Partner Origin Near Restaurant, Partner Active-Delivery Synchronization & Full 6-Direction Cross-Role Chat: Build, Unit/Integration, Backend Multi-Actor & Browser E2E-verified on `dev/development`.
 
 ## EVIDENCE
 **API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
@@ -170,6 +171,37 @@ NotificationBell / Toast
   - **Backend Integration Tests:** PASS (`socket-authorization.integration.test.ts` 8/8 PASS, `simulator-concurrency.integration.test.ts` 3/3 PASS, `simulator-handoff.integration.test.ts` 4/4 PASS; total 15/15 delivery & socket integration tests PASS).
   - **Full Multi-Actor Browser E2E Verification:** PASS (`web/e2e.ts` automated Puppeteer run verified 100% green across 4 browser contexts: Customer places order → Owner marks Preparing & Ready → Partner accepts & active delivery view renders OpenStreetMap with pickup, customer, and partner markers → Partner marker moves live via simulator ticks → Two-way Partner ↔ Customer live chat confirmed → Chat persistence confirmed after reload → Stepper state confirmed preserved across refresh → Owner handoff confirmed → Customer reflects in-transit/delivered → Admin table row isolated to Delivered → Order document reaches delivered).
   - **Build Verification:** PASS (`npm run build` in `API` passes `tsc` with 0 errors; `npm run build` in `web` compiles cleanly in 1m 13s, exit code 0).
+
+- **Definitive Fix for Owner ETA, Partner Origin, Partner Active-Delivery Sync & 6-Way Cross-Role Chat (Phase 13 - dev/development):**
+  - **Fix A — Owner & Customer ETA at `arrived_pickup`:** PASS
+    - *Root Cause:* When the simulator reached the restaurant (`arrived_pickup`), it set `etaSeconds = 0`, and `LiveDeliveryTracker.tsx` rendered `etaSeconds > 0 ? formatDuration(etaSeconds) : 'Calculating...'`. Additionally, `getOrderById`, `getUserOrders`, and `getOwnerOrders` did not enrich order documents with active `Delivery` metadata (`deliveryStatus`, `partner`, `currentLocation`, `etaSeconds`, `distanceRemainingMeters`), leaving reloaded or newly opened Owner/Customer tracking modals unhydrated.
+    - *Fix:* Added `enrichOrdersWithDeliveryData` in `API/src/modules/orders/order.controller.ts` and updated `LiveDeliveryTracker.tsx` to hydrate from props, Redux `currentOrder`, and `GET /api/orders/:id` (on mount and socket reconnect), displaying `"Partner arrived at restaurant"` and `"0m (At restaurant)"` whenever `status === 'arrived_pickup'` or `deliverySubStatus === 'arrived_pickup'` (never `"Calculating..."`).
+  - **Fix B — Partner Origin Near Restaurant Pickup:** PASS
+    - *Root Cause:* `POST /api/delivery/partner/:orderId/accept` and `delivery.service.ts` copied `partner.currentLocation` verbatim even when it held a stale coordinate from a previous customer drop-off or `[0, 0]`.
+    - *Fix:* Implemented deterministic `computeInitialPartnerOrigin(pickupCoords, seedKey)` in `API/src/modules/delivery/delivery.simulator.ts` (~470m–710m away across 8 compass bearings, never `[0,0]` and never customer drop-off) and persisted it to both `Delivery.currentLocation` and `DeliveryPartner.currentLocation` (unless `useRealPartnerLocation` is explicitly requested), plus immediate `delivery:location` broadcast on accept.
+  - **Fix C — Partner Active Delivery Synchronization:** PASS
+    - *Root Cause:* `GET /api/delivery/partner/me` queried `Delivery.findOne` without sorting by `{ createdAt: -1 }`; `fetchPartnerStateThunk.fulfilled` mapped `status === 'assigned'` to `'OFFLINE'`; `acceptAssignmentThunk.fulfilled` did not hydrate `state.currentLocation` or `state.activeAssignment.currentLocation`; and `ActiveDelivery.tsx` unmounted the map/chat during background refreshes when `isLoading` toggled true.
+    - *Fix:* Sorted `activeDelivery` by `{ createdAt: -1 }` in `GET /api/delivery/partner/me`; hydrated `currentLocation`, `pickupLocation`, `dropoffLocation`, `etaSeconds`, and `distanceRemainingMeters` in `deliveryPartnerSlice.ts`; updated `ActiveDelivery.tsx` to sync on socket reconnect without unmounting (`if (isLoading && !activeAssignment)`), update route legs dynamically, and show live coordinates/status-aware ETA.
+  - **Fix D — Full 6-Direction Cross-Role Chat & Race-Free History Merge:** PASS
+    - *Root Cause:* `SocketService` dropped `join_order_room` calls and listeners registered before socket connection completed; `OrderChat.tsx` and `orderSlice.ts` overwrote `localMessages`/`chatMessages` when `GET /orders/:id/chat` resolved after a live socket message arrived; and role aliases (`customer`/`user`, `restaurant`/`owner`, `driver`/`partner`) were not normalized consistently.
+    - *Fix:* Persisted `activeOrderRooms` and `registeredListeners` across pre-connect and reconnects in `web/src/services/socket.ts`; normalized sender/target roles and delivered `order:chat:message` to all connected authorized order participants in `API/src/socket.ts`; and implemented deterministic `mergeChatMessages` deduplication in `OrderChat.tsx` and `orderSlice.ts`.
+  - **Verification Suites:**
+    - Backend Integration Tests: `25/25 PASS` (`road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `simulator-handoff.integration.test.ts` 4/4, `simulator-concurrency.integration.test.ts` 3/3).
+    - Frontend Unit/Integration Tests: `15/15 PASS` (`liveDeliveryAndChatFixes.test.tsx` 3/3, `deliveryBugs.test.tsx` 7/7, `orderSliceState.test.ts` 5/5).
+    - Full Multi-Actor Puppeteer Browser E2E (`web/e2e.ts`): `PASS (exit code 0)` verifying all 6 chat directions (`Customer <-> Owner`, `Customer <-> Partner`, `Owner <-> Partner`) with zero duplicate bubbles, partner origin near restaurant (`{"lat":12.976883,"lng":77.59155}`), Owner tracking modal showing `"Partner arrived at restaurant"` (never `"Calculating..."`), moving Leaflet markers on both Partner and Customer maps, reload persistence, non-zero delivery duration, and isolated `FOODHUB3_TEST` cleanup.
+
+## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)
+1. **Strongest Portfolio Signals Currently Demonstrated:**
+   - **Real Multi-Actor Event-Driven Architecture:** Four distinct role domains (`Customer`, `Restaurant Owner`, `Delivery Partner`, `Admin`) synchronized in real time via Socket.IO rooms (`order_<id>`, `user_<id>`) backed by MongoDB state machines.
+   - **Deterministic Two-Leg Road-Following GPS Simulator with Handoff Gate:** Real-time road-geometry interpolation (`Leg 1: Partner Origin -> Restaurant Pickup`, paused at `arrived_pickup` until explicit Owner Handoff confirmation, followed by `Leg 2: Restaurant -> Customer Drop-off`) with compare-and-set atomic database guards.
+   - **Production-Grade Verification Rigor:** Multi-context Puppeteer browser E2E runner (`web/e2e.ts`) + multi-socket integration suites with fail-closed database safety guards (`assertDedicatedTestDatabase`).
+2. **Remaining Weaknesses / Friction Points for a 2–5 Minute Technical Evaluator:**
+   - **Multi-Role Switching Friction:** A recruiter or hiring manager exploring the app manually has to log in/out or open multiple incognito windows to experience the Customer -> Owner -> Partner handoff unless guided by a 1-click role-switcher toolbar in development/demo mode.
+   - **Console DOM Nesting Warnings:** Minor MUI `<p>` inside `<p>` (`ListItemText` secondary typography) and nested `<button>` warnings appear in the browser console during dev inspection.
+3. **Top 3 Highest-Leverage Showcase Polish Improvements (After Current Runtime Fixes):**
+   - **1. Floating Demo Role-Switcher Bar:** Add a compact floating bar (when in demo/showcase mode) allowing 1-click instant switching or side-by-side deep links between Customer Tracking, Owner Dashboard, and Partner Active Delivery for the active order.
+   - **2. One-Click "Launch Live Order Simulation" Button on `/showcase`:** Allow an evaluator on the `/showcase` landing page to seed a live order at `awaiting_partner` or `partner_assigned` and jump straight into the live tracking view with a single click.
+   - **3. Clean Console Hydration Warnings:** Add `secondaryTypographyProps={{ component: 'div' }}` to MUI `ListItemText` components in `DashBoard.tsx` and `OrderTracking` so the browser DevTools console remains spotless during technical interviews.
 ## HISTORICAL DIAGNOSIS
 
 

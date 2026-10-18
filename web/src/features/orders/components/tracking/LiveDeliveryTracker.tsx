@@ -1,22 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Paper, Typography, Grid, Chip, LinearProgress, Avatar, Divider, Stack, Button, Dialog, DialogContent } from '@mui/material';
 import { CheckCircle, RadioButtonUnchecked, RadioButtonChecked, Cancel, Star, LocalShipping, LocationOn, AccessTime, Phone, Person, Message } from '@mui/icons-material';
-import { formatDuration, fetchRoadRoute } from '../../../../core/utils/location';
+import { formatDuration, fetchRoadRoute, calculateDistance } from '../../../../core/utils/location';
 import Map from '../../../../shared/components/maps/Map';
 import { useDeliveryTracking } from '../../hooks/useDeliveryTracking';
 import { useAppSelector } from '../../../../app/store/hooks';
 import { selectCurrentOrder } from '../../orderSlice';
+import api from '../../../../core/utils/api';
 
 import OrderChat from '../../../../shared/components/OrderChat/OrderChat';
 import { useAuth } from '../../../../contexts/AuthContext';
 import type { Coordinates } from '@/core/types/location';
+import { socketService } from '../../../../services/socket';
 
-interface LiveDeliveryTrackerProps {
+export interface LiveDeliveryTrackerProps {
   orderId: string;
   orderStatus: string;
+  deliveryStatus?: string;
   restaurantLocation?: Coordinates;
   customerLocation?: Coordinates;
   rejectionReason?: string;
+  initialPartner?: {
+    id?: string;
+    name: string;
+    phone: string;
+    vehicle?: string;
+    vehicleType?: string;
+    rating?: number;
+  } | null;
+  initialLocation?: Coordinates | null;
+  initialEtaSeconds?: number;
+  initialDistance?: number;
+  timestamps?: {
+    assignedAt?: string;
+    pickedUpAt?: string;
+    deliveredAt?: string;
+  };
 }
 
 const statusStepsList = [
@@ -26,6 +45,7 @@ const statusStepsList = [
   'ready_for_pickup',
   'awaiting_partner',
   'partner_assigned',
+  'arrived_pickup',
   'picked_up',
   'out_for_delivery',
   'nearby',
@@ -45,15 +65,45 @@ const statusSteps = [
   { label: 'Delivered', description: 'Order delivered', id: 'delivered' },
 ];
 
-import { socketService } from '../../../../services/socket';
-
-const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
+const useLocalDeliveryTracking = (
+  orderId: string,
+  initialStatus: string,
+  initialDeliveryStatus?: string,
+  initialPartner?: any,
+  initialLocation?: Coordinates | null,
+  initialEtaSeconds?: number,
+  initialDistance?: number,
+  initialTimestamps?: { assignedAt?: string; pickedUpAt?: string; deliveredAt?: string }
+) => {
   const globalState = useDeliveryTracking();
-  const [location, setLocation] = useState<Coordinates | null>(globalState.location);
-  const [partner, setPartner] = useState<any>(globalState.partner);
-  const [status, setStatus] = useState<string>(globalState.status === 'created' ? initialStatus : globalState.status);
-  const [etaSeconds, setEtaSeconds] = useState(globalState.etaSeconds || 0);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(globalState.lastUpdatedAt || Date.now());
+  const isGlobalMatch = Boolean(globalState && (globalState as any).orderId === orderId);
+
+  const [location, setLocation] = useState<Coordinates | null>(
+    initialLocation ?? (isGlobalMatch ? globalState.location : null)
+  );
+  const [partner, setPartner] = useState<any>(
+    initialPartner ?? (isGlobalMatch ? globalState.partner : null)
+  );
+  const [status, setStatus] = useState<string>(
+    initialDeliveryStatus === 'arrived_pickup' && initialStatus === 'partner_assigned'
+      ? 'arrived_pickup'
+      : initialStatus || (isGlobalMatch && globalState.status !== 'created' ? globalState.status : 'pending_owner')
+  );
+  const [deliverySubStatus, setDeliverySubStatus] = useState<string | undefined>(initialDeliveryStatus);
+  const [etaSeconds, setEtaSeconds] = useState<number>(
+    typeof initialEtaSeconds === 'number' ? initialEtaSeconds : (isGlobalMatch ? globalState.etaSeconds || 0 : 0)
+  );
+  const [distance, setDistance] = useState<number>(
+    typeof initialDistance === 'number' ? initialDistance : (isGlobalMatch ? globalState.distance || 0 : 0)
+  );
+  const [hydratedPickupLoc, setHydratedPickupLoc] = useState<Coordinates | undefined>(undefined);
+  const [hydratedDropoffLoc, setHydratedDropoffLoc] = useState<Coordinates | undefined>(undefined);
+  const [hydratedTimestamps, setHydratedTimestamps] = useState<{
+    assignedAt?: string;
+    pickedUpAt?: string;
+    deliveredAt?: string;
+  } | undefined>(initialTimestamps);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(Date.now());
   const [deliveryMetrics, setDeliveryMetrics] = useState<{
     deliveredAt?: string;
     pickedUpAt?: string;
@@ -61,21 +111,113 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
     estimatedMinutes?: number;
   } | null>(null);
 
+  // Sync when props update (e.g. parent re-fetches order)
+  useEffect(() => {
+    if (initialPartner) setPartner((prev: any) => prev || initialPartner);
+    if (initialLocation) setLocation((prev) => prev || initialLocation);
+    if (typeof initialEtaSeconds === 'number') setEtaSeconds(initialEtaSeconds);
+    if (typeof initialDistance === 'number') setDistance(initialDistance);
+    if (initialDeliveryStatus) {
+      setDeliverySubStatus(initialDeliveryStatus);
+      if (initialDeliveryStatus === 'arrived_pickup' && initialStatus === 'partner_assigned') {
+        setStatus('arrived_pickup');
+      }
+    }
+    if (initialStatus && initialStatus !== 'partner_assigned') {
+      setStatus(initialStatus);
+    } else if (initialStatus === 'partner_assigned' && initialDeliveryStatus !== 'arrived_pickup') {
+      setStatus((prev) => (prev === 'arrived_pickup' ? prev : 'partner_assigned'));
+    }
+    if (initialTimestamps) {
+      setHydratedTimestamps((prev) => ({ ...(prev || {}), ...initialTimestamps }));
+    }
+  }, [initialStatus, initialDeliveryStatus, initialPartner, initialLocation, initialEtaSeconds, initialDistance, initialTimestamps]);
+
   useEffect(() => {
     if (!orderId) return;
 
+    const hydrateFromBackend = () => {
+      try {
+        const reqPromise = api.get<any>(`/orders/${orderId}`);
+        if (reqPromise && typeof reqPromise.then === 'function') {
+          reqPromise
+            .then((res: any) => {
+              const data = res?.data ?? res;
+              if (!data || typeof data !== 'object') return;
+              if (data.partner) {
+                setPartner((prev: any) => ({
+                  ...(prev || {}),
+                  ...data.partner,
+                  vehicleType: data.partner.vehicle || data.partner.vehicleType || prev?.vehicleType || 'Bike',
+                  rating: data.partner.rating ?? prev?.rating ?? 4.8,
+                }));
+              }
+              if (data.currentLocation && typeof data.currentLocation.lat === 'number') {
+                setLocation(data.currentLocation);
+              }
+              if (data.pickupLocation && typeof data.pickupLocation.lat === 'number') {
+                setHydratedPickupLoc(data.pickupLocation);
+              }
+              if (data.dropoffLocation && typeof data.dropoffLocation.lat === 'number') {
+                setHydratedDropoffLoc(data.dropoffLocation);
+              }
+              if (typeof data.etaSeconds === 'number') {
+                setEtaSeconds(data.etaSeconds);
+              }
+              if (typeof data.distanceRemainingMeters === 'number') {
+                setDistance(data.distanceRemainingMeters);
+              }
+              if (data.deliveryStatus) {
+                setDeliverySubStatus(data.deliveryStatus);
+              }
+              if (data.deliveryStatus === 'arrived_pickup' && data.status === 'partner_assigned') {
+                setStatus('arrived_pickup');
+              } else if (data.status) {
+                setStatus(data.status);
+              }
+              if (data.timestamps) {
+                setHydratedTimestamps((prev) => ({ ...(prev || {}), ...data.timestamps }));
+              }
+            })
+            .catch(() => {});
+        }
+      } catch {
+        // Ignore in unit tests if api.get is not mocked
+      }
+    };
+
+    hydrateFromBackend();
     socketService.joinOrderRoom(orderId);
 
     const handleLoc = (p: any) => {
-      if (p.orderId === orderId) {
+      if (String(p.orderId) === String(orderId)) {
         setLocation(p.location);
-        setEtaSeconds(p.etaSeconds || 0);
+        if (typeof p.etaSeconds === 'number') {
+          setEtaSeconds(p.etaSeconds);
+        }
+        if (typeof p.distanceRemainingMeters === 'number') {
+          setDistance(p.distanceRemainingMeters);
+        }
+        if (p.status) {
+          setDeliverySubStatus(p.status);
+          if (p.status === 'arrived_pickup' || ['picked_up', 'out_for_delivery', 'nearby', 'delivered'].includes(p.status)) {
+            setStatus(p.status);
+          }
+        }
         setLastUpdatedAt(Date.now());
       }
     };
+
     const handleStatus = (p: any) => {
-      if (p.orderId === orderId) {
+      if (String(p.orderId) === String(orderId)) {
         setStatus(p.status);
+        setDeliverySubStatus(p.status);
+        if (typeof p.etaSeconds === 'number') {
+          setEtaSeconds(p.etaSeconds);
+        }
+        if (typeof p.distanceRemainingMeters === 'number') {
+          setDistance(p.distanceRemainingMeters);
+        }
         setLastUpdatedAt(Date.now());
         if (p.status === 'delivered') {
           setDeliveryMetrics({
@@ -87,32 +229,54 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
         }
       }
     };
+
     const handleAssigned = (p: any) => {
-      if (p.orderId === orderId) {
-        setPartner({ name: p.partnerName, phone: p.partnerPhone });
+      if (String(p.orderId) === String(orderId)) {
+        setPartner((prev: any) => ({
+          ...(prev || {}),
+          id: p.partnerId || prev?.id,
+          name: p.partnerName || prev?.name || 'Partner',
+          phone: p.partnerPhone || prev?.phone || '',
+          vehicleType: prev?.vehicleType || 'Bike',
+          rating: prev?.rating || 4.8,
+        }));
+        if (p.status) {
+          setStatus(p.status);
+          setDeliverySubStatus(p.status);
+        }
         setLastUpdatedAt(Date.now());
+      }
+    };
+
+    const handleConnChange = (connStatus: 'connected' | 'reconnecting' | 'disconnected') => {
+      if (connStatus === 'connected') {
+        socketService.joinOrderRoom(orderId);
+        hydrateFromBackend();
       }
     };
 
     socketService.onDeliveryLocation(handleLoc);
     socketService.onDeliveryStatus(handleStatus);
     socketService.onDeliveryAssigned(handleAssigned);
+    socketService.onConnectionChange?.(handleConnChange);
 
     return () => {
       socketService.unsubscribeFromOrder(orderId);
       socketService.offDeliveryLocation(handleLoc);
       socketService.offDeliveryStatus(handleStatus);
       socketService.offDeliveryAssigned(handleAssigned);
+      socketService.offConnectionChange?.(handleConnChange);
     };
   }, [orderId]);
 
-  // Sync with global state separately to avoid rebinding sockets
+  // Sync with global state only when globalState has fresher partner/location and doesn't clobber arrived_pickup
   useEffect(() => {
     if (globalState && (globalState as any).orderId === orderId) {
-      setLocation(globalState.location);
-      setPartner(globalState.partner);
-      setStatus(globalState.status);
-      setEtaSeconds(globalState.etaSeconds);
+      if (globalState.location) setLocation(globalState.location);
+      if (globalState.partner) setPartner((prev: any) => prev || globalState.partner);
+      if (globalState.status && globalState.status !== 'created') {
+        setStatus((prev) => (prev === 'arrived_pickup' && globalState.status === 'partner_assigned' ? 'arrived_pickup' : globalState.status));
+      }
     }
   }, [
     orderId,
@@ -120,19 +284,73 @@ const useLocalDeliveryTracking = (orderId: string, initialStatus: string) => {
     globalState.location,
     globalState.partner,
     globalState.status,
-    globalState.etaSeconds
   ]);
 
-  return { partner, location, status, etaSeconds, distance: globalState.distance, lastUpdatedAt, deliveryMetrics };
+  return {
+    partner,
+    location,
+    status,
+    deliverySubStatus,
+    etaSeconds,
+    distance,
+    lastUpdatedAt,
+    deliveryMetrics,
+    hydratedPickupLoc,
+    hydratedDropoffLoc,
+    hydratedTimestamps,
+  };
 };
 
-const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orderStatus, restaurantLocation, customerLocation, rejectionReason }) => {
-  const { partner, location, status, etaSeconds, distance, lastUpdatedAt, deliveryMetrics } = useLocalDeliveryTracking(orderId, orderStatus);
-  const { user } = useAuth();
+const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
+  orderId,
+  orderStatus,
+  deliveryStatus,
+  restaurantLocation,
+  customerLocation,
+  rejectionReason,
+  initialPartner,
+  initialLocation,
+  initialEtaSeconds,
+  initialDistance,
+  timestamps,
+}) => {
   const currentOrder = useAppSelector(selectCurrentOrder);
+  const matchingOrder = currentOrder && currentOrder.id === orderId ? currentOrder : null;
+
+  const {
+    partner,
+    location,
+    status,
+    deliverySubStatus,
+    etaSeconds,
+    distance,
+    lastUpdatedAt,
+    deliveryMetrics,
+    hydratedPickupLoc,
+    hydratedDropoffLoc,
+    hydratedTimestamps,
+  } = useLocalDeliveryTracking(
+    orderId,
+    orderStatus || matchingOrder?.status || 'pending_owner',
+    deliveryStatus || matchingOrder?.deliveryStatus,
+    initialPartner ?? matchingOrder?.partner,
+    initialLocation ?? matchingOrder?.currentLocation,
+    initialEtaSeconds ?? matchingOrder?.etaSeconds,
+    initialDistance ?? matchingOrder?.distanceRemainingMeters,
+    timestamps ?? matchingOrder?.timestamps
+  );
+
+  const { user } = useAuth();
+  const userRoles = Array.isArray(user?.role) ? user.role : (typeof user?.role === 'string' ? [user.role] : []);
+  const isOwnerViewer = userRoles.includes('owner');
+  const currentUserRole: 'user' | 'owner' | 'partner' = isOwnerViewer
+    ? 'owner'
+    : userRoles.includes('partner')
+    ? 'partner'
+    : 'user';
 
   const [liveEta, setLiveEta] = useState(etaSeconds);
-  const [chatTarget, setChatTarget] = useState<'owner' | 'partner' | null>(null);
+  const [chatTarget, setChatTarget] = useState<'owner' | 'partner' | 'user' | null>(null);
 
   useEffect(() => {
     setLiveEta(etaSeconds);
@@ -141,7 +359,6 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
   useEffect(() => {
     if (etaSeconds <= 0) return;
 
-    // Update live ETA every second based on last socket update
     const interval = setInterval(() => {
       const elapsedSeconds = Math.floor((Date.now() - (lastUpdatedAt || Date.now())) / 1000);
       const newEta = Math.max(0, etaSeconds - elapsedSeconds);
@@ -163,21 +380,20 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
   const getStatusColor = (s: string) => {
     if (['delivered', 'completed', 'reviewed', 'nearby'].includes(s)) return 'success';
     if (['out_for_delivery'].includes(s)) return 'primary';
-    if (['picked_up', 'partner_assigned', 'awaiting_partner', 'ready_for_pickup', 'preparing'].includes(s)) return 'warning';
+    if (['picked_up', 'arrived_pickup', 'partner_assigned', 'awaiting_partner', 'ready_for_pickup', 'preparing'].includes(s)) return 'warning';
     if (['rejected'].includes(s)) return 'error';
     if (['cancelled'].includes(s)) return 'default';
     return 'info';
   };
 
-  const resLoc = restaurantLocation || { lat: 12.9716, lng: 77.5946 };
-  const cusLoc = customerLocation || { lat: resLoc.lat + 0.02, lng: resLoc.lng + 0.02 };
+  const resLoc = restaurantLocation || matchingOrder?.pickupLocation || hydratedPickupLoc || { lat: 12.9716, lng: 77.5946 };
+  const cusLoc = customerLocation || matchingOrder?.dropoffLocation || hydratedDropoffLoc || matchingOrder?.deliveryInfo?.coordinates || { lat: resLoc.lat + 0.02, lng: resLoc.lng + 0.02 };
   const markers = [
     { id: 'restaurant', type: 'restaurant', position: resLoc, title: 'Restaurant' },
-    { id: 'customer', type: 'customer', position: cusLoc, title: 'You' },
+    { id: 'customer', type: 'customer', position: cusLoc, title: 'Customer' },
   ];
   if (location) markers.push({ id: 'partner', type: 'partner', position: location, title: partner?.name || 'Partner' });
 
-  // Map follows partner if tracking is active
   const mapCenter = location || resLoc;
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinates[]>([resLoc, cusLoc]);
 
@@ -195,24 +411,69 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
     };
   }, [resLoc.lat, resLoc.lng, cusLoc.lat, cusLoc.lng]);
 
+  const isArrivedAtRestaurant =
+    status === 'arrived_pickup' ||
+    deliverySubStatus === 'arrived_pickup' ||
+    (status === 'partner_assigned' && Boolean(location) && liveEta <= 0 && distance <= 15);
+
   const renderEtaText = () => {
     if (['delivered', 'completed', 'reviewed'].includes(status)) {
       if (deliveryMetrics?.actualTransitMinutes) {
         const est = deliveryMetrics.estimatedMinutes || 15;
         return `Delivered in ${deliveryMetrics.actualTransitMinutes} min · Estimated ${est} min`;
       }
-      const orderDeliveredAt = (currentOrder as any)?.timestamps?.deliveredAt || currentOrder?.updatedAt;
-      const orderPickedUpAt = (currentOrder as any)?.timestamps?.pickedUpAt || (currentOrder as any)?.timestamps?.assignedAt || currentOrder?.createdAt;
+      const combinedTimestamps = hydratedTimestamps || matchingOrder?.timestamps || (currentOrder as any)?.timestamps;
+      const orderDeliveredAt = combinedTimestamps?.deliveredAt || matchingOrder?.updatedAt || currentOrder?.updatedAt;
+      const orderPickedUpAt = combinedTimestamps?.pickedUpAt || combinedTimestamps?.assignedAt || matchingOrder?.createdAt || currentOrder?.createdAt;
       if (orderDeliveredAt && orderPickedUpAt) {
         const diffMs = new Date(orderDeliveredAt).getTime() - new Date(orderPickedUpAt).getTime();
         const transitMinutes = Math.max(1, Math.round(diffMs / 60000));
-        const est = (currentOrder as any)?.deliveryTime || 15;
+        const est = (matchingOrder as any)?.deliveryTime || 15;
         return `Delivered in ${transitMinutes} min · Estimated ${est} min`;
       }
       return 'Delivered in 15 min · Estimated 15 min';
     }
-    if (liveEta > 0) return formatDuration(liveEta);
-    if (location) return 'Calculating...';
+
+    if (status === 'cancelled') return 'Order cancelled';
+    if (status === 'rejected') return 'Order rejected';
+
+    if (isArrivedAtRestaurant) {
+      return 'Partner arrived at restaurant';
+    }
+
+    if (liveEta > 0) {
+      return formatDuration(liveEta);
+    }
+
+    if (location) {
+      const isBeforePickup = ['partner_assigned', 'awaiting_partner', 'ready_for_pickup', 'preparing', 'confirmed'].includes(status);
+      const target = isBeforePickup ? resLoc : cusLoc;
+      const distMeters = distance > 0 ? distance : calculateDistance(location, target);
+      if (isBeforePickup && distMeters <= 15) {
+        return 'Partner arrived at restaurant';
+      }
+      const computedSec = Math.max(30, Math.round(distMeters / 6.9));
+      return formatDuration(computedSec);
+    }
+
+    return 'Waiting for partner...';
+  };
+
+  const renderDistanceText = () => {
+    if (['delivered', 'completed', 'reviewed'].includes(status)) {
+      return '0m (Delivered)';
+    }
+    if (isArrivedAtRestaurant) {
+      return '0m (At restaurant)';
+    }
+    if (distance > 0) {
+      return `${Math.round(distance)}m`;
+    }
+    if (location) {
+      const isBeforePickup = ['partner_assigned', 'awaiting_partner', 'ready_for_pickup', 'preparing', 'confirmed'].includes(status);
+      const d = Math.round(calculateDistance(location, isBeforePickup ? resLoc : cusLoc));
+      return `${d}m`;
+    }
     return 'Waiting for partner...';
   };
 
@@ -241,7 +502,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, lg: 8 }}>
           <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400, position: 'relative' }}>
-            <Map center={mapCenter} zoom={15}  markers={markers} routeCoordinates={routeCoordinates} />
+            <Map center={mapCenter} zoom={15} markers={markers} routeCoordinates={routeCoordinates} />
           </Paper>
         </Grid>
 
@@ -256,7 +517,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                     <Typography variant="h6" fontWeight={600}>{partner.name}</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Star sx={{ fontSize: 16, color: 'warning.main' }} />
-                      <Typography variant="body2">{partner.rating}</Typography>
+                      <Typography variant="body2">{partner.rating ?? 4.8}</Typography>
                     </Box>
                   </Box>
                 </Box>
@@ -264,11 +525,11 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                 <Stack spacing={2}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <LocalShipping color="primary" />
-                    <Typography variant="body2">{partner.vehicleType}</Typography>
+                    <Typography variant="body2">{partner.vehicleType || partner.vehicle || 'Bike'}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <LocationOn color="primary" />
-                    <Typography variant="body2">Distance: {distance > 0 ? `${Math.round(distance)}m` : 'Calculating...'}</Typography>
+                    <Typography variant="body2">Distance: {renderDistanceText()}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <AccessTime color="primary" />
@@ -276,15 +537,26 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
                   </Box>
                 </Stack>
                 <Divider sx={{ my: 2 }} />
-                <Stack direction="row" spacing={2}>
-                  <Button fullWidth variant="contained" startIcon={<Phone />} href={`tel:${partner.phone}`}>Call</Button>
-                  <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('partner')}>Chat with Driver</Button>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" spacing={1.5}>
+                    <Button fullWidth variant="contained" startIcon={<Phone />} href={`tel:${partner.phone}`}>Call</Button>
+                    <Button fullWidth variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('partner')}>Chat with Driver</Button>
+                  </Stack>
+                  {isOwnerViewer ? (
+                    <Button fullWidth variant="outlined" color="secondary" startIcon={<Message />} onClick={() => setChatTarget('user')}>Chat with Customer</Button>
+                  ) : (
+                    <Button fullWidth variant="outlined" color="secondary" startIcon={<Message />} onClick={() => setChatTarget('owner')}>Chat with Restaurant</Button>
+                  )}
                 </Stack>
               </>
             ) : (
               <Box sx={{ p: 4, textAlign: 'center' }}>
                 <Typography color="text.secondary">{status === 'pending_owner' ? 'Waiting for restaurant to accept the order' : status === 'awaiting_partner' ? 'Finding a delivery partner...' : 'Waiting for partner assignment...'}</Typography>
-                <Button sx={{ mt: 2 }} variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('owner')}>Chat with Restaurant</Button>
+                {isOwnerViewer ? (
+                  <Button sx={{ mt: 2 }} variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('user')}>Chat with Customer</Button>
+                ) : (
+                  <Button sx={{ mt: 2 }} variant="outlined" startIcon={<Message />} onClick={() => setChatTarget('owner')}>Chat with Restaurant</Button>
+                )}
               </Box>
             )}
           </Paper>
@@ -349,10 +621,12 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({ orderId, orde
         <DialogContent sx={{ p: 0 }}>
           {chatTarget && user && (
             <OrderChat
+              open={!!chatTarget}
+              onClose={() => setChatTarget(null)}
               orderId={orderId}
               currentUserId={user.id}
-              currentUserRole="user"
-              currentUserName={user.name || 'Customer'}
+              currentUserRole={currentUserRole}
+              currentUserName={user.name || (isOwnerViewer ? 'Restaurant' : 'Customer')}
               targetRole={chatTarget}
             />
           )}
