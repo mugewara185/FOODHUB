@@ -17,6 +17,11 @@ export async function transitionOrderStatus(
     throw new AppError('Order not found', 404);
   }
 
+  // Idempotent: If order is already in the target status, return it safely without error
+  if (order.status === newStatus) {
+    return order;
+  }
+
   // 3. Validate transition
   const validTransitions: Record<string, string[]> = {
     'pending_owner': ['confirmed', 'rejected'],

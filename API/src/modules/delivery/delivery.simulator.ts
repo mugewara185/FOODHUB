@@ -347,6 +347,11 @@ export async function startDeliverySimulation(deliveryId: string): Promise<{ run
         const prevStatus = curDelivery.status;
 
         if (!isPickedUp && newDistance < 10) {
+          nextLng = target[0];
+          nextLat = target[1];
+          newDistance = 0;
+          curDelivery.currentLocation = { type: 'Point', coordinates: [target[0], target[1]] };
+          curPartner.currentLocation = { type: 'Point', coordinates: [target[0], target[1]] };
           curDelivery.distanceRemainingMeters = 0;
           curDelivery.etaSeconds = 0;
           if (curDelivery.status === 'partner_assigned') {
@@ -355,6 +360,9 @@ export async function startDeliverySimulation(deliveryId: string): Promise<{ run
           }
         } else if (isPickedUp) {
           if (newDistance < 10) {
+            nextLng = target[0];
+            nextLat = target[1];
+            newDistance = 0;
             const now = new Date();
             curDelivery.distanceRemainingMeters = 0;
             curDelivery.etaSeconds = 0;
@@ -365,7 +373,7 @@ export async function startDeliverySimulation(deliveryId: string): Promise<{ run
                 $set: { 
                   status: 'delivered', 
                   'timestamps.deliveredAt': now,
-                  'currentLocation.coordinates': [nextLng, nextLat],
+                  'currentLocation.coordinates': [target[0], target[1]],
                   distanceRemainingMeters: 0,
                   etaSeconds: 0
                 } 
@@ -375,6 +383,7 @@ export async function startDeliverySimulation(deliveryId: string): Promise<{ run
             
             if (updatedDelivery) {
               curDelivery.status = 'delivered';
+              curDelivery.currentLocation = { type: 'Point', coordinates: [target[0], target[1]] };
               curDelivery.timestamps = curDelivery.timestamps || {};
               curDelivery.timestamps.deliveredAt = now;
 
@@ -382,12 +391,13 @@ export async function startDeliverySimulation(deliveryId: string): Promise<{ run
               await DeliveryPartner.updateOne(
                 { _id: curPartner._id },
                 { 
-                  $set: { status: 'available', currentAssignedDelivery: null },
+                  $set: { status: 'available', currentAssignedDelivery: null, currentLocation: { type: 'Point', coordinates: [target[0], target[1]] } },
                   $inc: { completedDeliveries: 1 }
                 }
               );
               curPartner.status = 'available';
               curPartner.currentAssignedDelivery = undefined;
+              curPartner.currentLocation = { type: 'Point', coordinates: [target[0], target[1]] };
               statusChanged = true;
             } else {
               stopDeliverySimulation(deliveryId);
