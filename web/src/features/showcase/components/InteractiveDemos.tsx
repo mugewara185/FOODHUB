@@ -42,6 +42,7 @@ import { logger } from '../../../core/dev/logger/Logger';
 import type { LogEntry } from '../../../core/dev/logger/types';
 import api from '../../../core/utils/api';
 import { socketService } from '../../../services/socket';
+import { fetchRoadRoute } from '../../../core/utils/location';
 
 interface InteractiveDemosProps {
   launchTrigger?: number;
@@ -92,6 +93,9 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
   const [partnerInfo, setPartnerInfo] = useState<any | null>(null);
   const [currentStatus, setCurrentStatus] = useState<string>('idle');
   const [courierPosition, setCourierPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [travelledCoords, setTravelledCoords] = useState<{ lat: number; lng: number }[]>([]);
+  const [routeCoords, setRouteCoords] = useState<{ lat: number; lng: number }[]>([]);
+  const [routeStatus, setRouteStatus] = useState<'road' | 'direct' | 'none'>('none');
   const [distanceRemainingMeters, setDistanceRemainingMeters] = useState<number | null>(null);
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null);
   const [isHandoffPending, setIsHandoffPending] = useState<boolean>(false);
@@ -217,8 +221,17 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
         const loc = payload.location?.coordinates && Array.isArray(payload.location.coordinates)
           ? { lat: payload.location.coordinates[1], lng: payload.location.coordinates[0] }
           : payload.location;
-        if (loc && typeof loc.lat === 'number') {
+        if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
           setCourierPosition({ lat: loc.lat, lng: loc.lng });
+          setTravelledCoords((prev) => {
+            if (prev.length > 0) {
+              const last = prev[prev.length - 1];
+              if (Math.abs(last.lat - loc.lat) < 1e-6 && Math.abs(last.lng - loc.lng) < 1e-6) {
+                return prev;
+              }
+            }
+            return [...prev, { lat: loc.lat, lng: loc.lng }];
+          });
         }
         if (typeof payload.etaSeconds === 'number') setEtaSeconds(payload.etaSeconds);
         if (typeof payload.distanceRemainingMeters === 'number') setDistanceRemainingMeters(payload.distanceRemainingMeters);
@@ -246,8 +259,17 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
         const loc = payload.location?.coordinates && Array.isArray(payload.location.coordinates)
           ? { lat: payload.location.coordinates[1], lng: payload.location.coordinates[0] }
           : payload.location;
-        if (loc && typeof loc.lat === 'number') {
+        if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
           setCourierPosition({ lat: loc.lat, lng: loc.lng });
+          setTravelledCoords((prev) => {
+            if (prev.length > 0) {
+              const last = prev[prev.length - 1];
+              if (Math.abs(last.lat - loc.lat) < 1e-6 && Math.abs(last.lng - loc.lng) < 1e-6) {
+                return prev;
+              }
+            }
+            return [...prev, { lat: loc.lat, lng: loc.lng }];
+          });
         }
         if (payload.status) {
           setCurrentStatus((prev) => {
@@ -394,6 +416,48 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
       }
     }
   }, [launchTrigger, isLaunching, activeOrder, isDelivered, handleLaunchLiveDemo]);
+
+  // Bounded road route calculation for the active demo leg
+  useEffect(() => {
+    if (!activeOrder || !restaurantCoords || !customerCoords) {
+      setRouteCoords([]);
+      setRouteStatus('none');
+      return;
+    }
+
+    let isCancelled = false;
+    const isCustomerLeg = ['picked_up', 'out_for_delivery', 'nearby', 'delivered'].includes(currentStatus);
+    const startPoint = isCustomerLeg ? restaurantCoords : (courierPosition || partnerCoords);
+    const endPoint = isCustomerLeg ? customerCoords : restaurantCoords;
+
+    // Set immediate direct fallback
+    setRouteCoords([startPoint, endPoint]);
+    setRouteStatus('direct');
+
+    fetchRoadRoute(startPoint, endPoint, 2500)
+      .then((res) => {
+        if (!isCancelled && res.coordinates.length > 1) {
+          setRouteCoords(res.coordinates);
+          setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setRouteStatus('direct');
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    activeOrder?._id,
+    ['picked_up', 'out_for_delivery', 'nearby', 'delivered'].includes(currentStatus),
+    restaurantCoords?.lat,
+    restaurantCoords?.lng,
+    customerCoords?.lat,
+    customerCoords?.lng,
+  ]);
 
   // -------------------------------------------------------------
   // DEMO 2: Version Swapper State
@@ -831,6 +895,10 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
                       ]
                     : []),
                 ]}
+                routeCoordinates={routeCoords}
+                travelledCoordinates={travelledCoords}
+                isFallbackRoute={routeStatus === 'direct'}
+                routeStatus={routeStatus}
               />
             </Box>
 

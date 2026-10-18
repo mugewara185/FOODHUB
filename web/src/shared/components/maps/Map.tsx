@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Box, Typography, Chip } from '@mui/material';
+import { Box, Typography, Chip, Stack } from '@mui/material';
 import type { Coordinates, MapMarker } from '../../../data/types/location';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -26,6 +26,22 @@ export const decodePolyline = (encoded: string): Coordinates[] => {
     points.push({ lat: lat / 1e5, lng: lng / 1e5 });
   }
   return points;
+};
+
+export const isValidCoord = (c: any): c is Coordinates => {
+  return (
+    c !== null &&
+    typeof c === 'object' &&
+    typeof c.lat === 'number' &&
+    typeof c.lng === 'number' &&
+    !isNaN(c.lat) &&
+    !isNaN(c.lng) &&
+    c.lat >= -90 &&
+    c.lat <= 90 &&
+    c.lng >= -180 &&
+    c.lng <= 180 &&
+    (c.lat !== 0 || c.lng !== 0)
+  );
 };
 
 function MapController({
@@ -84,6 +100,7 @@ export interface MapProps {
   polyline?: string;
   polylines?: string[];
   routeCoordinates?: Coordinates[];
+  travelledCoordinates?: Coordinates[];
   recenterTrigger?: number;
   isFallbackRoute?: boolean;
   routeStatus?: 'road' | 'direct' | 'none';
@@ -107,6 +124,7 @@ const Map: React.FC<MapProps> = ({
   onMarkerClick,
   polyline,
   routeCoordinates,
+  travelledCoordinates,
   recenterTrigger,
   isFallbackRoute = false,
   routeStatus
@@ -122,20 +140,24 @@ const Map: React.FC<MapProps> = ({
     }
   }, [showUserLocation]);
 
-  let allRouteCoords: Coordinates[] = routeCoordinates ? [...routeCoordinates] : [];
-  if (polyline) allRouteCoords = decodePolyline(polyline);
+  const validTravelledCoords: Coordinates[] = (travelledCoordinates || []).filter(isValidCoord);
+
+  let rawRouteCoords: Coordinates[] = routeCoordinates ? [...routeCoordinates] : [];
+  if (polyline) {
+    try {
+      rawRouteCoords = decodePolyline(polyline);
+    } catch {
+      rawRouteCoords = [];
+    }
+  }
+  const validRouteCoords: Coordinates[] = rawRouteCoords.filter(isValidCoord);
 
   let bounds: L.LatLngBoundsExpression | undefined = undefined;
   const pointsToBound: [number, number][] = [];
-  if (allRouteCoords.length > 0) {
-    allRouteCoords.forEach(c => {
-      if (c && typeof c.lat === 'number' && typeof c.lng === 'number' && (c.lat !== 0 || c.lng !== 0)) {
-        pointsToBound.push([c.lat, c.lng]);
-      }
-    });
-  }
+  validTravelledCoords.forEach(c => pointsToBound.push([c.lat, c.lng]));
+  validRouteCoords.forEach(c => pointsToBound.push([c.lat, c.lng]));
   markers.forEach(m => {
-    if (m.position && typeof m.position.lat === 'number' && typeof m.position.lng === 'number' && (m.position.lat !== 0 || m.position.lng !== 0)) {
+    if (m.position && isValidCoord(m.position)) {
       pointsToBound.push([m.position.lat, m.position.lng]);
     }
   });
@@ -143,9 +165,11 @@ const Map: React.FC<MapProps> = ({
     bounds = L.latLngBounds(pointsToBound);
   }
 
-  const safeCenter = (center && typeof center.lat === 'number' && typeof center.lng === 'number')
+  const safeCenter = (center && isValidCoord(center))
     ? center
     : { lat: 12.9716, lng: 77.5946 };
+
+  const isDirectFallback = isFallbackRoute || routeStatus === 'direct';
 
   return (
     <Box sx={{ position: 'relative', height, width: '100%' }}>
@@ -163,7 +187,7 @@ const Map: React.FC<MapProps> = ({
           <Marker position={[userLocation.lat, userLocation.lng]} icon={getIconForType('current')} />
         )}
         {markers.map((marker) => {
-          if (!marker.position || (marker.position.lat === 0 && marker.position.lng === 0)) return null;
+          if (!marker.position || !isValidCoord(marker.position)) return null;
           return (
             <Marker
               key={marker.id}
@@ -182,26 +206,49 @@ const Map: React.FC<MapProps> = ({
             </Marker>
           );
         })}
-        {allRouteCoords.length > 1 && (
+
+        {/* Travelled Trail: Solid blue line indicating path already covered by the courier */}
+        {validTravelledCoords.length > 1 && (
           <Polyline
-            positions={allRouteCoords.map(c => [c.lat, c.lng])}
-            color={isFallbackRoute ? "#ff9800" : "#2196F3"}
-            dashArray={isFallbackRoute ? "8, 8" : undefined}
-            weight={isFallbackRoute ? 3 : 5}
+            positions={validTravelledCoords.map(c => [c.lat, c.lng])}
+            color="#1976D2"
+            weight={5}
+            opacity={0.9}
+          />
+        )}
+
+        {/* Remaining Planned Route: Visually distinct from travelled trail (dashed indigo/slate for road, dashed orange for direct fallback) */}
+        {validRouteCoords.length > 1 && (
+          <Polyline
+            positions={validRouteCoords.map(c => [c.lat, c.lng])}
+            color={isDirectFallback ? "#ff9800" : "#5C6BC0"}
+            dashArray={isDirectFallback ? "8, 8" : "6, 6"}
+            weight={isDirectFallback ? 3 : 4}
             opacity={0.85}
           />
         )}
       </MapContainer>
 
-      {routeStatus && routeStatus !== 'none' && (
+      {((validTravelledCoords.length > 1) || (routeStatus && routeStatus !== 'none')) && (
         <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1000, pointerEvents: 'none' }}>
-          <Chip
-            size="small"
-            label={routeStatus === 'road' ? 'Road Route Active' : 'Direct Path (Road Routing Offline)'}
-            color={routeStatus === 'road' ? 'primary' : 'warning'}
-            variant="filled"
-            sx={{ fontWeight: 600, boxShadow: 1 }}
-          />
+          <Stack direction="row" spacing={1}>
+            {validTravelledCoords.length > 1 && (
+              <Chip
+                size="small"
+                label="Travelled Trail"
+                sx={{ bgcolor: '#1976D2', color: '#fff', fontWeight: 600, boxShadow: 1 }}
+              />
+            )}
+            {routeStatus && routeStatus !== 'none' && (
+              <Chip
+                size="small"
+                label={routeStatus === 'road' ? 'Road Route Active' : 'Direct Path (Road Routing Offline)'}
+                color={routeStatus === 'road' ? 'primary' : 'warning'}
+                variant="filled"
+                sx={{ fontWeight: 600, boxShadow: 1 }}
+              />
+            )}
+          </Stack>
         </Box>
       )}
     </Box>

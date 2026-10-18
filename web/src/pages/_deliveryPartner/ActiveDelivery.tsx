@@ -63,6 +63,7 @@ const ActiveDelivery: React.FC = () => {
   const [recenterTrigger, setRecenterTrigger] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
   const [routeCoords, setRouteCoords] = useState<Coordinates[]>([]);
+  const [travelledCoords, setTravelledCoords] = useState<Coordinates[]>([]);
   const [routeStatus, setRouteStatus] = useState<'road' | 'direct' | 'none'>('direct');
 
   // Fetch partner state (active delivery + location + status) on mount and socket reconnect.
@@ -105,6 +106,26 @@ const ActiveDelivery: React.FC = () => {
     : (activeAssignment?.currentLocation && (activeAssignment.currentLocation.lat !== 0 || activeAssignment.currentLocation.lng !== 0)
       ? activeAssignment.currentLocation
       : pickupPos);
+
+  // Reset travelled coordinates when order changes
+  useEffect(() => {
+    setTravelledCoords([]);
+  }, [activeAssignment?.orderId]);
+
+  // Accumulate courier positions into travelled trail
+  useEffect(() => {
+    if (partnerPos && partnerPos.lat && partnerPos.lng && (partnerPos.lat !== 0 || partnerPos.lng !== 0)) {
+      setTravelledCoords((prev) => {
+        if (prev.length > 0) {
+          const last = prev[prev.length - 1];
+          if (Math.abs(last.lat - partnerPos.lat) < 1e-6 && Math.abs(last.lng - partnerPos.lng) < 1e-6) {
+            return prev;
+          }
+        }
+        return [...prev, partnerPos];
+      });
+    }
+  }, [partnerPos.lat, partnerPos.lng]);
 
   // Subscribe to order room
   useEffect(() => {
@@ -330,6 +351,7 @@ const ActiveDelivery: React.FC = () => {
               zoom={14}
               markers={markers}
               routeCoordinates={routeCoords}
+              travelledCoordinates={travelledCoords}
               isFallbackRoute={routeStatus === 'direct'}
               routeStatus={routeStatus}
               recenterTrigger={recenterTrigger}

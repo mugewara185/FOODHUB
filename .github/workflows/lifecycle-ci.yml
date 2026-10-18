@@ -1,0 +1,81 @@
+name: FoodHub Order Lifecycle & Map CI
+
+on:
+  push:
+    branches:
+      - dev/development
+      - main
+    paths:
+      - 'API/**'
+      - 'web/**'
+      - '.github/workflows/lifecycle-ci.yml'
+  pull_request:
+    branches:
+      - dev/development
+      - main
+    paths:
+      - 'API/**'
+      - 'web/**'
+      - '.github/workflows/lifecycle-ci.yml'
+
+jobs:
+  backend-lifecycle:
+    name: Backend Lifecycle & Invariants
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'API/package-lock.json'
+
+      - name: Install Backend Dependencies
+        working-directory: API
+        run: npm ci
+
+      - name: Compile Backend TypeScript
+        working-directory: API
+        run: npm run build
+
+      - name: Run Backend Lifecycle Integration Test Suite
+        working-directory: API
+        run: npm run test:lifecycle
+        env:
+          MONGO_URI: mongodb://127.0.0.1:27017/FOODHUB3_TEST
+          TEST_MONGO_URI: mongodb://127.0.0.1:27017/FOODHUB3_TEST
+          JWT_SECRET: ci_secret_for_lifecycle_testing_only_12345
+
+  frontend-lifecycle:
+    name: Frontend Lifecycle & Map Trail
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'web/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build Web Application
+        working-directory: web
+        run: npm run build
+
+      - name: Run Frontend Lifecycle & Map Test Suite
+        working-directory: web
+        run: npm run test:lifecycle

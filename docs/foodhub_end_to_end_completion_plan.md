@@ -19,6 +19,7 @@
 - Phase 14 — One-Click Live-Order Demo: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Prominent recruiter launch CTA on `/showcase` executing legitimate server-authoritative multi-actor state transitions (MongoDB persistence, Socket.IO broadcasts to order, kitchen, and partner rooms, simulated courier road traversal across Bangalore streets, manual/auto-handoff at `arrived_pickup`, deep links to Customer/Owner/Courier dashboards, and strict P0 test/dev data isolation preserving ordinary database records).
 - Phase 15 — Delivery Simulator Recovery & Synchronization Across Live Order Demo and Partner Active Delivery: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Shared idempotent simulation entry point (`startDeliverySimulation`), process restart recovery on API boot (`recoverActiveDeliveries`), request-level recovery in `dev.controller.ts` and `delivery.partner.routes.ts`, auto-handoff progression for persisted `arrived_pickup` demo orders, reconnect reconciliation, and bounded fallback polling in Partner Active Delivery and Showcase pages.
 - Phase 16 — Order Lifecycle Stabilization, Owner Order Rendering, Delivery Simulation Handoff & Cross-Role Chat: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Definitive resolution of 4 core defects: cross-role socket chat authorization & message routing, owner dashboard new-order socket listener registration & ID normalization, simulation handoff state machine compliance (`partner_assigned -> arrived_pickup -> picked_up`) and non-cardinal bearing updates, and delivery partner polling loop elimination when socket is connected.
+- Phase 17 — Lifecycle Regression Protection, Contract Ownership & Live Map Route Refinement: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Executable lifecycle invariants (`INV-1` through `INV-9`), automated GitHub Actions CI workflow (`.github/workflows/lifecycle-ci.yml`), formal contract documentation (`docs/foodhub_order_lifecycle_contract.md`), and refined shared map rendering distinguishing solid blue travelled courier trail (`#1976D2`) from dashed road routes (`#5C6BC0`) and direct offline fallbacks (`#ff9800`).
 
 ## EVIDENCE
 **API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
@@ -319,6 +320,42 @@ NotificationBell / Toast
   - **Verification Suites:**
     - Full Backend Integration Matrix: `41/41 PASS` across 5 test suites (`road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `demo-launch.integration.test.ts` 10/10).
     - Web Test Matrix: `27/27 PASS` across relevant test files (`liveOrderDemo.test.tsx` 4/4, `demoRecoverySynchronization.test.tsx` 8/8, `deliveryBugs.test.tsx` 7/7, `liveDeliveryAndChatFixes.test.tsx` 3/3, `orderSliceState.test.ts` 5/5).
+    - Production Builds: `API` build (tsc) PASS (exit code 0); `web` build (vite build) PASS (exit code 0).
+
+- **Lifecycle Regression Protection, Contract Ownership & Live Map Route Refinement (Phase 17 - dev/development):**
+  - **User-Confirmed Baseline State:**
+    - The user manually tested and confirmed that the four previously reported runtime problems are functioning as intended:
+      1. Cross-role order chat.
+      2. Owner dashboard live order rendering.
+      3. Delivery simulation after pickup handoff.
+      4. Delivery partner request/polling stability.
+    - These established user-observed behaviors are protected with executable regression guards and contract ownership without reopening or rewriting working implementations.
+  - **Protected Invariants & Contract Ownership (`docs/foodhub_order_lifecycle_contract.md`):**
+    - Established formal lifecycle contract document defining invariants `INV-1` through `INV-9`, ownership modules, enforcing test suites, and strict protected-change protocol.
+    - `INV-1` (Authoritative Order State): MongoDB state progression is canonical; client UI state never bypasses server transition rules.
+    - `INV-2` (Legal Delivery Transitions): `partner_assigned → arrived_pickup → picked_up → out_for_delivery → nearby → delivered`. Moving an order to `picked_up` while delivery is in `partner_assigned` steps sequentially through `arrived_pickup` first to satisfy Mongoose schema rules. Direct illegal transitions roll back safely.
+    - `INV-3` (Terminal-State Safety): Deliveries and orders in terminal states (`delivered`, `cancelled`) are permanently locked and refuse simulation restarts (`running: false, started: false, reason: 'terminal_status'`).
+    - `INV-4` (Idempotent Simulation): Concurrent simulation start requests are serialized via `startingSimulators` mutex and deduplicated via `activeSimulators` timer map.
+    - `INV-5` (Realtime Owner Order Rendering): Owner hook registers socket listeners immediately on mount without gating on `isConnected`, preventing dropped events during connection establishment.
+    - `INV-6` (Cross-Role Chat Authorization): Verified database ownership controls room joins and message delivery; client identity claims cannot override server authorization.
+    - `INV-7` (Partner Synchronization): Background polling is gated to disconnected states only (`!socketService.isConnected`), and `isLoading` is not set on background polls.
+    - `INV-8` (Authoritative Reconnect & Recovery): Server boots recover active deliveries via `recoverActiveDeliveries()`; clients reconcile on reconnect and advance monotonically.
+    - `INV-9` (Live Map Route & Trail Distinction): Courier's travelled trail is rendered as solid blue (`#1976D2`), remaining road routes as dashed indigo/slate (`#5C6BC0`), and direct fallbacks as dashed orange (`#ff9800`) with truthful status indicators.
+  - **Automated CI Workflow (`.github/workflows/lifecycle-ci.yml`):**
+    - Added GitHub Actions workflow running on pushes and PRs to `dev/development` and `main`.
+    - Backend job compiles TypeScript (`npm run build`) and executes `npm run test:lifecycle` against a containerized MongoDB service with dedicated test DB variables.
+    - Frontend job compiles web bundle (`npm run build`) and executes `npm run test:lifecycle`.
+  - **Live Map Route & Trail Refinement (`Map.tsx`, `ActiveDelivery.tsx`, `InteractiveDemos.tsx`, `LiveDeliveryTracker.tsx`):**
+    - Extended `MapProps` with `travelledCoordinates?: Coordinates[]`.
+    - Travelled Trail Polyline: solid blue (`#1976D2`), weight 5, opacity 0.9, no dashArray.
+    - Remaining Road Route Polyline: dashed indigo/slate (`#5C6BC0`, `dashArray: '6, 6'`, weight 4, opacity 0.85).
+    - Direct Fallback Line: dashed orange (`#ff9800`, `dashArray: '8, 8'`, weight 3, opacity 0.85).
+    - Status Indicators: Stacked top-right chips showing "Travelled Trail" (solid blue) alongside truthful "Road Route Active" or "Direct Path (Road Routing Offline)".
+    - Safe Fallback: Invalid coordinates (NaN, out-of-range latitude/longitude, {0,0}) and single-point arrays are filtered out via `isValidCoord` without crashing or producing invalid Leaflet layers.
+    - Consumers: `ActiveDelivery.tsx`, `InteractiveDemos.tsx`, and `LiveDeliveryTracker.tsx` accumulate accepted courier locations into `travelledCoords` and pass `travelledCoordinates` to `Map`.
+  - **Verification Suites:**
+    - Backend Lifecycle Suite (`npm run test:lifecycle` in `API`): `44/44 PASS` across 6 test suites (`lifecycle-invariants.integration.test.ts` 3/3, `road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `demo-launch.integration.test.ts` 10/10).
+    - Frontend Lifecycle Suite (`npm run test:lifecycle` in `web`): `40/40 PASS` across 7 test suites (`Map.test.tsx` 7/7, `useOwnerSocket.test.tsx` 6/6, `liveOrderDemo.test.tsx` 4/4, `demoRecoverySynchronization.test.tsx` 8/8, `deliveryBugs.test.tsx` 7/7, `liveDeliveryAndChatFixes.test.tsx` 3/3, `orderSliceState.test.ts` 5/5).
     - Production Builds: `API` build (tsc) PASS (exit code 0); `web` build (vite build) PASS (exit code 0).
 
 ## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)

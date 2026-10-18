@@ -9,7 +9,8 @@
     "build:typecheck": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:lifecycle": "vitest run src/shared/components/maps/__tests__/Map.test.tsx src/features/orders/__tests__/useOwnerSocket.test.tsx src/features/showcase/__tests__/liveOrderDemo.test.tsx src/features/showcase/__tests__/demoRecoverySynchronization.test.tsx src/features/deliveryPartner/__tests__/deliveryBugs.test.tsx src/features/orders/__tests__/liveDeliveryAndChatFixes.test.tsx src/features/orders/__tests__/orderSliceState.test.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

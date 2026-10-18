@@ -396,6 +396,22 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
 
   const mapCenter = location || resLoc;
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinates[]>([resLoc, cusLoc]);
+  const [travelledCoords, setTravelledCoords] = useState<Coordinates[]>([]);
+  const [routeStatus, setRouteStatus] = useState<'road' | 'direct' | 'none'>('direct');
+
+  useEffect(() => {
+    if (location && location.lat && location.lng && (location.lat !== 0 || location.lng !== 0)) {
+      setTravelledCoords((prev) => {
+        if (prev.length > 0) {
+          const last = prev[prev.length - 1];
+          if (Math.abs(last.lat - location.lat) < 1e-6 && Math.abs(last.lng - location.lng) < 1e-6) {
+            return prev;
+          }
+        }
+        return [...prev, location];
+      });
+    }
+  }, [location?.lat, location?.lng]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -403,9 +419,14 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
       .then((res) => {
         if (!isCancelled && res.coordinates.length > 1) {
           setRouteCoordinates(res.coordinates);
+          setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!isCancelled) {
+          setRouteStatus('direct');
+        }
+      });
     return () => {
       isCancelled = true;
     };
@@ -502,7 +523,15 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, lg: 8 }}>
           <Paper sx={{ p: 0, overflow: 'hidden', borderRadius: 3, height: 400, position: 'relative' }}>
-            <Map center={mapCenter} zoom={15} markers={markers} routeCoordinates={routeCoordinates} />
+            <Map
+              center={mapCenter}
+              zoom={15}
+              markers={markers}
+              routeCoordinates={routeCoordinates}
+              travelledCoordinates={travelledCoords}
+              isFallbackRoute={routeStatus === 'direct'}
+              routeStatus={routeStatus}
+            />
           </Paper>
         </Grid>
 
