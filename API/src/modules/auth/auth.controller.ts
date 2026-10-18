@@ -66,8 +66,8 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     let user = (await User.findOne({ email: new RegExp(`^${body.email}$`, 'i') })
       .select('+password')) as IUser | null;
 
-    // Auto-provision dedicated demo participants in non-production environments if requested
-    if (!user && config.nodeEnv !== 'production' && process.env.NODE_ENV !== 'production') {
+    // Auto-provision dedicated demo participants on demand if requested
+    if (!user) {
       const isDemoEmail = Object.values(DEMO_FIXTURE_EMAILS).some(
         (email) => email.toLowerCase() === body.email?.toLowerCase()
       );

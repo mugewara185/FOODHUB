@@ -13,6 +13,15 @@
 - Phase 8 — Live Tracking Demo & Concurrency Hardening: Build, Runtime & E2E-verified.
 - Phase 9 — Cross-domain Socket Chat & E2E Safety Hardening: Build, Runtime & E2E-verified.
 - Phase 10 — Deployment Readiness (Azure SWA + Render): Code & Build-verified; Pending Cloud Provisioning.
+- Phase 11 — Showcase-First Experience: Build, Runtime & Vitest-verified. Interactive multi-actor topology grid, component version swapper, telemetry console, honest status classification, and recruiter quick-scan.
+- Phase 12 — Partner Delivery UI, Live Route Map, Progress State & Chat Hardening: Build, Runtime & Integration-verified on `dev/development`. Clean OpenStreetMap tiles, bounded OSRM road routing with instant straight-line fallback, canonical progress stepper, multi-actor tabbed chat with authorization, and fail-closed database safety.
+- Phase 13 — Definitive Fix for Owner ETA (`arrived_pickup`), Partner Origin Near Restaurant, Partner Active-Delivery Synchronization & Full 6-Direction Cross-Role Chat: Build, Unit/Integration, Backend Multi-Actor & Browser E2E-verified on `dev/development`.
+- Phase 14 — One-Click Live-Order Demo: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Prominent recruiter launch CTA on `/showcase` executing legitimate server-authoritative multi-actor state transitions (MongoDB persistence, Socket.IO broadcasts to order, kitchen, and partner rooms, simulated courier road traversal across Bangalore streets, manual/auto-handoff at `arrived_pickup`, deep links to Customer/Owner/Courier dashboards, and strict P0 test/dev data isolation preserving ordinary database records).
+- Phase 15 — Delivery Simulator Recovery & Synchronization Across Live Order Demo and Partner Active Delivery: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Shared idempotent simulation entry point (`startDeliverySimulation`), process restart recovery on API boot (`recoverActiveDeliveries`), request-level recovery in `dev.controller.ts` and `delivery.partner.routes.ts`, auto-handoff progression for persisted `arrived_pickup` demo orders, reconnect reconciliation, and bounded fallback polling in Partner Active Delivery and Showcase pages.
+- Phase 16 — Order Lifecycle Stabilization, Owner Order Rendering, Delivery Simulation Handoff & Cross-Role Chat: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Definitive resolution of 4 core defects: cross-role socket chat authorization & message routing, owner dashboard new-order socket listener registration & ID normalization, simulation handoff state machine compliance (`partner_assigned -> arrived_pickup -> picked_up`) and non-cardinal bearing updates, and delivery partner polling loop elimination when socket is connected.
+- Phase 17 — Lifecycle Regression Protection, Contract Ownership & Live Map Route Refinement: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Executable lifecycle invariants (`INV-1` through `INV-9`), automated GitHub Actions CI workflow (`.github/workflows/lifecycle-ci.yml`), formal contract documentation (`docs/foodhub_order_lifecycle_contract.md`), and refined shared map rendering distinguishing solid blue travelled courier trail (`#1976D2`) from dashed road routes (`#5C6BC0`) and direct offline fallbacks (`#ff9800`).
+- Phase 17 Follow-up — Remaining-Route Semantics, Fallback Status Integrity & CI Container Hardening: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Corrected post-pickup route origin from courier position across `InteractiveDemos`, `ActiveDelivery`, and `LiveDeliveryTracker`. Eliminated spurious GPS-tick OSRM requests via distance gating (>250m) and start-point polyline smoothing (`smoothRouteOrigin`). Fixed immediate fallback status (`'direct'`) and containerized MongoDB service readiness flags in CI.
+- Phase 18 — Safe Production Public Live-Order Demonstration: Build, Backend Integration, Frontend Component & Lifecycle-verified on `dev/development`. Decoupled public demonstration endpoints (`/api/demo/active-order`, `/api/demo/launch-live-order`, `/api/demo/confirm-handoff`) from dev-only admin tools. Preserved strict production 403 blocks on dangerous internal endpoints (`/api/dev/db-info`, `/api/dev/seed-factory-data`, `/api/dev/assign-partner`). Dual-mounted routes (`/api/demo/*` and backwards-compatible `/api/dev/demo/*`) without dev tools exposure. Unlocked demo credentials in production auth for dedicated fixtures (`isDemo: true`) while non-demo users remain guarded. Added frontend fallback routing in `InteractiveDemos` and mock support in `ApiSimulator`.
 
 ## EVIDENCE
 **Backend Integration Verification**
@@ -129,6 +138,296 @@ NotificationBell / Toast
   - CORS Origin Resolution: PASS (Flexible multi-origin resolver in `API/src/config/corsOrigin.ts` handles comma-separated origins and Azure Static Web Apps domains for both HTTP and Socket.IO)
   - Frontend Production Configuration: PASS (Production data source defaults to `api`; `socketUrl` automatically falls back to origin of `baseUrl` when omitted; `staticwebapp.config.json` excludes `/api/*` from SPA fallback and blocks `/dev/*` with 404)
   - Hosted Infrastructure Status: PENDING (Cloud provisioning required on Azure Static Web Apps and Render; public URLs not yet assigned)
+
+- **Showcase-First Experience (Phase 11):**
+  - Architecture Topology Grid: PASS (Interactive 5-node actor map Customer, Owner, Partner, Admin, Dev Core rendering live event loops, event channels, and contract schemas).
+  - Interactive In-Browser Demos: PASS
+    - GPS Tracking Simulator: Interactive stepped Leaflet map projection with courier marker interpolation.
+    - Component Version Swapper: In-browser hot-swapping across `Home_V`, `Home_V2`, and `Home_V3` demonstrating `DevVersionRenderer`.
+    - Live Telemetry & Logger: Dynamic subscription to `logger.subscribe()` with interactive trigger buttons for API, Socket, and Redux trace events.
+  - Engineering Trade-Offs Accordion: PASS (5 deep-dive technical breakdowns: Atomic Transitions, Envelope Normalization, Dynamic Versioning, Socket Listener Cleanup, and Puppeteer Multi-Context E2E).
+  - Recruiter Quick-Scan Mode: PASS (2-minute high-density summary toggle with key metric highlights, actor capabilities, and deep dive links).
+  - Truthful Status Tags: PASS (Strict categorization into Verified E2E, Deterministic Simulation, Dual Transport, and Architectural Prototype).
+  - Unit & Integration Test Suite: PASS (`src/features/showcase/__tests__/showcase.test.tsx` 9/9 tests pass; verified source file existence on disk, status tag validity, credential absence, and rendering).
+  - Full Regression Test Suite: PASS (`src/features/showcase/`, `src/features/deliveryPartner/`, `src/features/orders/` 21/21 tests pass).
+  - TypeScript Type Check: PASS (`npx tsc --noEmit` 0 errors).
+  - Frontend Production Build: PASS (`npm run build` in `web` compiles cleanly in 1m 11s, exit code 0).
+
+- **Partner Delivery UI, Live Route Map, Progress State & Chat Hardening (Phase 12 - dev/development):**
+  - **Clean OpenStreetMap Standard Tiles:** PASS (`web/src/shared/components/maps/Map.tsx` switched from CartoDB to OpenStreetMap `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`, completely removing the API-key watermark placeholder; preserves Flaticon courier marker URL `3209865`).
+  - **Bounded Road Routing with Instant Straight-Line Fallback:** PASS (`web/src/core/utils/location.ts` implements `fetchRoadRoute` with strict 2.5s `AbortController` timeout and memoized cache; immediately paints direct straight-line fallback, upgrading to road path when available without blocking map render).
+  - **Distinct Partner Navigation Markers & Simulator Tracking:** PASS (`ActiveDelivery.tsx` renders separate restaurant pickup, customer dropoff, and live partner courier markers with dynamic coordinates updated by live simulation ticks).
+  - **Canonical Partner Progress Lifecycle:** PASS (Fixed MUI Stepper off-by-one bug `activeStep={activeStep}`; accurately reflects canonical states: 0: `partner_assigned`, 1: `arrived_pickup`, 2: `picked_up`, 3: `out_for_delivery`/`nearby`, 4: `delivered`; preserves terminal delivered view with completion banner and dashboard exit).
+  - **Full Partner State Hydration:** PASS (`API/src/modules/delivery/delivery.partner.routes.ts` `/me` endpoint populates `orderId` and `restaurantId`, returning customer name, restaurant address, dropoff address, items, and coordinates).
+  - **Cross-Domain Tabbed Socket Chat:** PASS (`OrderChat.tsx` supports multi-actor tabbed recipient switching across Partner ↔ Customer/Restaurant, Owner ↔ Customer/Driver, Customer ↔ Restaurant/Driver; optimistic UI rendering, Socket.IO broadcast, and persistence in `Order.chatMessages`).
+  - **Strict Chat Authorization & Security:** PASS (`API/src/socket.ts` `isUserAuthorizedForOrder` and `order.controller.ts` `getOrderChat` enforce that only the order customer, restaurant owner, assigned partner, or admin can read/write chat; unauthorized users rejected with HTTP 403 / socket error).
+  - **Fail-Safe Chat Persistence:** PASS (`order:chat:send` validates payload, binds sender strictly to authenticated user, enforces order authorization, and broadcasts via Socket.IO only AFTER successful MongoDB persistence; failed persistence emits error and aborts broadcast).
+  - **Hardened Partner Location Socket Authorization (P0):** PASS (`partner:location_updated` strictly verifies authenticated user with partner role, resolves `DeliveryPartner` exclusively from user identity without trusting client `partnerId`, validates geographic coordinate bounds, verifies delivery assignment ownership, rejects spoofing/unauthorized payloads without modifying DB or broadcasting, and emits `delivery:location` only after successful database persistence).
+  - **Fail-Closed Non-Test DB Safety:** PASS (Verified `/api/dev/db-info` identifies non-test DB; fail-closed safety guard halts integration and browser E2E tests if active DB lacks `test`/`e2e`; all tests ran strictly against isolated `FOODHUB3_TEST`).
+  - **Backend Integration Tests:** PASS (`socket-authorization.integration.test.ts` 8/8 PASS, `simulator-concurrency.integration.test.ts` 3/3 PASS, `simulator-handoff.integration.test.ts` 4/4 PASS; total 15/15 delivery & socket integration tests PASS).
+  - **Full Multi-Actor Browser E2E Verification:** PASS (`web/e2e.ts` automated Puppeteer run verified 100% green across 4 browser contexts: Customer places order → Owner marks Preparing & Ready → Partner accepts & active delivery view renders OpenStreetMap with pickup, customer, and partner markers → Partner marker moves live via simulator ticks → Two-way Partner ↔ Customer live chat confirmed → Chat persistence confirmed after reload → Stepper state confirmed preserved across refresh → Owner handoff confirmed → Customer reflects in-transit/delivered → Admin table row isolated to Delivered → Order document reaches delivered).
+  - **Build Verification:** PASS (`npm run build` in `API` passes `tsc` with 0 errors; `npm run build` in `web` compiles cleanly in 1m 13s, exit code 0).
+
+- **Definitive Fix for Owner ETA, Partner Origin, Partner Active-Delivery Sync & 6-Way Cross-Role Chat (Phase 13 - dev/development):**
+  - **Fix A — Owner & Customer ETA at `arrived_pickup`:** PASS
+    - *Root Cause:* When the simulator reached the restaurant (`arrived_pickup`), it set `etaSeconds = 0`, and `LiveDeliveryTracker.tsx` rendered `etaSeconds > 0 ? formatDuration(etaSeconds) : 'Calculating...'`. Additionally, `getOrderById`, `getUserOrders`, and `getOwnerOrders` did not enrich order documents with active `Delivery` metadata (`deliveryStatus`, `partner`, `currentLocation`, `etaSeconds`, `distanceRemainingMeters`), leaving reloaded or newly opened Owner/Customer tracking modals unhydrated.
+    - *Fix:* Added `enrichOrdersWithDeliveryData` in `API/src/modules/orders/order.controller.ts` and updated `LiveDeliveryTracker.tsx` to hydrate from props, Redux `currentOrder`, and `GET /api/orders/:id` (on mount and socket reconnect), displaying `"Partner arrived at restaurant"` and `"0m (At restaurant)"` whenever `status === 'arrived_pickup'` or `deliverySubStatus === 'arrived_pickup'` (never `"Calculating..."`).
+  - **Fix B — Partner Origin Near Restaurant Pickup:** PASS
+    - *Root Cause:* `POST /api/delivery/partner/:orderId/accept` and `delivery.service.ts` copied `partner.currentLocation` verbatim even when it held a stale coordinate from a previous customer drop-off or `[0, 0]`.
+    - *Fix:* Implemented deterministic `computeInitialPartnerOrigin(pickupCoords, seedKey)` in `API/src/modules/delivery/delivery.simulator.ts` (~470m–710m away across 8 compass bearings, never `[0,0]` and never customer drop-off) and persisted it to both `Delivery.currentLocation` and `DeliveryPartner.currentLocation` (unless `useRealPartnerLocation` is explicitly requested), plus immediate `delivery:location` broadcast on accept.
+  - **Fix C — Partner Active Delivery Synchronization:** PASS
+    - *Root Cause:* `GET /api/delivery/partner/me` queried `Delivery.findOne` without sorting by `{ createdAt: -1 }`; `fetchPartnerStateThunk.fulfilled` mapped `status === 'assigned'` to `'OFFLINE'`; `acceptAssignmentThunk.fulfilled` did not hydrate `state.currentLocation` or `state.activeAssignment.currentLocation`; and `ActiveDelivery.tsx` unmounted the map/chat during background refreshes when `isLoading` toggled true.
+    - *Fix:* Sorted `activeDelivery` by `{ createdAt: -1 }` in `GET /api/delivery/partner/me`; hydrated `currentLocation`, `pickupLocation`, `dropoffLocation`, `etaSeconds`, and `distanceRemainingMeters` in `deliveryPartnerSlice.ts`; updated `ActiveDelivery.tsx` to sync on socket reconnect without unmounting (`if (isLoading && !activeAssignment)`), update route legs dynamically, and show live coordinates/status-aware ETA.
+  - **Fix D — Full 6-Direction Cross-Role Chat & Race-Free History Merge:** PASS
+    - *Root Cause:* `SocketService` dropped `join_order_room` calls and listeners registered before socket connection completed; `OrderChat.tsx` and `orderSlice.ts` overwrote `localMessages`/`chatMessages` when `GET /orders/:id/chat` resolved after a live socket message arrived; and role aliases (`customer`/`user`, `restaurant`/`owner`, `driver`/`partner`) were not normalized consistently.
+    - *Fix:* Persisted `activeOrderRooms` and `registeredListeners` across pre-connect and reconnects in `web/src/services/socket.ts`; normalized sender/target roles and delivered `order:chat:message` to all connected authorized order participants in `API/src/socket.ts`; and implemented deterministic `mergeChatMessages` deduplication in `OrderChat.tsx` and `orderSlice.ts`.
+  - **Verification Suites:**
+    - Backend Integration Tests: `25/25 PASS` (`road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `simulator-handoff.integration.test.ts` 4/4, `simulator-concurrency.integration.test.ts` 3/3).
+    - Frontend Unit/Integration Tests: `15/15 PASS` (`liveDeliveryAndChatFixes.test.tsx` 3/3, `deliveryBugs.test.tsx` 7/7, `orderSliceState.test.ts` 5/5).
+    - Full Multi-Actor Puppeteer Browser E2E (`web/e2e.ts`): `PASS (exit code 0)` verifying all 6 chat directions (`Customer <-> Owner`, `Customer <-> Partner`, `Owner <-> Partner`) with zero duplicate bubbles, partner origin near restaurant (`{"lat":12.976883,"lng":77.59155}`), Owner tracking modal showing `"Partner arrived at restaurant"` (never `"Calculating..."`), moving Leaflet markers on both Partner and Customer maps, reload persistence, non-zero delivery duration, and isolated `FOODHUB3_TEST` cleanup.
+- **One-Click Live-Order Demo (Phase 14 - dev/development):**
+  - **Launch Action on Engineering Showcase (`/showcase`):** PASS
+    - Added high-visibility `▶ Launch Live Order Demo` CTA in `web/src/features/showcase/components/ShowcaseHero.tsx` and interactive demo controller in `InteractiveDemos.tsx` (Tab 0).
+    - Hero CTA scrolls smoothly to `#interactive-demos` and triggers demo launch automatically via `launchTrigger` state pipeline in `web/src/pages/Showcase/index.tsx`.
+  - **Server-Authoritative Multi-Actor Lifecycle Progression:** PASS
+    - Dev controller endpoint `POST /api/dev/demo/launch-live-order` steps through real order states via canonical `transitionOrderStatus` (`order.service.ts`): `pending_owner` → `confirmed` → `preparing` → `ready_for_pickup` → `partner_assigned`.
+    - Creates genuine MongoDB records: `Order` (`isDemo: true`), `Delivery` (`isDemo: true`), assigned to dedicated demo courier partner near restaurant origin.
+    - Emits real Socket.IO events to order room (`order_status_update`, `delivery:location`, `delivery:status`), merchant owner room (`order:status_changed`), customer user room, and fleet room.
+    - Automatically spawns `startDeliverySimulation` to step realistic courier road coordinates across Bangalore streets.
+  - **Dedicated Demo Participant Isolation & Zero Mutation to Ordinary Data (P0):** PASS
+    - Strict Participant Isolation: Live-order demo operates exclusively on dedicated demo fixtures (`isDemo: true`) identified by deterministic fixed IDs (`DEMO_FIXTURE_IDS`) and emails (`DEMO_FIXTURE_EMAILS`).
+    - Dedicated Entities: Demo Customer (`demo-customer@foodhub.test`), Demo Restaurant Owner (`demo-owner@foodhub.test`), Demo Restaurant (`FoodHub Demo Kitchen`, Bangalore Indiranagar), and Dedicated Demo Delivery Partner (`Vikram Demo Courier`, `demo-partner@foodhub.test`).
+    - Schema Flags: `isDemo: { type: Boolean, default: false, index: true }` added to `User`, `Restaurant`, and `DeliveryPartner` schemas.
+    - Zero Non-Demo Mutation: Ordinary restaurants are never selected, their `ownerId` is never reassigned, and ordinary delivery partners are never modified or reset in status, location, or assignment.
+    - Fail-Closed Collision Guard: Rejects any fixture ID/email collision with ordinary (non-demo) records with HTTP 409 Conflict.
+  - **Endpoint Access Control, Rate Limiting & Privacy Sanitization:** PASS
+    - Public Sliding-Window Rate Limiter: Enforces a maximum of 10 launch requests per minute per IP on `POST /api/dev/demo/launch-live-order` (HTTP 429 Too Many Requests).
+    - Strict Endpoint Authorization: `POST /api/dev/demo/confirm-handoff` strictly rejects non-demo orders with HTTP 403 Forbidden even if `orderId` is provided and status matches `arrived_pickup`.
+    - Data Sanitization: `GET /api/dev/demo/active-order` filters strictly on `{ isDemo: true }` and returns sanitized participant profiles with public display fields only (passwords, emails, phones, tokens, and unrelated user records are completely excluded).
+    - Production Guard: All demo endpoints fail closed with HTTP 403 Forbidden when `NODE_ENV === 'production'`.
+  - **Kitchen Handoff Interaction & Safety Auto-Handoff:** PASS
+    - When courier arrives at kitchen (`arrived_pickup`), UI displays prominent warning alert with countdown timer and interactive `⚡ Hand Off Food Now` override button.
+    - Manual button or 3-second safety timer invokes server-authoritative `POST /api/dev/demo/confirm-handoff` which invokes canonical `transitionOrderStatus` to `picked_up` with `{ id: 'system', role: 'system' }`, advancing delivery and order atomically to resume courier progress toward customer drop-off.
+  - **Live Interactive Leaflet Map & Synchronized Multi-Actor Deep Links:** PASS
+    - Embedded Leaflet OpenStreetMap in `InteractiveDemos.tsx` renders restaurant pickup marker, customer dropoff marker, and live moving courier marker driven by real-time `delivery:location` socket ticks.
+    - Real-time telemetry cards display Order ID, Restaurant name/address, Courier Partner contact info, Remaining distance, and dynamic status-aware ETA.
+    - Deep link buttons allow technical reviewers to open synchronized live interfaces in separate tabs:
+      - Customer Live Tracking (`/orders/tracking/:id`)
+      - Merchant Kitchen View (`/owner`)
+      - Courier Navigation View (`/partner/active`)
+    - Terminal delivered banner displays actual elapsed transit minutes and one-click re-launch action.
+  - **Verification Suites:**
+    - Backend Integration Tests: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (9/9 tests PASS) verifying:
+      1. Production Guard (HTTP 403 when NODE_ENV=production)
+      2. Restaurant Owner Isolation (zero mutation to existing non-demo restaurants and owners)
+      3. Delivery Partner Isolation (zero mutation to existing non-demo couriers, status, or locations)
+      4. Idempotency & In-Flight Mutex (HTTP 409 on concurrent launches, HTTP 200 with existing order on duplicate launch)
+      5. Public Privacy Sanitization (zero leak of passwords, emails, phones, or unrelated user data)
+      6. Non-Demo Handoff Rejection (HTTP 403 Forbidden on ordinary order handoff requests)
+      7. Legitimate Demo Kitchen Handoff (HTTP 200 and transition to picked_up)
+      8. IP Sliding-Window Rate Limiting (HTTP 429 on excessive launch requests)
+      9. Ordinary Customer/Owner/Partner Data Preservation (ordinary records untouched across demo lifecycle)
+    - Delivery Simulator Integration Tests: `25/25 PASS` with isolated `FOODHUB3_TEST` DB (`simulator-handoff.integration.test.ts`, `simulator-concurrency.integration.test.ts`, `road-simulator-chat.integration.test.ts`, `socket-authorization.integration.test.ts`).
+    - Frontend Component & Showcase Tests: `web/src/features/showcase/__tests__/liveOrderDemo.test.tsx` (4/4 tests PASS) and `web/src/features/showcase/__tests__/showcase.test.tsx` (10/10 tests PASS) verifying idle state, demo launch, telemetry rendering, stage stepper, deep link attributes, kitchen handoff banner/interaction, socket delivery status updates, and delivered completion banner.
+    - Build Matrix: `npm --prefix API run build` (tsc) PASS (exit code 0), `npm --prefix web run build` (vite build) PASS (exit code 0).
+
+- **Delivery Simulator Recovery & Synchronization Across Live Order Demo and Partner Active Delivery (Phase 15 - dev/development):**
+  - **Root Cause Confirmed from Code:**
+    - *Loss of In-Memory Simulator Timers on Restart:* Simulator timers were stored strictly in process memory (`Map<string, NodeJS.Timeout>`). Whenever the API server restarted or hot-reloaded, persisted MongoDB deliveries remained in `partner_assigned`, `arrived_pickup`, `picked_up`, or `out_for_delivery`, but their timers were gone, permanently freezing courier progress.
+    - *Demo Early Return Path Omission:* When `launchLiveOrderDemo` detected an active demo order, it returned the existing order and delivery immediately without invoking `startDeliverySimulation` and omitted `restaurant`, `customer`, and `partner` objects, leaving the showcase demo frozen at Stage 5.
+    - *Partner Page Missing Recovery Trigger:* The partner active delivery endpoint (`GET /api/delivery/partner/me`) fetched the partner's active delivery but never checked or resumed simulation timers.
+    - *Stuck `arrived_pickup` State on Resume:* The simulator's auto-handoff progression for demo orders was only scheduled when transitioning from `partner_assigned` into `arrived_pickup`. If an API restart occurred while persisted at `arrived_pickup`, the handoff timer was lost and never re-scheduled.
+    - *Missing Frontend Reconnection Trigger:* `socketService.onStatusChange` was missing in `web/src/services/socket.ts`, causing `ActiveDelivery.tsx` and `OrderChat.tsx` to silently fail to register reconnect listeners.
+  - **Architectural Recovery Solutions Implemented:**
+    - *1. Authoritative Shared Entry Point (`API/src/modules/delivery/delivery.simulator.ts`):*
+      - `startDeliverySimulation(deliveryId)` hardened as an idempotent start/resume entry point.
+      - Concurrency mutex (`startingSimulators`) blocks start races; `activeSimulators` prevents duplicate timers.
+      - Refuses to start terminal deliveries (`delivered`, `cancelled`) or ineligible states.
+      - Resumes seamlessly from existing persisted location waypoints for intermediate states (`picked_up`, `out_for_delivery`, `nearby`).
+      - Safely handles missing deliveries or missing partner records without throwing unhandled exceptions.
+      - Safe event emission prevents non-socket test suites from crashing on `getIO()`.
+    - *2. Server Startup Recovery (`API/src/server.ts`):*
+      - Invokes `recoverActiveDeliveries()` on API startup after database connection and Socket.IO initialization.
+      - Scans for all non-terminal active deliveries (`status: { $in: ['partner_assigned', 'arrived_pickup', 'picked_up', 'out_for_delivery', 'nearby'] }`) and safely resumes simulations.
+    - *3. Live Order Demo Path Hardening (`API/src/modules/dev/dev.controller.ts`):*
+      - In `launchLiveOrderDemo`: When reusing an existing active demo order, invokes `await startDeliverySimulation(...)` and populates complete display metadata (`restaurant`, `customer`, `partner`).
+      - In `getActiveDemoOrder`: Validates non-terminal state and calls `startDeliverySimulation(...)` as a resilient safety net.
+    - *4. Delivery Partner Path Hardening (`API/src/modules/delivery/delivery.partner.routes.ts`):*
+      - In `GET /me`: When resolving the authenticated partner's active assignment, safely ensures the simulation is running via `startDeliverySimulation(...)`.
+      - Unauthorized partners cannot see or resume another partner's delivery (strictly scoped to authenticated JWT partner ID).
+    - *5. Auto-Handoff Recovery at `arrived_pickup`:*
+      - Implemented `scheduleDemoHandoffIfEligible(deliveryId, orderId)`.
+      - When simulation resumes while a demo delivery is already persisted at `arrived_pickup`, schedules the 3s auto-handoff progression to `picked_up`.
+    - *6. Frontend Reconnection & Authoritative State Reconciliation:*
+      - Added `onStatusChange` alias on `SocketService` (`web/src/services/socket.ts`) returning an unsubscribe callback.
+      - In `ActiveDelivery.tsx`: Re-fetches partner state on socket reconnect, with a bounded 6s fallback reconciliation interval while delivery is active.
+      - In `InteractiveDemos.tsx`: Implemented `fetchActiveOrderState`, safe forward stage progression (preventing out-of-order stage regression), reconnect refetch, and bounded 5s fallback polling.
+    - *7. Concurrency & Ownership Constraints:*
+      - Documented single-instance Node.js architecture with in-memory timer maps and compare-and-set MongoDB status transitions (`status: { $in: [...] }`).
+    - *8. Handoff Idempotency & Clean Event Teardown (Refinement):*
+      - Exported `clearPendingHandoff(deliveryId)` in `delivery.simulator.ts`.
+      - In `confirmDemoHandoff`: If order or delivery is already in `picked_up` or subsequent states, returns HTTP 200 with `{ alreadyHandedOff: true }` without throwing or corrupting state. Clears server-side pending handoff timer so manual confirmation and auto-handoff never issue competing transitions.
+      - Refactored `InteractiveDemos.tsx` to isolate the socket connection lifecycle from the order room listeners, properly calling `socketService.offConnectionChange` on unmount to eliminate listener memory leaks.
+  - **Verification Suites:**
+    - Simulator Recovery Integration Suite: `API/src/modules/delivery/__tests__/simulator-recovery.integration.test.ts` (9/9 tests PASS) verifying single-timer idempotency, absent timer resumption, terminal delivery rejection, error handling, intermediate state preservation, `recoverActiveDeliveries` database scan, authenticated partner `/me` recovery, and partner isolation.
+    - Dev Demo Launch Regression Suite: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (10/10 tests PASS) verifying simulation resumption on duplicate launch, full payload return, and idempotent duplicate kitchen handoff confirmation.
+    - Full Delivery Test Matrix: `44/44 PASS` (`simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `simulator-concurrency.integration.test.ts` 3/3, `road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `demo-launch.integration.test.ts` 10/10).
+    - Web Showcase Suite: `22/22 PASS` (`liveOrderDemo.test.tsx` 4/4, `showcase.test.tsx` 10/10, `demoRecoverySynchronization.test.tsx` 8/8).
+    - Web Delivery Partner Suite: `7/7 PASS` (`deliveryBugs.test.tsx` 7/7).
+    - Total Frontend Matrix: `29/29 PASS` across 4 test suites.
+    - Build Matrix: `npm --prefix API run build` (tsc) PASS (exit code 0), `npm --prefix web run build` (vite build) PASS (exit code 0).
+
+- **Order Lifecycle Stabilization, Owner Order Rendering, Delivery Simulation Handoff & Cross-Role Chat (Phase 16 - dev/development):**
+  - **Root Causes Diagnosed from Code:**
+    - *1. Cross-Role Chat Authorization Failure & Message Routing Bleed:*
+      - In `API/src/socket.ts` and `API/src/modules/orders/order.controller.ts`, authorization required restaurant owners to have `owner` in their JWT `roles` array even if `restaurant.ownerId === user.id`. For delivery partners, `isUserAuthorizedForOrder` compared `delivery.partnerId.toString() === user.id`, which failed when `user.id` is the partner's User record ID rather than the DeliveryPartner document ID.
+      - In `web/src/services/socket.ts`, `sendOrderChatMessage` omitted the `auth` payload, causing message rejects in dev bypass scenarios. In `web/src/shared/components/OrderChat/OrderChat.tsx`, messages without explicit recipients or target roles were not properly scoped, leaking across role tabs.
+    - *2. Owner Dashboard Missing Socket Order Rendering:*
+      - In `web/src/features/orders/hooks/useOwnerSocket.ts`, an eager guard (`if (!isConnected) return;`) prevented registration of `onOrderStatusChanged`, `onOrderNew`, and `onDeliveryStatusChanged` until after initial connection events had fired. New orders arriving during setup were dropped.
+      - In `web/src/features/orders/api/orderApi.ts` and `web/src/pages/_ownerPages/DashBoard.tsx`, order normalization threw errors or skipped entries when `order.id` was missing or nested in unexpected API envelope structures.
+    - *3. Showcase Delivery Simulator Stopping After Kitchen Handoff:*
+      - In `API/src/modules/orders/order.service.ts`, advancing an order from `ready_for_pickup` to `picked_up` directly transitioned delivery status from `partner_assigned` to `picked_up`, violating the canonical Mongoose state machine (`partner_assigned -> arrived_pickup -> picked_up`) and throwing an `InvalidStateTransitionError` that killed the simulation runner.
+      - In `API/src/modules/delivery/delivery.simulator.ts`, `computeInitialPartnerOrigin` used cardinal bearings (including 270°), causing `cos(270°) = 0` and leaving courier longitude unchanged, failing step progression assertions.
+      - In `API/src/modules/orders/order.service.ts` and `web/src/features/showcase/components/InteractiveDemos.tsx`, `delivery:status` payloads emitted GeoJSON coordinates while client listeners expected `{ lat, lng }`.
+    - *4. Delivery Partner `/me` Endless Request Storms:*
+      - In `web/src/pages/_deliveryPartner/ActiveDelivery.tsx`, a fallback `setInterval` polled `fetchPartnerStateThunk()` every 6 seconds unconditionally, even while the WebSocket connection was active and healthy.
+      - In `web/src/features/deliveryPartner/deliveryPartnerSlice.ts`, `fetchPartnerStateThunk.pending` unconditionally set `state.isLoading = true`, causing continuous UI flicker and re-render loops.
+  - **Architectural Solutions Implemented:**
+    - *1. Dual-Identifier & Ownership Authorization (`API/src/socket.ts`, `API/src/modules/orders/order.controller.ts`):*
+      - Decoupled owner authorization from explicit `roles` array check if `restaurant.ownerId.toString() === user.id`.
+      - Expanded partner authorization to resolve both User ID and DeliveryPartner ID (`delivery.partnerId === user.id`, `partner.userId === user.id`, `partner._id === user.id`, and `DeliveryPartner.findOne({ userId })`).
+      - In `socket.ts`, extracted `auth` credentials from `order:chat:send` and resolved the assigned partner's User room for reliable socket delivery.
+      - In `OrderChat.tsx`, tightened role tab filtering so untargeted customer/owner/partner messages don't bleed across role contexts.
+    - *2. Immediate Socket Listener Registration & Defensive Order Parsing (`useOwnerSocket.ts`, `orderApi.ts`, `DashBoard.tsx`):*
+      - Removed the `!isConnected` short-circuit in `useOwnerSocket.ts` so socket event listeners are stored in `registeredListeners` immediately upon hook mount.
+      - In `orderApi.ts`, hardened `normalizeOrder`, `extractRestaurantId`, and `extractRestaurantLocation` with safe fallbacks.
+      - In `DashBoard.tsx`, guarded `order.id.slice(0, 6)` against `undefined`.
+    - *3. State Machine Transition Guard & Simulator Bearing Hardening (`order.service.ts`, `delivery.simulator.ts`, `InteractiveDemos.tsx`):*
+      - In `order.service.ts`: When transitioning to `picked_up`, if delivery status is `partner_assigned`, sequentially steps through `arrived_pickup` first to satisfy `VALID_DELIVERY_TRANSITIONS` before persisting `picked_up`. Emitted `location` in `delivery:status` converted to `{ lat, lng }`.
+      - In `delivery.simulator.ts`: Replaced cardinal bearings with non-cardinal bearings `[120, 150, 190, 210, 240, 260, 300, 330]`.
+      - In `InteractiveDemos.tsx`: Added GeoJSON array parsing to `handleLocation` and `handleStatus`.
+    - *4. Gated Polling & Smooth Loading State (`ActiveDelivery.tsx`, `deliveryPartnerSlice.ts`):*
+      - Gated the reconciliation interval in `ActiveDelivery.tsx` to only run when `!socketService.isConnected`.
+      - In `deliveryPartnerSlice.ts`, set `state.isLoading = true` only during initial load when no active assignment or partner name exists.
+  - **Verification Suites:**
+    - Full Backend Integration Matrix: `41/41 PASS` across 5 test suites (`road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `demo-launch.integration.test.ts` 10/10).
+    - Web Test Matrix: `27/27 PASS` across relevant test files (`liveOrderDemo.test.tsx` 4/4, `demoRecoverySynchronization.test.tsx` 8/8, `deliveryBugs.test.tsx` 7/7, `liveDeliveryAndChatFixes.test.tsx` 3/3, `orderSliceState.test.ts` 5/5).
+    - Production Builds: `API` build (tsc) PASS (exit code 0); `web` build (vite build) PASS (exit code 0).
+
+- **Lifecycle Regression Protection, Contract Ownership & Live Map Route Refinement (Phase 17 - dev/development):**
+  - **User-Confirmed Baseline State:**
+    - The user manually tested and confirmed that the four previously reported runtime problems are functioning as intended:
+      1. Cross-role order chat.
+      2. Owner dashboard live order rendering.
+      3. Delivery simulation after pickup handoff.
+      4. Delivery partner request/polling stability.
+    - These established user-observed behaviors are protected with executable regression guards and contract ownership without reopening or rewriting working implementations.
+  - **Protected Invariants & Contract Ownership (`docs/foodhub_order_lifecycle_contract.md`):**
+    - Established formal lifecycle contract document defining invariants `INV-1` through `INV-9`, ownership modules, enforcing test suites, and strict protected-change protocol.
+    - `INV-1` (Authoritative Order State): MongoDB state progression is canonical; client UI state never bypasses server transition rules.
+    - `INV-2` (Legal Delivery Transitions): `partner_assigned → arrived_pickup → picked_up → out_for_delivery → nearby → delivered`. Moving an order to `picked_up` while delivery is in `partner_assigned` steps sequentially through `arrived_pickup` first to satisfy Mongoose schema rules. Direct illegal transitions roll back safely.
+    - `INV-3` (Terminal-State Safety): Deliveries and orders in terminal states (`delivered`, `cancelled`) are permanently locked and refuse simulation restarts (`running: false, started: false, reason: 'terminal_status'`).
+    - `INV-4` (Idempotent Simulation): Concurrent simulation start requests are serialized via `startingSimulators` mutex and deduplicated via `activeSimulators` timer map.
+    - `INV-5` (Realtime Owner Order Rendering): Owner hook registers socket listeners immediately on mount without gating on `isConnected`, preventing dropped events during connection establishment.
+    - `INV-6` (Cross-Role Chat Authorization): Verified database ownership controls room joins and message delivery; client identity claims cannot override server authorization.
+    - `INV-7` (Partner Synchronization): Background polling is gated to disconnected states only (`!socketService.isConnected`), and `isLoading` is not set on background polls.
+    - `INV-8` (Authoritative Reconnect & Recovery): Server boots recover active deliveries via `recoverActiveDeliveries()`; clients reconcile on reconnect and advance monotonically.
+    - `INV-9` (Live Map Route & Trail Distinction): Courier's travelled trail is rendered as solid blue (`#1976D2`), remaining road routes as dashed indigo/slate (`#5C6BC0`), and direct fallbacks as dashed orange (`#ff9800`) with truthful status indicators.
+  - **Automated CI Workflow (`.github/workflows/lifecycle-ci.yml`):**
+    - Added GitHub Actions workflow running on pushes and PRs to `dev/development` and `main`.
+    - Backend job compiles TypeScript (`npm run build`) and executes `npm run test:lifecycle` against a containerized MongoDB service with dedicated test DB variables.
+    - Frontend job compiles web bundle (`npm run build`) and executes `npm run test:lifecycle`.
+  - **Live Map Route & Trail Refinement (`Map.tsx`, `ActiveDelivery.tsx`, `InteractiveDemos.tsx`, `LiveDeliveryTracker.tsx`):**
+    - Extended `MapProps` with `travelledCoordinates?: Coordinates[]`.
+    - Travelled Trail Polyline: solid blue (`#1976D2`), weight 5, opacity 0.9, no dashArray.
+    - Remaining Road Route Polyline: dashed indigo/slate (`#5C6BC0`, `dashArray: '6, 6'`, weight 4, opacity 0.85).
+    - Direct Fallback Line: dashed orange (`#ff9800`, `dashArray: '8, 8'`, weight 3, opacity 0.85).
+    - Status Indicators: Stacked top-right chips showing "Travelled Trail" (solid blue) alongside truthful "Road Route Active" or "Direct Path (Road Routing Offline)".
+    - Safe Fallback: Invalid coordinates (NaN, out-of-range latitude/longitude, {0,0}) and single-point arrays are filtered out via `isValidCoord` without crashing or producing invalid Leaflet layers.
+    - Consumers: `ActiveDelivery.tsx`, `InteractiveDemos.tsx`, and `LiveDeliveryTracker.tsx` accumulate accepted courier locations into `travelledCoords` and pass `travelledCoordinates` to `Map`.
+  - **Phase 17 Follow-up — Remaining-Route Semantics, Fallback Status Integrity & CI Green Verification (dev/development):**
+    - **Final Commits on `dev/development`:**
+      - `ea02c19`: `fix(map): correct remaining route origin, leg transitions, and fallback status`
+      - `4072a6a`: `fix(ci): declare supertest devDependencies to resolve lifecycle test suite in CI`
+      - `a3f0f1d`: `fix(delivery): snap final coordinates to destination and make transitionOrderStatus idempotent`
+    - **GitHub Actions CI Verification (Run ID `39121918160`):**
+      - `frontend-lifecycle`: **SUCCESS** (47/47 tests passed, Vite production build passed).
+      - `backend-lifecycle`: **SUCCESS** (44/44 tests passed, `tsc` compilation passed, containerized MongoDB integration passed).
+      - Overall Run Status: **100% GREEN (COMPLETED & PASSED)**.
+    - **Remaining-Route Correctness Across Shared Map Components:**
+      - `InteractiveDemos.tsx`:
+        - Fixed post-pickup route calculation: starts at `currentCourier` (`courierPosition || restaurantCoords`) rather than remaining anchored at `restaurantCoords`.
+        - Added `courierPosition?.lat` and `courierPosition?.lng` to effect dependencies.
+        - Distance gating (>250m) via `calculateDistance` prevents spamming OSRM on 1s GPS ticks.
+        - Start-point polyline smoothing via `smoothRouteOrigin`: attaches live courier location directly to upcoming road waypoints, discarding traversed points without backtracking.
+        - Immediate truthful direct status: calls `setRouteStatus('direct')` immediately upon setting 2-point fallback line.
+      - `ActiveDelivery.tsx`:
+        - Fixed start point: uses `partnerPos` on both pickup and customer legs rather than defaulting to `pickupPos` post-pickup.
+        - Immediate fallback status: calls `setRouteStatus('direct')` immediately when setting fallback line `[startPoint, endPoint]`, eliminating false "Road Route Active" labels on straight lines.
+        - Added `partnerPos.lat` and `partnerPos.lng` to dependencies with distance gating (>250m) and start-point smoothing.
+      - `LiveDeliveryTracker.tsx`:
+        - Separated Leg 1 (partner heading to restaurant: `location -> resLoc`) from Leg 2 (partner heading to customer: `(location || resLoc) -> cusLoc`), and planned delivery path (`resLoc -> cusLoc`) before partner assignment.
+        - Clears remaining route (`[]`) and sets `routeStatus = 'none'` upon reaching terminal states (`delivered`, `completed`, `reviewed`).
+        - Implemented distance gating (>250m) and `smoothRouteOrigin` start-point smoothing.
+      - `GlobalDeliveryPip.tsx`:
+        - Updated `routeCoordinates` to route `location -> resLoc` during pickup leg and `location -> cusLoc` during customer leg.
+      - `location.ts`:
+        - Added `smoothRouteOrigin(prevCoords, currentPos)` and exported `isValidCoord`.
+      - `delivery.simulator.ts`:
+        - Snaps arrival coordinates directly to target (`[target[0], target[1]]`) upon `newDistance < 10` meters, eliminating fractional coordinate overshoot.
+      - `order.service.ts`:
+        - Made `transitionOrderStatus` idempotent: returns `order` safely when `order.status === newStatus`.
+    - **Verification & Test Coverage:**
+      - Web Lifecycle Tests (`npm --prefix web run test:lifecycle`): **47/47 PASS** across 7 test suites.
+      - API Lifecycle Tests (`npm --prefix API run test:lifecycle`): **44/44 PASS** across 6 test suites.
+      - Builds: `npm --prefix web run build` (vite build: exit code 0); `npm --prefix API run build` (tsc: exit code 0).
+      - Visual Observation: Automated unit and component tests verify coordinate values, props, and fallback chips; live interactive verification confirmed across showcase and delivery partner map flows.
+
+- **Safe Production Public Live-Order Demonstration (Phase 18 - dev/development):**
+  - **Problem Statement & Root Cause:**
+    - Visiting `/api/dev/demo/launch-live-order` or triggering the Showcase Live Order Demo on deployed production (`https://foodhub-moh3.onrender.com`) resulted in `{ "success": false, "message": "Dev endpoint disabled in production" }` (HTTP 403).
+    - *Root Cause:* The live-order orchestrator endpoints (`launchLiveOrderDemo`, `getActiveDemoOrder`, `confirmDemoHandoff`) were colocated in `dev.controller.ts` behind an indiscriminate `if (config.nodeEnv === 'production') return res.status(403)` guard intended for destructive dev utilities.
+  - **Production-Safe Architectural Solution:**
+    - *1. Route Decoupling (`API/src/modules/demo/demo.routes.ts`):*
+      - Created a dedicated public demo router exposing:
+        - `GET /api/demo/active-order`
+        - `POST /api/demo/launch-live-order`
+        - `POST /api/demo/confirm-handoff`
+      - Mounted at `app.use('/api/demo', demoRoutes)` in `API/src/app.ts`.
+      - Retained backward-compatible routes under `/api/dev/demo/*` aliased to the same controllers so existing bookmarks and client caches succeed.
+    - *2. Strict Dev Endpoint Isolation:*
+      - Preserved fail-closed production 403 guards on internal dev endpoints:
+        - `GET /api/dev/db-info` (returns 403 in production)
+        - `POST /api/dev/seed-factory-data` (returns 403 in production)
+        - `POST /api/dev/assign-partner` (returns 403 in production)
+    - *3. Production Authentication for Demo Participants:*
+      - Updated `login` controller in `API/src/modules/auth/auth.controller.ts` to allow on-demand resolution of dedicated demo accounts (`DEMO_FIXTURE_EMAILS`, `isDemo: true`) regardless of environment.
+      - Password verification (`comparePassword`) and non-demo user protections remain completely intact.
+    - *4. Frontend Resilient Dual-Route Routing:*
+      - In `web/src/features/showcase/components/InteractiveDemos.tsx`, implemented `requestDemoApi` helper requesting `/demo/*` first and seamlessly falling back to `/dev/demo/*` if a 404 is encountered.
+      - In `web/src/core/dev/simulator/ApiSimulator.ts`, added route matchers for both `/demo/*` and `/dev/demo/*`.
+  - **Verification & Test Coverage:**
+    - TypeScript Type Checks: `npx tsc --noEmit` in `API/` (0 errors), `npx tsc --noEmit` in `web/` (0 errors).
+    - Demo Launch Integration Tests: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (11/11 tests PASS) verifying internal dev endpoints fail with 403 in production, public demo endpoints succeed in production, backward-compatible `/api/dev/demo/*` routes succeed in production, and ordinary non-demo order handoffs are strictly rejected with 403.
+    - Backend Lifecycle Matrix: `npm --prefix API run test:lifecycle` (53/53 tests PASS across 6 test suites against isolated test database).
+    - Web Showcase Matrix: `npx vitest run --no-file-parallelism src/features/showcase/__tests__/` (34/34 tests PASS across `liveOrderDemo.test.tsx`, `demoRecoverySynchronization.test.tsx`, `showcase.test.tsx`, `exploreFoodHub.test.tsx`).
+    - Web Delivery Partner Matrix: `npm --prefix web run test:lifecycle` (47/47 tests PASS across 7 test suites).
+    - Production Builds:
+      - `API`: `npm run build` PASS (`tsc` exit code 0).
+      - `web`: `npm run build` PASS (`vite build` exit code 0).
+
+## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)
+1. **Strongest Portfolio Signals Currently Demonstrated:**
+   - **Real Multi-Actor Event-Driven Architecture:** Four distinct role domains (`Customer`, `Restaurant Owner`, `Delivery Partner`, `Admin`) synchronized in real time via Socket.IO rooms (`order_<id>`, `user_<id>`) backed by MongoDB state machines.
+   - **Deterministic Two-Leg Road-Following GPS Simulator with Handoff Gate:** Real-time road-geometry interpolation (`Leg 1: Partner Origin -> Restaurant Pickup`, paused at `arrived_pickup` until explicit Owner Handoff confirmation, followed by `Leg 2: Restaurant -> Customer Drop-off`) with compare-and-set atomic database guards.
+   - **Production-Grade Verification Rigor:** Multi-context Puppeteer browser E2E runner (`web/e2e.ts`) + multi-socket integration suites with fail-closed database safety guards (`assertDedicatedTestDatabase`).
+2. **Remaining Weaknesses / Friction Points for a 2–5 Minute Technical Evaluator:**
+   - **Multi-Role Switching Friction:** A recruiter or hiring manager exploring the app manually has to log in/out or open multiple incognito windows to experience the Customer -> Owner -> Partner handoff unless guided by a 1-click role-switcher toolbar in development/demo mode.
+   - **Console DOM Nesting Warnings:** Minor MUI `<p>` inside `<p>` (`ListItemText` secondary typography) and nested `<button>` warnings appear in the browser console during dev inspection.
+3. **Top 3 Highest-Leverage Showcase Polish Improvements (After Current Runtime Fixes):**
+   - **1. Floating Demo Role-Switcher Bar:** Add a compact floating bar (when in demo/showcase mode) allowing 1-click instant switching or side-by-side deep links between Customer Tracking, Owner Dashboard, and Partner Active Delivery for the active order.
+   - **2. [COMPLETED IN PHASE 14] One-Click "Launch Live Order Simulation" Button on `/showcase`:** Seeding and advancing live demo orders via canonical state machine, rendered on interactive Leaflet map with deep links.
+   - **3. Clean Console Hydration Warnings:** Add `secondaryTypographyProps={{ component: 'div' }}` to MUI `ListItemText` components in `DashBoard.tsx` and `OrderTracking` so the browser DevTools console remains spotless during technical interviews.
 ## HISTORICAL DIAGNOSIS
 
 *(Note: The following diagnosis describes the repository state at the beginning of the E2E completion effort and is preserved for historical engineering context. The issues described below have been resolved.)*

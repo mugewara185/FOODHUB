@@ -119,9 +119,25 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
     lng: restaurantCoords.lng - 0.005,
   };
 
+  // Production-safe demo API helper with legacy path fallback
+  const requestDemoApi = useCallback(async <T = any,>(primaryPath: string, legacyPath: string, options?: any): Promise<T> => {
+    try {
+      return options !== undefined
+        ? await api.request<T>(primaryPath, options)
+        : await api.request<T>(primaryPath);
+    } catch (err: any) {
+      if (err?.status === 404) {
+        return options !== undefined
+          ? await api.request<T>(legacyPath, options)
+          : await api.request<T>(legacyPath);
+      }
+      throw err;
+    }
+  }, []);
+
   // Authoritative demo state fetcher
   const fetchActiveOrderState = useCallback(() => {
-    return api.request<any>('/dev/demo/active-order')
+    return requestDemoApi<any>('/demo/active-order', '/dev/demo/active-order')
       .then((res) => {
         const payload = (res && 'data' in res && res.data) ? res.data : res;
         if (!payload?.order) return;
@@ -325,7 +341,7 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
     setIsLaunching(true);
     setLaunchError(null);
     try {
-      const res = await api.request<any>('/dev/demo/launch-live-order', {
+      const res = await requestDemoApi<any>('/demo/launch-live-order', '/dev/demo/launch-live-order', {
         method: 'POST',
       });
       const payload = (res && 'data' in res && res.data) ? res.data : res;
@@ -361,14 +377,14 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
     } finally {
       setIsLaunching(false);
     }
-  }, [isLaunching]);
+  }, [isLaunching, requestDemoApi]);
 
   // Kitchen handoff confirmation handler
   const handleConfirmHandoff = useCallback(async () => {
     if (isHandingOff) return;
     setIsHandingOff(true);
     try {
-      const res = await api.request<any>('/dev/demo/confirm-handoff', {
+      const res = await requestDemoApi<any>('/demo/confirm-handoff', '/dev/demo/confirm-handoff', {
         method: 'POST',
         body: JSON.stringify({ orderId: activeOrder?._id }),
       });
@@ -383,7 +399,7 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
       setIsHandingOff(false);
       setHandoffCountdown(null);
     }
-  }, [isHandingOff, activeOrder?._id]);
+  }, [isHandingOff, activeOrder?._id, requestDemoApi]);
 
   // Automatic handoff countdown when arrived at kitchen
   useEffect(() => {

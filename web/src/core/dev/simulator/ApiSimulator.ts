@@ -70,14 +70,14 @@ export class ApiSimulator {
         });
       }
 
-      // --- DEV LIVE ORDER DEMO ---
-      if (path.endsWith('/dev/demo/active-order') && method === 'GET') {
+      // --- LIVE ORDER DEMO (PRODUCTION & DEV) ---
+      if ((path.endsWith('/demo/active-order') || path.endsWith('/dev/demo/active-order')) && method === 'GET') {
         return createJsonResponse({
           success: true,
           data: null,
         });
       }
-      if (path.endsWith('/dev/demo/launch-live-order') && method === 'POST') {
+      if ((path.endsWith('/demo/launch-live-order') || path.endsWith('/dev/demo/launch-live-order')) && method === 'POST') {
         return createJsonResponse({
           success: true,
           message: 'Live order demo launched successfully (Simulator)',
@@ -113,7 +113,7 @@ export class ApiSimulator {
           },
         }, 201);
       }
-      if (path.endsWith('/dev/demo/confirm-handoff') && method === 'POST') {
+      if ((path.endsWith('/demo/confirm-handoff') || path.endsWith('/dev/demo/confirm-handoff')) && method === 'POST') {
         return createJsonResponse({
           success: true,
           message: 'Kitchen handoff confirmed (Simulator)',

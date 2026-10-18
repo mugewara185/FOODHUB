@@ -558,10 +558,6 @@ export async function resolveDedicatedDemoParticipants() {
 
 export async function getActiveDemoOrder(req: Request, res: Response, next: NextFunction) {
   try {
-    if (config.nodeEnv === 'production' || process.env.NODE_ENV === 'production') {
-      return res.status(403).json({ success: false, message: 'Dev endpoint disabled in production' });
-    }
-
     // Explicitly query demo-owned order only
     const demoOrder = await Order.findOne({ isDemo: true })
       .sort({ createdAt: -1 })
@@ -599,10 +595,6 @@ export async function getActiveDemoOrder(req: Request, res: Response, next: Next
 
 export async function confirmDemoHandoff(req: Request, res: Response, next: NextFunction) {
   try {
-    if (config.nodeEnv === 'production' || process.env.NODE_ENV === 'production') {
-      return res.status(403).json({ success: false, message: 'Dev endpoint disabled in production' });
-    }
-
     const { orderId } = req.body as { orderId?: string };
 
     let order: any;
@@ -716,10 +708,6 @@ export async function confirmDemoHandoff(req: Request, res: Response, next: Next
 
 export async function launchLiveOrderDemo(req: Request, res: Response, next: NextFunction) {
   try {
-    if (config.nodeEnv === 'production' || process.env.NODE_ENV === 'production') {
-      return res.status(403).json({ success: false, message: 'Dev endpoint disabled in production' });
-    }
-
     // Rate Limiting Protection
     const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
     if (!checkDemoRateLimit(clientIp)) {
