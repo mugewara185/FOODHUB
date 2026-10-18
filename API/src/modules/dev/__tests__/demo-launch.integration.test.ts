@@ -410,5 +410,33 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
       expect(res.body.success).toBe(false);
       expect(res.body.message).toMatch(/invalid email/i);
     });
+
+    it('safely handles comparePassword without throwing when user document lacks selected password field', async () => {
+      const userWithoutPassword = await User.findOne({ email: 'demo-customer@foodhub.test' });
+      expect(userWithoutPassword).not.toBeNull();
+      expect(userWithoutPassword!.password).toBeUndefined();
+
+      // Previously threw "Error: Illegal arguments: string, undefined"
+      const resultWithUnselected = await userWithoutPassword!.comparePassword('devdev');
+      expect(resultWithUnselected).toBe(false);
+
+      const resultWithEmpty = await userWithoutPassword!.comparePassword('');
+      expect(resultWithEmpty).toBe(false);
+    });
+
+    it('successfully launches live-order demo idempotently when demo fixtures already exist in database', async () => {
+      // First ensure demo participants exist
+      const launch1 = await request(app).post('/api/dev/demo/launch-live-order').send();
+      expect([200, 201]).toContain(launch1.status);
+      expect(launch1.body.success).toBe(true);
+
+      // Call launch-live-order again with existing records in place
+      // (Verifies resolveDedicatedDemoParticipants runs cleanly without Illegal arguments: string, undefined)
+      const launch2 = await request(app).post('/api/dev/demo/launch-live-order').send();
+      expect([200, 201]).toContain(launch2.status);
+      expect(launch2.body.success).toBe(true);
+      expect(launch2.body.data.order).toBeDefined();
+    });
   });
 });
+

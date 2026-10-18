@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 import { Order } from '../orders/order.model';
 import { DeliveryPartner } from '../delivery/delivery-partner.model';
 import { Restaurant } from '../restaurants/restaurant.model';
-import { User } from '../auth/auth.model';
+import { User, IUser } from '../auth/auth.model';
 import { toGeoJSON } from '../../utils/geo';
 import { Delivery } from '../delivery/delivery.model';
 import { emitDeliveryAssigned } from '../delivery/delivery.events';
@@ -329,9 +329,9 @@ let isLaunchingDemo = false;
  */
 export async function resolveDedicatedDemoParticipants() {
   // 1. Dedicated Demo Owner User
-  let ownerUser = await User.findById(DEMO_FIXTURE_IDS.OWNER_USER);
+  let ownerUser = (await User.findById(DEMO_FIXTURE_IDS.OWNER_USER).select('+password')) as IUser | null;
   if (!ownerUser) {
-    ownerUser = await User.findOne({ email: DEMO_FIXTURE_EMAILS.OWNER });
+    ownerUser = (await User.findOne({ email: DEMO_FIXTURE_EMAILS.OWNER }).select('+password')) as IUser | null;
   }
 
   if (ownerUser) {
@@ -423,9 +423,9 @@ export async function resolveDedicatedDemoParticipants() {
   }
 
   // 3. Dedicated Demo Customer User
-  let customerUser = await User.findById(DEMO_FIXTURE_IDS.CUSTOMER_USER);
+  let customerUser = (await User.findById(DEMO_FIXTURE_IDS.CUSTOMER_USER).select('+password')) as IUser | null;
   if (!customerUser) {
-    customerUser = await User.findOne({ email: DEMO_FIXTURE_EMAILS.CUSTOMER });
+    customerUser = (await User.findOne({ email: DEMO_FIXTURE_EMAILS.CUSTOMER }).select('+password')) as IUser | null;
   }
 
   if (customerUser) {
@@ -457,9 +457,9 @@ export async function resolveDedicatedDemoParticipants() {
   }
 
   // 4. Dedicated Demo Partner User & DeliveryPartner
-  let partnerUser = await User.findById(DEMO_FIXTURE_IDS.PARTNER_USER);
+  let partnerUser = (await User.findById(DEMO_FIXTURE_IDS.PARTNER_USER).select('+password')) as IUser | null;
   if (!partnerUser) {
-    partnerUser = await User.findOne({ email: DEMO_FIXTURE_EMAILS.PARTNER });
+    partnerUser = (await User.findOne({ email: DEMO_FIXTURE_EMAILS.PARTNER }).select('+password')) as IUser | null;
   }
 
   if (partnerUser) {
@@ -520,9 +520,9 @@ export async function resolveDedicatedDemoParticipants() {
   }
 
   // 5. Dedicated Demo Admin User
-  let adminUser = await User.findById(DEMO_FIXTURE_IDS.ADMIN_USER);
+  let adminUser = (await User.findById(DEMO_FIXTURE_IDS.ADMIN_USER).select('+password')) as IUser | null;
   if (!adminUser) {
-    adminUser = await User.findOne({ email: DEMO_FIXTURE_EMAILS.ADMIN });
+    adminUser = (await User.findOne({ email: DEMO_FIXTURE_EMAILS.ADMIN }).select('+password')) as IUser | null;
   }
 
   if (adminUser) {
