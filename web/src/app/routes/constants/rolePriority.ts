@@ -9,9 +9,9 @@ import type { UserRole } from '../../../core/types/auth';
  * 5. user   → /user
  */
 export const ROLE_PRIORITY: readonly UserRole[] = [
+  'user',
   'dev',
-  'admin',
   'owner',
   'partner',
-  'user',
+  'admin',
 ] as const;

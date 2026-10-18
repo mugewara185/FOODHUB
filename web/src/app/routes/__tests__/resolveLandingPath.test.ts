@@ -63,8 +63,8 @@ describe('Role Resolution & Deterministic Landing Page Tests', () => {
       expect(resolveLandingPath(['partner', 'user'], true)).toBe('/partner');
     });
 
-    it('7. Unauthenticated user resolves to /user customer landing page', () => {
-      expect(resolveLandingPath([], false)).toBe('/user');
+    it('7. Unauthenticated user resolves to /showcase default landing page when no user is logged in', () => {
+      expect(resolveLandingPath([], false)).toBe('/showcase');
     });
 
     it('8. Authenticated user with no recognized roles resolves to /unauthorized', () => {

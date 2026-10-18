@@ -74,6 +74,9 @@ vi.mock('../../../pages/Auth/Login', () => ({
 vi.mock('../../../pages/restaurantListings', () => ({
   default: () => <div data-testid="page-restaurants">Restaurants Listing</div>,
 }));
+vi.mock('../../../pages/Showcase', () => ({
+  default: () => <div data-testid="page-showcase">Showcase Page</div>,
+}));
 
 // Mock subpages to isolate routing tests
 vi.mock('@/core/dev/ui/pages/ComponentTree', () => ({ default: () => <div>ComponentTree</div> }));
@@ -259,14 +262,14 @@ describe('AppRoutes Comprehensive Specification Validation', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('Scenario 11: An unauthenticated user is handled correctly (lands on public customer page at /)', () => {
+  it('Scenario 11: An unauthenticated user is handled correctly (lands on /showcase by default when no user is logged in)', () => {
     mockAuthData.isAuthenticated = false;
     mockAuthData.user = null;
 
     renderWithRouter('/');
 
-    expect(screen.getByTestId('current-location').textContent).toBe('/user');
-    expect(screen.getByTestId('page-customer-home')).toBeInTheDocument();
+    expect(screen.getByTestId('current-location').textContent).toBe('/showcase');
+    expect(screen.getByTestId('page-showcase')).toBeInTheDocument();
   });
 
   it('Scenario 12: An authenticated user with no recognized roles receives an unauthorized page', () => {
