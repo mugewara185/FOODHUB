@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { User } from './auth.model';
+import { User, IUser } from './auth.model';
 import { config } from '../../config/env';
 import { AppError } from '../../shared/middleware/errorHandler';
 import { sendSuccess } from '../../shared/utils/response';
+import { DEMO_FIXTURE_EMAILS, resolveDedicatedDemoParticipants } from '../dev/dev.controller';
 
 export const registerSchema = z.object({
   name: z.string().min(2),
@@ -62,13 +63,21 @@ export async function register(req: Request, res: Response, next: NextFunction):
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const body = req.body;
-    console.log("body", body);
-    const user = await User.findOne({ email: new RegExp(`^${body.email}$`) })
-      .select('+password');
-    console.log('User found:', user);
+    let user = (await User.findOne({ email: new RegExp(`^${body.email}$`, 'i') })
+      .select('+password')) as IUser | null;
+
+    // Auto-provision dedicated demo participants in non-production environments if requested
+    if (!user && config.nodeEnv !== 'production' && process.env.NODE_ENV !== 'production') {
+      const isDemoEmail = Object.values(DEMO_FIXTURE_EMAILS).some(
+        (email) => email.toLowerCase() === body.email?.toLowerCase()
+      );
+      if (isDemoEmail) {
+        await resolveDedicatedDemoParticipants();
+        user = (await User.findOne({ email: new RegExp(`^${body.email}$`, 'i') }).select('+password')) as IUser | null;
+      }
+    }
 
     if (!user) {
-      console.log('user not found!!')
       throw new AppError('Invalid email', 401);
     }
     if (!(await user.comparePassword(body.password))) {

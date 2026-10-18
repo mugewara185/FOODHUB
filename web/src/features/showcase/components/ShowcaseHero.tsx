@@ -19,6 +19,7 @@ import {
   CheckCircle,
   CompareArrows,
   PlayArrow,
+  Key,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -239,6 +240,26 @@ export const ShowcaseHero: React.FC<ShowcaseHeroProps> = ({
             }}
           >
             Live Interactive Demos
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Key />}
+            onClick={() => onScrollToSection('demo-access')}
+            sx={{
+              fontWeight: 700,
+              textTransform: 'none',
+              px: 3,
+              py: 1.2,
+              borderRadius: 2,
+              bgcolor: '#10b981',
+              color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+              '&:hover': {
+                bgcolor: '#059669',
+              },
+            }}
+          >
+            Demo Access
           </Button>
           <Button
             variant="outlined"

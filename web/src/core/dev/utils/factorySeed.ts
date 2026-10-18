@@ -287,6 +287,11 @@ const FIXED_USER_TEMPLATES: UserTemplate[] = [
   { _id: '000000000000000000000004', name: 'Priya Singh', email: 'priya@foodhub.dev', role: 'user', isFixed: true },
   { _id: '000000000000000000000005', name: 'Rahul Mehta', email: 'rahul@foodhub.dev', role: 'user', isFixed: true },
   { _id: '000000000000000000000006', name: 'Spice Garden Owner', email: 'owner.spice@foodhub.dev', role: 'owner', isFixed: true },
+  // Dedicated Showcase Demo Accounts
+  { _id: '64e8e50f3c5f4a1b8c1a9901', name: 'Demo Customer', email: 'demo-customer@foodhub.test', role: 'user', isFixed: true },
+  { _id: '64e8e50f3c5f4a1b8c1a9902', name: 'Demo Restaurant Owner', email: 'demo-owner@foodhub.test', role: 'owner', isFixed: true },
+  { _id: '64e8e50f3c5f4a1b8c1a9903', name: 'Demo Delivery Partner', email: 'demo-partner@foodhub.test', role: 'partner', isFixed: true },
+  { _id: '64e8e50f3c5f4a1b8c1a9904', name: 'Demo Platform Administrator', email: 'demo-admin@foodhub.test', role: 'admin', isFixed: true },
 ];
 
 // Realistic review comment templates by sentiment and theme
