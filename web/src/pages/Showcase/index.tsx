@@ -51,7 +51,7 @@ const ShowcasePage: React.FC = () => {
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Button
             startIcon={<ArrowBack />}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/user')}
             size="small"
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
