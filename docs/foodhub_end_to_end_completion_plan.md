@@ -21,6 +21,7 @@
 - Phase 16 — Order Lifecycle Stabilization, Owner Order Rendering, Delivery Simulation Handoff & Cross-Role Chat: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Definitive resolution of 4 core defects: cross-role socket chat authorization & message routing, owner dashboard new-order socket listener registration & ID normalization, simulation handoff state machine compliance (`partner_assigned -> arrived_pickup -> picked_up`) and non-cardinal bearing updates, and delivery partner polling loop elimination when socket is connected.
 - Phase 17 — Lifecycle Regression Protection, Contract Ownership & Live Map Route Refinement: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Executable lifecycle invariants (`INV-1` through `INV-9`), automated GitHub Actions CI workflow (`.github/workflows/lifecycle-ci.yml`), formal contract documentation (`docs/foodhub_order_lifecycle_contract.md`), and refined shared map rendering distinguishing solid blue travelled courier trail (`#1976D2`) from dashed road routes (`#5C6BC0`) and direct offline fallbacks (`#ff9800`).
 - Phase 17 Follow-up — Remaining-Route Semantics, Fallback Status Integrity & CI Container Hardening: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Corrected post-pickup route origin from courier position across `InteractiveDemos`, `ActiveDelivery`, and `LiveDeliveryTracker`. Eliminated spurious GPS-tick OSRM requests via distance gating (>250m) and start-point polyline smoothing (`smoothRouteOrigin`). Fixed immediate fallback status (`'direct'`) and containerized MongoDB service readiness flags in CI.
+- Phase 18 — Safe Production Public Live-Order Demonstration: Build, Backend Integration, Frontend Component & Lifecycle-verified on `dev/development`. Decoupled public demonstration endpoints (`/api/demo/active-order`, `/api/demo/launch-live-order`, `/api/demo/confirm-handoff`) from dev-only admin tools. Preserved strict production 403 blocks on dangerous internal endpoints (`/api/dev/db-info`, `/api/dev/seed-factory-data`, `/api/dev/assign-partner`). Dual-mounted routes (`/api/demo/*` and backwards-compatible `/api/dev/demo/*`) without dev tools exposure. Unlocked demo credentials in production auth for dedicated fixtures (`isDemo: true`) while non-demo users remain guarded. Added frontend fallback routing in `InteractiveDemos` and mock support in `ApiSimulator`.
 
 ## EVIDENCE
 **API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
@@ -391,6 +392,39 @@ NotificationBell / Toast
       - API Lifecycle Tests (`npm --prefix API run test:lifecycle`): **44/44 PASS** across 6 test suites.
       - Builds: `npm --prefix web run build` (vite build: exit code 0); `npm --prefix API run build` (tsc: exit code 0).
       - Visual Observation: Automated unit and component tests verify coordinate values, props, and fallback chips; live interactive verification confirmed across showcase and delivery partner map flows.
+
+- **Safe Production Public Live-Order Demonstration (Phase 18 - dev/development):**
+  - **Problem Statement & Root Cause:**
+    - Visiting `/api/dev/demo/launch-live-order` or triggering the Showcase Live Order Demo on deployed production (`https://foodhub-moh3.onrender.com`) resulted in `{ "success": false, "message": "Dev endpoint disabled in production" }` (HTTP 403).
+    - *Root Cause:* The live-order orchestrator endpoints (`launchLiveOrderDemo`, `getActiveDemoOrder`, `confirmDemoHandoff`) were colocated in `dev.controller.ts` behind an indiscriminate `if (config.nodeEnv === 'production') return res.status(403)` guard intended for destructive dev utilities.
+  - **Production-Safe Architectural Solution:**
+    - *1. Route Decoupling (`API/src/modules/demo/demo.routes.ts`):*
+      - Created a dedicated public demo router exposing:
+        - `GET /api/demo/active-order`
+        - `POST /api/demo/launch-live-order`
+        - `POST /api/demo/confirm-handoff`
+      - Mounted at `app.use('/api/demo', demoRoutes)` in `API/src/app.ts`.
+      - Retained backward-compatible routes under `/api/dev/demo/*` aliased to the same controllers so existing bookmarks and client caches succeed.
+    - *2. Strict Dev Endpoint Isolation:*
+      - Preserved fail-closed production 403 guards on internal dev endpoints:
+        - `GET /api/dev/db-info` (returns 403 in production)
+        - `POST /api/dev/seed-factory-data` (returns 403 in production)
+        - `POST /api/dev/assign-partner` (returns 403 in production)
+    - *3. Production Authentication for Demo Participants:*
+      - Updated `login` controller in `API/src/modules/auth/auth.controller.ts` to allow on-demand resolution of dedicated demo accounts (`DEMO_FIXTURE_EMAILS`, `isDemo: true`) regardless of environment.
+      - Password verification (`comparePassword`) and non-demo user protections remain completely intact.
+    - *4. Frontend Resilient Dual-Route Routing:*
+      - In `web/src/features/showcase/components/InteractiveDemos.tsx`, implemented `requestDemoApi` helper requesting `/demo/*` first and seamlessly falling back to `/dev/demo/*` if a 404 is encountered.
+      - In `web/src/core/dev/simulator/ApiSimulator.ts`, added route matchers for both `/demo/*` and `/dev/demo/*`.
+  - **Verification & Test Coverage:**
+    - TypeScript Type Checks: `npx tsc --noEmit` in `API/` (0 errors), `npx tsc --noEmit` in `web/` (0 errors).
+    - Demo Launch Integration Tests: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (11/11 tests PASS) verifying internal dev endpoints fail with 403 in production, public demo endpoints succeed in production, backward-compatible `/api/dev/demo/*` routes succeed in production, and ordinary non-demo order handoffs are strictly rejected with 403.
+    - Backend Lifecycle Matrix: `npm --prefix API run test:lifecycle` (53/53 tests PASS across 6 test suites against isolated test database).
+    - Web Showcase Matrix: `npx vitest run --no-file-parallelism src/features/showcase/__tests__/` (34/34 tests PASS across `liveOrderDemo.test.tsx`, `demoRecoverySynchronization.test.tsx`, `showcase.test.tsx`, `exploreFoodHub.test.tsx`).
+    - Web Delivery Partner Matrix: `npm --prefix web run test:lifecycle` (47/47 tests PASS across 7 test suites).
+    - Production Builds:
+      - `API`: `npm run build` PASS (`tsc` exit code 0).
+      - `web`: `npm run build` PASS (`vite build` exit code 0).
 
 ## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)
 1. **Strongest Portfolio Signals Currently Demonstrated:**

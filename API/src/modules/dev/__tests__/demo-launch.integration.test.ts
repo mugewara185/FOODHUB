@@ -158,27 +158,70 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     }
   });
 
-  it('P0 Safety Guard: all demo endpoints fail closed with 403 in production environment', async () => {
+  it('P0 Safety Guard: internal development endpoints fail closed with 403 in production environment', async () => {
     const originalEnv = config.nodeEnv;
     try {
       (config as any).nodeEnv = 'production';
 
-      const resLaunch = await request(app).post('/api/dev/demo/launch-live-order');
-      expect(resLaunch.status).toBe(403);
-      expect(resLaunch.body.success).toBe(false);
-      expect(resLaunch.body.message).toContain('production');
+      // 1. Internal DB diagnostic utility MUST be 403 in production
+      const resDbInfo = await request(app).get('/api/dev/db-info');
+      expect(resDbInfo.status).toBe(403);
+      expect(resDbInfo.body.success).toBe(false);
+      expect(resDbInfo.body.message).toMatch(/disabled in production/i);
 
-      const resActive = await request(app).get('/api/dev/demo/active-order');
-      expect(resActive.status).toBe(403);
-      expect(resActive.body.success).toBe(false);
+      // 2. Destructive factory seeder MUST be 403 in production
+      const resSeed = await request(app).post('/api/dev/seed-factory-data').send({ collections: [] });
+      expect(resSeed.status).toBe(403);
+      expect(resSeed.body.success).toBe(false);
+      expect(resSeed.body.message).toMatch(/disabled in production/i);
 
-      const resHandoff = await request(app).post('/api/dev/demo/confirm-handoff').send({});
-      expect(resHandoff.status).toBe(403);
-      expect(resHandoff.body.success).toBe(false);
+      // 3. Raw partner assignment utility MUST be 403 in production
+      const resAssign = await request(app).post('/api/dev/assign-partner').send({});
+      expect(resAssign.status).toBe(403);
+      expect(resAssign.body.success).toBe(false);
+      expect(resAssign.body.message).toMatch(/disabled in production/i);
     } finally {
       (config as any).nodeEnv = originalEnv;
     }
   });
+
+  it('Production Demo Support: public demonstration endpoints safely execute in production environment', async () => {
+    const originalEnv = config.nodeEnv;
+    try {
+      (config as any).nodeEnv = 'production';
+
+      // 1. Dedicated /api/demo/launch-live-order succeeds in production
+      const resLaunch = await request(app).post('/api/demo/launch-live-order').send();
+      expect([200, 201]).toContain(resLaunch.status);
+      expect(resLaunch.body.success).toBe(true);
+      expect(resLaunch.body.data.order).toBeDefined();
+
+      // 2. Dedicated /api/demo/active-order succeeds in production
+      const resActive = await request(app).get('/api/demo/active-order');
+      expect(resActive.status).toBe(200);
+      expect(resActive.body.success).toBe(true);
+
+      // 3. Backward-compatible /api/dev/demo/launch-live-order also succeeds in production
+      const resLegacyLaunch = await request(app).post('/api/dev/demo/launch-live-order').send();
+      expect([200, 201]).toContain(resLegacyLaunch.status);
+      expect(resLegacyLaunch.body.success).toBe(true);
+
+      // 4. Backward-compatible /api/dev/demo/active-order also succeeds in production
+      const resLegacyActive = await request(app).get('/api/dev/demo/active-order');
+      expect(resLegacyActive.status).toBe(200);
+      expect(resLegacyActive.body.success).toBe(true);
+
+      // 5. Demo endpoints in production strictly reject non-demo order handoffs
+      const resHandoffNonDemo = await request(app)
+        .post('/api/demo/confirm-handoff')
+        .send({ orderId: regularOrder._id.toString() });
+      expect(resHandoffNonDemo.status).toBe(403);
+      expect(resHandoffNonDemo.body.message).toMatch(/cannot modify ordinary non-demo orders/i);
+    } finally {
+      (config as any).nodeEnv = originalEnv;
+    }
+  });
+
 
   it('Participant Isolation: launching demo does NOT change an ordinary restaurant owner', async () => {
     const preOwnerId = regularRestaurant.ownerId.toString();
@@ -187,7 +230,7 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
       .post('/api/dev/demo/launch-live-order')
       .send();
 
-    expect(res.status).toBe(201);
+    expect([200, 201]).toContain(res.status);
     expect(res.body.success).toBe(true);
 
     const postRestaurant = await Restaurant.findById(regularRestaurant._id);

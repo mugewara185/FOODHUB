@@ -54,7 +54,7 @@ describe('Phase 15: Showcase & Partner Recovery Synchronization Regression Tests
 
   it('1. Showcase page fetches active demo state on initial load and renders in-progress stage', async () => {
     apiRequestSpy = vi.spyOn(api, 'request').mockImplementation(async (endpoint: string) => {
-      if (endpoint === '/dev/demo/active-order') {
+      if (endpoint === '/dev/demo/active-order' || endpoint === '/demo/active-order') {
         return {
           order: {
             _id: 'ord-active-123',
@@ -88,7 +88,7 @@ describe('Phase 15: Showcase & Partner Recovery Synchronization Regression Tests
     });
 
     // Verify initial load fetch was performed
-    expect(apiRequestSpy).toHaveBeenCalledWith('/dev/demo/active-order');
+    expect(apiRequestSpy.mock.calls[0][0]).toMatch(/\/(dev\/)?demo\/active-order/);
 
     // Telemetry and active status should immediately render
     await waitFor(() => {
@@ -101,7 +101,7 @@ describe('Phase 15: Showcase & Partner Recovery Synchronization Regression Tests
 
   it('2. An existing eligible demo progresses beyond Step 5 when authoritative updates arrive', async () => {
     apiRequestSpy = vi.spyOn(api, 'request').mockImplementation(async (endpoint: string) => {
-      if (endpoint === '/dev/demo/active-order') {
+      if (endpoint === '/dev/demo/active-order' || endpoint === '/demo/active-order') {
         return {
           order: {
             _id: 'ord-active-456',
@@ -175,7 +175,7 @@ describe('Phase 15: Showcase & Partner Recovery Synchronization Regression Tests
   it('3. Socket reconnection triggers authoritative-state reconciliation in Showcase', async () => {
     let callCount = 0;
     apiRequestSpy = vi.spyOn(api, 'request').mockImplementation(async (endpoint: string) => {
-      if (endpoint === '/dev/demo/active-order') {
+      if (endpoint === '/dev/demo/active-order' || endpoint === '/demo/active-order') {
         callCount++;
         return {
           order: { _id: 'ord-reconn-1', status: 'partner_assigned' },
@@ -265,7 +265,7 @@ describe('Phase 15: Showcase & Partner Recovery Synchronization Regression Tests
     const clearIntervalSpy = vi.spyOn(window, 'clearInterval');
 
     apiRequestSpy = vi.spyOn(api, 'request').mockImplementation(async (endpoint: string) => {
-      if (endpoint === '/dev/demo/active-order') {
+      if (endpoint === '/dev/demo/active-order' || endpoint === '/demo/active-order') {
         return {
           order: { _id: 'ord-poll-1', status: 'partner_assigned' },
           delivery: { _id: 'del-poll-1', status: 'partner_assigned' },
@@ -304,7 +304,7 @@ describe('Phase 15: Showcase & Partner Recovery Synchronization Regression Tests
     const setIntervalSpy = vi.spyOn(window, 'setInterval');
 
     apiRequestSpy = vi.spyOn(api, 'request').mockImplementation(async (endpoint: string) => {
-      if (endpoint === '/dev/demo/active-order') {
+      if (endpoint === '/dev/demo/active-order' || endpoint === '/demo/active-order') {
         return {
           order: { _id: 'ord-term-1', status: 'delivered' },
           delivery: { _id: 'del-term-1', status: 'delivered' },
@@ -333,7 +333,7 @@ describe('Phase 15: Showcase & Partner Recovery Synchronization Regression Tests
 
   it('7. Stale events or responses do not regress the displayed lifecycle stage (monotonic forward guard)', async () => {
     apiRequestSpy = vi.spyOn(api, 'request').mockImplementation(async (endpoint: string) => {
-      if (endpoint === '/dev/demo/active-order') {
+      if (endpoint === '/dev/demo/active-order' || endpoint === '/demo/active-order') {
         return {
           order: { _id: 'ord-mono-1', status: 'picked_up' },
           delivery: { _id: 'del-mono-1', status: 'picked_up' },
@@ -390,14 +390,14 @@ describe('Phase 15: Showcase & Partner Recovery Synchronization Regression Tests
 
   it('8. Automatic handoff does not cause competing or invalid transitions when confirm-handoff is idempotent', async () => {
     apiRequestSpy = vi.spyOn(api, 'request').mockImplementation(async (endpoint: string) => {
-      if (endpoint === '/dev/demo/active-order') {
+      if (endpoint === '/dev/demo/active-order' || endpoint === '/demo/active-order') {
         return {
           order: { _id: 'ord-handoff-1', status: 'partner_assigned' },
           delivery: { _id: 'del-handoff-1', status: 'arrived_pickup' },
           isTerminal: false,
         } as any;
       }
-      if (endpoint === '/dev/demo/confirm-handoff') {
+      if (endpoint === '/dev/demo/confirm-handoff' || endpoint === '/demo/confirm-handoff') {
         // Return idempotent success (server auto-handoff already executed)
         return {
           success: true,

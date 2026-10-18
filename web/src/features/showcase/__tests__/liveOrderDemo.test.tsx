@@ -67,13 +67,13 @@ describe('Showcase Interactive Live Order Demo Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiRequestSpy = vi.spyOn(api, 'request').mockImplementation(async (endpoint: string) => {
-      if (endpoint === '/dev/demo/active-order') {
+      if (endpoint === '/dev/demo/active-order' || endpoint === '/demo/active-order') {
         return { order: null, delivery: null, isTerminal: false } as any;
       }
-      if (endpoint === '/dev/demo/launch-live-order') {
+      if (endpoint === '/dev/demo/launch-live-order' || endpoint === '/demo/launch-live-order') {
         return mockLaunchResponse as any;
       }
-      if (endpoint === '/dev/demo/confirm-handoff') {
+      if (endpoint === '/dev/demo/confirm-handoff' || endpoint === '/demo/confirm-handoff') {
         return {
           order: { _id: '64e8e50f3c5f4a1b8c1a9908', status: 'picked_up' },
         } as any;
