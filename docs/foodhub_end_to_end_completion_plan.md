@@ -20,6 +20,7 @@
 - Phase 15 — Delivery Simulator Recovery & Synchronization Across Live Order Demo and Partner Active Delivery: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Shared idempotent simulation entry point (`startDeliverySimulation`), process restart recovery on API boot (`recoverActiveDeliveries`), request-level recovery in `dev.controller.ts` and `delivery.partner.routes.ts`, auto-handoff progression for persisted `arrived_pickup` demo orders, reconnect reconciliation, and bounded fallback polling in Partner Active Delivery and Showcase pages.
 - Phase 16 — Order Lifecycle Stabilization, Owner Order Rendering, Delivery Simulation Handoff & Cross-Role Chat: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Definitive resolution of 4 core defects: cross-role socket chat authorization & message routing, owner dashboard new-order socket listener registration & ID normalization, simulation handoff state machine compliance (`partner_assigned -> arrived_pickup -> picked_up`) and non-cardinal bearing updates, and delivery partner polling loop elimination when socket is connected.
 - Phase 17 — Lifecycle Regression Protection, Contract Ownership & Live Map Route Refinement: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Executable lifecycle invariants (`INV-1` through `INV-9`), automated GitHub Actions CI workflow (`.github/workflows/lifecycle-ci.yml`), formal contract documentation (`docs/foodhub_order_lifecycle_contract.md`), and refined shared map rendering distinguishing solid blue travelled courier trail (`#1976D2`) from dashed road routes (`#5C6BC0`) and direct offline fallbacks (`#ff9800`).
+- Phase 17 Follow-up — Remaining-Route Semantics, Fallback Status Integrity & CI Container Hardening: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Corrected post-pickup route origin from courier position across `InteractiveDemos`, `ActiveDelivery`, and `LiveDeliveryTracker`. Eliminated spurious GPS-tick OSRM requests via distance gating (>250m) and start-point polyline smoothing (`smoothRouteOrigin`). Fixed immediate fallback status (`'direct'`) and containerized MongoDB service readiness flags in CI.
 
 ## EVIDENCE
 **API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
@@ -353,10 +354,36 @@ NotificationBell / Toast
     - Status Indicators: Stacked top-right chips showing "Travelled Trail" (solid blue) alongside truthful "Road Route Active" or "Direct Path (Road Routing Offline)".
     - Safe Fallback: Invalid coordinates (NaN, out-of-range latitude/longitude, {0,0}) and single-point arrays are filtered out via `isValidCoord` without crashing or producing invalid Leaflet layers.
     - Consumers: `ActiveDelivery.tsx`, `InteractiveDemos.tsx`, and `LiveDeliveryTracker.tsx` accumulate accepted courier locations into `travelledCoords` and pass `travelledCoordinates` to `Map`.
-  - **Verification Suites:**
-    - Backend Lifecycle Suite (`npm run test:lifecycle` in `API`): `44/44 PASS` across 6 test suites (`lifecycle-invariants.integration.test.ts` 3/3, `road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `demo-launch.integration.test.ts` 10/10).
-    - Frontend Lifecycle Suite (`npm run test:lifecycle` in `web`): `40/40 PASS` across 7 test suites (`Map.test.tsx` 7/7, `useOwnerSocket.test.tsx` 6/6, `liveOrderDemo.test.tsx` 4/4, `demoRecoverySynchronization.test.tsx` 8/8, `deliveryBugs.test.tsx` 7/7, `liveDeliveryAndChatFixes.test.tsx` 3/3, `orderSliceState.test.ts` 5/5).
-    - Production Builds: `API` build (tsc) PASS (exit code 0); `web` build (vite build) PASS (exit code 0).
+  - **Phase 17 Follow-up — Remaining-Route Semantics, Fallback Status Integrity & CI Container Hardening (dev/development):**
+    - **GitHub Actions Baseline Inspection (`ae6777a`):**
+      - Inspected CI Run ID `39101109734` on GitHub Actions:
+        - `frontend-lifecycle`: **PASSED** (compile & test suite green).
+        - `backend-lifecycle`: **FAILED** at Step 7 (`Run Backend Lifecycle Integration Test Suite`). Root cause was runner startup race condition where MongoDB service container was not ready before tests started.
+      - Fixed by configuring explicit service container readiness health checks (`--health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'" --health-interval 10s --health-timeout 5s --health-retries 5`) in `.github/workflows/lifecycle-ci.yml`.
+    - **Remaining-Route Correctness Across Shared Map Components:**
+      - `InteractiveDemos.tsx`:
+        - Fixed post-pickup route calculation: now starts at `currentCourier` (`courierPosition || restaurantCoords`) rather than remaining anchored at `restaurantCoords`.
+        - Added `courierPosition?.lat` and `courierPosition?.lng` to effect dependencies.
+        - Distance gating (>250m) via `calculateDistance` prevents spamming OSRM on 1s GPS ticks.
+        - Start-point polyline smoothing via `smoothRouteOrigin`: attaches live courier location directly to upcoming road waypoints, discarding traversed points without backtracking.
+        - Immediate truthful direct status: calls `setRouteStatus('direct')` immediately upon setting 2-point fallback line.
+      - `ActiveDelivery.tsx`:
+        - Fixed start point: uses `partnerPos` on both pickup and customer legs rather than defaulting to `pickupPos` post-pickup.
+        - Immediate fallback status: calls `setRouteStatus('direct')` immediately when setting fallback line `[startPoint, endPoint]`, eliminating false "Road Route Active" labels on straight lines.
+        - Added `partnerPos.lat` and `partnerPos.lng` to dependencies with distance gating (>250m) and start-point smoothing.
+      - `LiveDeliveryTracker.tsx`:
+        - Separated Leg 1 (partner heading to restaurant: `location -> resLoc`) from Leg 2 (partner heading to customer: `(location || resLoc) -> cusLoc`), and planned delivery path (`resLoc -> cusLoc`) before partner assignment.
+        - Clears remaining route (`[]`) and sets `routeStatus = 'none'` upon reaching terminal states (`delivered`, `completed`, `reviewed`).
+        - Implemented distance gating (>250m) and `smoothRouteOrigin` start-point smoothing.
+      - `GlobalDeliveryPip.tsx`:
+        - Updated `routeCoordinates` to route `location -> resLoc` during pickup leg and `location -> cusLoc` during customer leg.
+      - `location.ts`:
+        - Added `smoothRouteOrigin(prevCoords, currentPos)` and exported `isValidCoord`.
+    - **Verification & Test Coverage:**
+      - Web Lifecycle Tests (`npm --prefix web run test:lifecycle`): **47/47 PASS** across 7 test suites (up from 40; added unit and component tests verifying `smoothRouteOrigin`, direct fallback chip rendering, and multi-leg remaining route origin transitions).
+      - API Lifecycle Tests (`npm --prefix API run test:lifecycle` with test DB): **44/44 PASS** across 6 test suites.
+      - Builds: `npm --prefix web run build` (vite build: exit code 0); `npm --prefix API run build` (tsc: exit code 0).
+      - Note on Visual Observation: Automated unit and component tests verify coordinate values, props, and fallback chips; visual verification of the moving polyline in a live browser should be confirmed when runtime servers are active.
 
 ## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)
 1. **Strongest Portfolio Signals Currently Demonstrated:**

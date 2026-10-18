@@ -10,8 +10,17 @@ import api from '../../../core/utils/api';
 
 // Mock Leaflet Map
 vi.mock('../../../shared/components/maps/Map', () => ({
-  default: () => <div data-testid="mock-map">Mock Leaflet Map</div>,
+  default: (props: any) => (
+    <div
+      data-testid="mock-map"
+      data-route-coords={JSON.stringify(props.routeCoordinates || [])}
+      data-route-status={props.routeStatus || 'none'}
+    >
+      Mock Leaflet Map
+    </div>
+  ),
 }));
+
 
 const createTestStore = () =>
   configureStore({
@@ -256,4 +265,78 @@ describe('Showcase Interactive Live Order Demo Component', () => {
     expect(screen.getByText('COMPLETED')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Run Another Demo/i })).toBeInTheDocument();
   });
+
+  it('updates remaining route correctly across pickup and post-pickup legs starting from courier position', async () => {
+    const store = createTestStore();
+
+    await act(async () => {
+      render(
+        <Provider store={store}>
+          <MemoryRouter>
+            <InteractiveDemos />
+          </MemoryRouter>
+        </Provider>
+      );
+    });
+
+    // Launch demo
+    const launchButton = screen.getByRole('button', { name: /▶ Launch Live Order Demo/i });
+    await act(async () => {
+      fireEvent.click(launchButton);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('● LIVE IN PROGRESS')).toBeInTheDocument();
+    });
+
+    const mapEl = screen.getByTestId('mock-map');
+    const leg1Coords = JSON.parse(mapEl.getAttribute('data-route-coords') || '[]');
+    expect(leg1Coords.length).toBeGreaterThanOrEqual(2);
+    // Leg 1 start point should be partner location
+    expect(leg1Coords[0].lat).toBeCloseTo(12.9680, 3);
+    expect(leg1Coords[0].lng).toBeCloseTo(77.5900, 3);
+    // Leg 1 end point should be restaurant location
+    expect(leg1Coords[leg1Coords.length - 1].lat).toBeCloseTo(12.9716, 3);
+    expect(leg1Coords[leg1Coords.length - 1].lng).toBeCloseTo(77.5946, 3);
+
+    // Transition to picked_up with new courier position
+    act(() => {
+      (socketService as any).registeredListeners.get('delivery:location')?.forEach((cb: any) => {
+        cb({
+          orderId: '64e8e50f3c5f4a1b8c1a9908',
+          deliveryId: '64e8e50f3c5f4a1b8c1a990a',
+          status: 'picked_up',
+          location: { lat: 12.9730, lng: 77.5960 },
+          etaSeconds: 200,
+          distanceRemainingMeters: 1000,
+        });
+      });
+    });
+
+    const leg2Coords = JSON.parse(mapEl.getAttribute('data-route-coords') || '[]');
+    expect(leg2Coords.length).toBeGreaterThanOrEqual(2);
+    // Leg 2 start point must be courier position (12.9730, 77.5960), NOT old restaurant coords (12.9716, 77.5946)
+    expect(leg2Coords[0].lat).toBeCloseTo(12.9730, 3);
+    expect(leg2Coords[0].lng).toBeCloseTo(77.5960, 3);
+    // Leg 2 end point must be customer destination (12.9866, 77.6096)
+    expect(leg2Coords[leg2Coords.length - 1].lat).toBeCloseTo(12.9866, 3);
+    expect(leg2Coords[leg2Coords.length - 1].lng).toBeCloseTo(77.6096, 3);
+
+    // Terminal delivered event clears remaining route
+    act(() => {
+      (socketService as any).registeredListeners.get('delivery:status')?.forEach((cb: any) => {
+        cb({
+          orderId: '64e8e50f3c5f4a1b8c1a9908',
+          deliveryId: '64e8e50f3c5f4a1b8c1a990a',
+          status: 'delivered',
+          location: { lat: 12.9866, lng: 77.6096 },
+        });
+      });
+    });
+
+    const deliveredCoords = JSON.parse(mapEl.getAttribute('data-route-coords') || '[]');
+    expect(deliveredCoords).toHaveLength(0);
+    expect(mapEl.getAttribute('data-route-status')).toBe('none');
+  });
 });
+

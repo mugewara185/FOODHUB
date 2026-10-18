@@ -28,21 +28,9 @@ export const decodePolyline = (encoded: string): Coordinates[] => {
   return points;
 };
 
-export const isValidCoord = (c: any): c is Coordinates => {
-  return (
-    c !== null &&
-    typeof c === 'object' &&
-    typeof c.lat === 'number' &&
-    typeof c.lng === 'number' &&
-    !isNaN(c.lat) &&
-    !isNaN(c.lng) &&
-    c.lat >= -90 &&
-    c.lat <= 90 &&
-    c.lng >= -180 &&
-    c.lng <= 180 &&
-    (c.lat !== 0 || c.lng !== 0)
-  );
-};
+import { isValidCoord } from '../../../core/utils/location';
+export { isValidCoord };
+
 
 function MapController({
   center,

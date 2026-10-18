@@ -54,7 +54,10 @@ const GlobalDeliveryPip: React.FC = () => {
     const resLoc = FALLBACK_RESTAURANT;
     const cusLoc = currentOrder?.deliveryInfo?.coordinates || FALLBACK_CUSTOMER;
     const mapCenter = location || resLoc;
-    const routeCoordinates = location ? [location, cusLoc] : [resLoc, cusLoc];
+    const isCustomerLeg = ['picked_up', 'out_for_delivery', 'nearby'].includes(status);
+    const routeCoordinates = isCustomerLeg
+      ? (location ? [location, cusLoc] : [resLoc, cusLoc])
+      : (location ? [location, resLoc] : [resLoc, cusLoc]);
     const markers = [
         { id: 'restaurant', type: 'restaurant', position: resLoc, title: 'Restaurant' },
         { id: 'customer', type: 'customer', position: cusLoc, title: 'You' },

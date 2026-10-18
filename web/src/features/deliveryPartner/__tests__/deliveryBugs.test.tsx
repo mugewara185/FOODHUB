@@ -94,7 +94,39 @@ describe('Delivery Partner Bugs & API Contracts', () => {
       expect(screen.queryByText('No active delivery')).not.toBeInTheDocument();
       expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     });
+
+    it('sets immediate direct fallback status and starts remaining route from partnerPos on customer leg', async () => {
+      const store = createStore({
+        deliveryPartner: {
+          activeAssignment: {
+            id: 'del-1',
+            deliveryId: 'del-1',
+            orderId: 'ord-1',
+            status: 'picked_up',
+            pickupLocation: { lat: 12.9716, lng: 77.5946 },
+            dropoffLocation: { lat: 12.9916, lng: 77.6146 },
+            currentLocation: { lat: 12.9740, lng: 77.5970 },
+          },
+          currentLocation: { lat: 12.9740, lng: 77.5970 },
+          isLoading: false,
+        }
+      });
+
+      render(
+        <Provider store={store}>
+          <MemoryRouter initialEntries={['/partner/active']}>
+            <Routes>
+              <Route path="/partner/active" element={<ActiveDelivery />} />
+            </Routes>
+          </MemoryRouter>
+        </Provider>
+      );
+
+      // Verify direct fallback chip is rendered truthfully immediately while road route fetches
+      expect(screen.getByText('Direct Path (Road Routing Offline)')).toBeInTheDocument();
+    });
   });
+
 
   describe('Bug 2: Online/offline toggle endpoint', () => {
     it('uses /api/delivery/partner/me/status endpoint with JWT session', async () => {

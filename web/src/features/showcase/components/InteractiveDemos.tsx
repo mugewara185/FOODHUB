@@ -42,7 +42,7 @@ import { logger } from '../../../core/dev/logger/Logger';
 import type { LogEntry } from '../../../core/dev/logger/types';
 import api from '../../../core/utils/api';
 import { socketService } from '../../../services/socket';
-import { fetchRoadRoute } from '../../../core/utils/location';
+import { fetchRoadRoute, calculateDistance, smoothRouteOrigin } from '../../../core/utils/location';
 
 interface InteractiveDemosProps {
   launchTrigger?: number;
@@ -96,6 +96,7 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
   const [travelledCoords, setTravelledCoords] = useState<{ lat: number; lng: number }[]>([]);
   const [routeCoords, setRouteCoords] = useState<{ lat: number; lng: number }[]>([]);
   const [routeStatus, setRouteStatus] = useState<'road' | 'direct' | 'none'>('none');
+  const lastRoutedPosRef = useRef<{ lat: number; lng: number; isCustomerLeg: boolean; orderId?: string } | null>(null);
   const [distanceRemainingMeters, setDistanceRemainingMeters] = useState<number | null>(null);
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null);
   const [isHandoffPending, setIsHandoffPending] = useState<boolean>(false);
@@ -348,6 +349,7 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
         setIsDelivered(false);
         setIsHandoffPending(false);
         setTransitMinutes(null);
+        lastRoutedPosRef.current = null;
 
         socketService.connect(customer?.id, 'customer');
         if (order?._id) {
@@ -417,46 +419,70 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
     }
   }, [launchTrigger, isLaunching, activeOrder, isDelivered, handleLaunchLiveDemo]);
 
-  // Bounded road route calculation for the active demo leg
+  // Bounded road route calculation for the active demo leg with distance gating and route smoothing
   useEffect(() => {
-    if (!activeOrder || !restaurantCoords || !customerCoords) {
+    if (!activeOrder || !restaurantCoords || !customerCoords || isDelivered || currentStatus === 'delivered') {
       setRouteCoords([]);
       setRouteStatus('none');
+      lastRoutedPosRef.current = null;
       return;
     }
 
     let isCancelled = false;
-    const isCustomerLeg = ['picked_up', 'out_for_delivery', 'nearby', 'delivered'].includes(currentStatus);
-    const startPoint = isCustomerLeg ? restaurantCoords : (courierPosition || partnerCoords);
+    const isCustomerLeg = ['picked_up', 'out_for_delivery', 'nearby'].includes(currentStatus);
+    const currentCourier = courierPosition || (isCustomerLeg ? restaurantCoords : partnerCoords);
+    const startPoint = currentCourier;
     const endPoint = isCustomerLeg ? customerCoords : restaurantCoords;
 
-    // Set immediate direct fallback
-    setRouteCoords([startPoint, endPoint]);
-    setRouteStatus('direct');
+    const orderChanged = !lastRoutedPosRef.current || lastRoutedPosRef.current.orderId !== activeOrder._id;
+    const legChanged = lastRoutedPosRef.current?.isCustomerLeg !== isCustomerLeg;
+    const distanceMoved = lastRoutedPosRef.current
+      ? calculateDistance(currentCourier, { lat: lastRoutedPosRef.current.lat, lng: lastRoutedPosRef.current.lng })
+      : Infinity;
 
-    fetchRoadRoute(startPoint, endPoint, 2500)
-      .then((res) => {
-        if (!isCancelled && res.coordinates.length > 1) {
-          setRouteCoords(res.coordinates);
-          setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setRouteStatus('direct');
-        }
-      });
+    if (orderChanged || legChanged || distanceMoved > 250) {
+      // Set immediate direct fallback with truthful direct status
+      setRouteCoords([startPoint, endPoint]);
+      setRouteStatus('direct');
+      lastRoutedPosRef.current = {
+        lat: currentCourier.lat,
+        lng: currentCourier.lng,
+        isCustomerLeg,
+        orderId: activeOrder._id,
+      };
+
+      fetchRoadRoute(startPoint, endPoint, 2500)
+        .then((res) => {
+          if (!isCancelled && res.coordinates.length > 1) {
+            setRouteCoords(res.coordinates);
+            setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
+          }
+        })
+        .catch(() => {
+          if (!isCancelled) {
+            setRouteStatus('direct');
+          }
+        });
+    } else {
+      // Intermediate GPS tick (<= 250m): smooth route start point to courier's live location without network overhead
+      setRouteCoords((prev) => smoothRouteOrigin(prev, currentCourier));
+    }
 
     return () => {
       isCancelled = true;
     };
   }, [
     activeOrder?._id,
-    ['picked_up', 'out_for_delivery', 'nearby', 'delivered'].includes(currentStatus),
+    currentStatus,
+    isDelivered,
+    courierPosition?.lat,
+    courierPosition?.lng,
     restaurantCoords?.lat,
     restaurantCoords?.lng,
     customerCoords?.lat,
     customerCoords?.lng,
+    partnerCoords?.lat,
+    partnerCoords?.lng,
   ]);
 
   // -------------------------------------------------------------

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -43,7 +43,7 @@ import {
 } from '@features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
 import { useDeliverySocket } from '../../features/deliveryPartner/hooks/useDeliverySocket';
-import { fetchRoadRoute } from '../../core/utils/location';
+import { fetchRoadRoute, calculateDistance, smoothRouteOrigin } from '../../core/utils/location';
 import type { Coordinates } from '../../data/types/location';
 
 interface DeliveryStep {
@@ -65,6 +65,7 @@ const ActiveDelivery: React.FC = () => {
   const [routeCoords, setRouteCoords] = useState<Coordinates[]>([]);
   const [travelledCoords, setTravelledCoords] = useState<Coordinates[]>([]);
   const [routeStatus, setRouteStatus] = useState<'road' | 'direct' | 'none'>('direct');
+  const lastRoutedPosRef = useRef<{ lat: number; lng: number; isCustomerLeg: boolean; orderId?: string } | null>(null);
 
   // Fetch partner state (active delivery + location + status) on mount and socket reconnect.
   useEffect(() => {
@@ -199,33 +200,66 @@ const ActiveDelivery: React.FC = () => {
   // Bounded road route calculation (immediate fallback line + non-blocking road fetch)
   const isCustomerLeg = activeStep >= 2;
   useEffect(() => {
-    if (!activeAssignment) return;
+    if (!activeAssignment || activeAssignment.status === 'delivered') {
+      setRouteCoords([]);
+      setRouteStatus('none');
+      lastRoutedPosRef.current = null;
+      return;
+    }
 
     let isCancelled = false;
-    const startPoint = isCustomerLeg ? pickupPos : partnerPos;
+    const startPoint = partnerPos;
     const endPoint = isCustomerLeg ? dropoffPos : pickupPos;
 
-    // Set immediate fallback line for the current leg
-    setRouteCoords([startPoint, endPoint]);
+    const orderChanged = !lastRoutedPosRef.current || lastRoutedPosRef.current.orderId !== activeAssignment.orderId;
+    const legChanged = lastRoutedPosRef.current?.isCustomerLeg !== isCustomerLeg;
+    const distanceMoved = lastRoutedPosRef.current
+      ? calculateDistance(partnerPos, { lat: lastRoutedPosRef.current.lat, lng: lastRoutedPosRef.current.lng })
+      : Infinity;
 
-    // Bounded fetch: max 2.5s timeout, never hangs
-    fetchRoadRoute(startPoint, endPoint, 2500)
-      .then((res) => {
-        if (!isCancelled && res.coordinates.length > 1) {
-          setRouteCoords(res.coordinates);
-          setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setRouteStatus('direct');
-        }
-      });
+    if (orderChanged || legChanged || distanceMoved > 250) {
+      // Set immediate direct fallback line for current leg with truthful direct status
+      setRouteCoords([startPoint, endPoint]);
+      setRouteStatus('direct');
+      lastRoutedPosRef.current = {
+        lat: partnerPos.lat,
+        lng: partnerPos.lng,
+        isCustomerLeg,
+        orderId: activeAssignment.orderId,
+      };
+
+      // Bounded fetch: max 2.5s timeout, never hangs
+      fetchRoadRoute(startPoint, endPoint, 2500)
+        .then((res) => {
+          if (!isCancelled && res.coordinates.length > 1) {
+            setRouteCoords(res.coordinates);
+            setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
+          }
+        })
+        .catch(() => {
+          if (!isCancelled) {
+            setRouteStatus('direct');
+          }
+        });
+    } else {
+      // Intermediate GPS tick (<= 250m): smooth route start point to partnerPos without network call
+      setRouteCoords((prev) => smoothRouteOrigin(prev, partnerPos));
+    }
 
     return () => {
       isCancelled = true;
     };
-  }, [activeAssignment?.orderId, isCustomerLeg, pickupPos.lat, pickupPos.lng, dropoffPos.lat, dropoffPos.lng]);
+  }, [
+    activeAssignment?.orderId,
+    activeAssignment?.status,
+    isCustomerLeg,
+    partnerPos.lat,
+    partnerPos.lng,
+    pickupPos.lat,
+    pickupPos.lng,
+    dropoffPos.lat,
+    dropoffPos.lng,
+  ]);
 
   if (isLoading && !activeAssignment) {
     return (

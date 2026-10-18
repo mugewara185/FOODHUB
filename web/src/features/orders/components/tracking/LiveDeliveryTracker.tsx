@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Paper, Typography, Grid, Chip, LinearProgress, Avatar, Divider, Stack, Button, Dialog, DialogContent } from '@mui/material';
 import { CheckCircle, RadioButtonUnchecked, RadioButtonChecked, Cancel, Star, LocalShipping, LocationOn, AccessTime, Phone, Person, Message } from '@mui/icons-material';
-import { formatDuration, fetchRoadRoute, calculateDistance } from '../../../../core/utils/location';
+import { formatDuration, fetchRoadRoute, calculateDistance, smoothRouteOrigin, isValidCoord } from '../../../../core/utils/location';
 import Map from '../../../../shared/components/maps/Map';
 import { useDeliveryTracking } from '../../hooks/useDeliveryTracking';
 import { useAppSelector } from '../../../../app/store/hooks';
@@ -398,6 +398,7 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinates[]>([resLoc, cusLoc]);
   const [travelledCoords, setTravelledCoords] = useState<Coordinates[]>([]);
   const [routeStatus, setRouteStatus] = useState<'road' | 'direct' | 'none'>('direct');
+  const lastRoutedPosRef = useRef<{ lat: number; lng: number; legKey: string; orderId?: string } | null>(null);
 
   useEffect(() => {
     if (location && location.lat && location.lng && (location.lat !== 0 || location.lng !== 0)) {
@@ -413,24 +414,87 @@ const LiveDeliveryTracker: React.FC<LiveDeliveryTrackerProps> = ({
     }
   }, [location?.lat, location?.lng]);
 
+  const isDeliveredOrTerminal = ['delivered', 'completed', 'reviewed', 'rejected', 'cancelled'].includes(status);
+  const isCustomerLeg = ['picked_up', 'out_for_delivery', 'nearby'].includes(status);
+  const isPickupLeg = ['partner_assigned', 'arrived_pickup'].includes(status);
+
   useEffect(() => {
+    if (isDeliveredOrTerminal) {
+      setRouteCoordinates([]);
+      setRouteStatus('none');
+      lastRoutedPosRef.current = null;
+      return;
+    }
+
     let isCancelled = false;
-    fetchRoadRoute(resLoc, cusLoc, 2500)
-      .then((res) => {
-        if (!isCancelled && res.coordinates.length > 1) {
-          setRouteCoordinates(res.coordinates);
-          setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setRouteStatus('direct');
-        }
-      });
+    let startPoint: Coordinates;
+    let endPoint: Coordinates;
+    let legKey: string;
+
+    if (isCustomerLeg) {
+      startPoint = (location && isValidCoord(location)) ? location : resLoc;
+      endPoint = cusLoc;
+      legKey = 'customer';
+    } else if (isPickupLeg && location && isValidCoord(location)) {
+      startPoint = location;
+      endPoint = resLoc;
+      legKey = 'pickup';
+    } else {
+      startPoint = resLoc;
+      endPoint = cusLoc;
+      legKey = 'planned';
+    }
+
+    const orderChanged = !lastRoutedPosRef.current || lastRoutedPosRef.current.orderId !== orderId;
+    const legChanged = lastRoutedPosRef.current?.legKey !== legKey;
+    const distanceMoved = lastRoutedPosRef.current
+      ? calculateDistance(startPoint, { lat: lastRoutedPosRef.current.lat, lng: lastRoutedPosRef.current.lng })
+      : Infinity;
+
+    if (orderChanged || legChanged || distanceMoved > 250) {
+      // Set immediate direct fallback line with truthful direct status
+      setRouteCoordinates([startPoint, endPoint]);
+      setRouteStatus('direct');
+      lastRoutedPosRef.current = {
+        lat: startPoint.lat,
+        lng: startPoint.lng,
+        legKey,
+        orderId,
+      };
+
+      fetchRoadRoute(startPoint, endPoint, 2500)
+        .then((res) => {
+          if (!isCancelled && res.coordinates.length > 1) {
+            setRouteCoordinates(res.coordinates);
+            setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
+          }
+        })
+        .catch(() => {
+          if (!isCancelled) {
+            setRouteStatus('direct');
+          }
+        });
+    } else {
+      // Intermediate GPS tick (<= 250m): smooth route start point to courier's live location without network overhead
+      setRouteCoordinates((prev) => smoothRouteOrigin(prev, startPoint));
+    }
+
     return () => {
       isCancelled = true;
     };
-  }, [resLoc.lat, resLoc.lng, cusLoc.lat, cusLoc.lng]);
+  }, [
+    orderId,
+    status,
+    isDeliveredOrTerminal,
+    isCustomerLeg,
+    isPickupLeg,
+    location?.lat,
+    location?.lng,
+    resLoc.lat,
+    resLoc.lng,
+    cusLoc.lat,
+    cusLoc.lng,
+  ]);
 
   const isArrivedAtRestaurant =
     status === 'arrived_pickup' ||

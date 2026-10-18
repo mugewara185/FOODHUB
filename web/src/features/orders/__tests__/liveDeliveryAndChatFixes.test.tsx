@@ -13,8 +13,17 @@ import { socketService } from '../../../services/socket';
 
 // Mock Map component so Leaflet DOM isn't needed in unit tests
 vi.mock('../../../shared/components/maps/Map', () => ({
-  default: () => <div data-testid="mock-map">Map</div>
+  default: (props: any) => (
+    <div
+      data-testid="mock-map"
+      data-route-coords={JSON.stringify(props.routeCoordinates || [])}
+      data-route-status={props.routeStatus || 'none'}
+    >
+      Map
+    </div>
+  ),
 }));
+
 
 describe('Live Delivery, Owner ETA, Partner State & Chat Reproduction Tests', () => {
   beforeEach(() => {
@@ -204,4 +213,88 @@ describe('Live Delivery, Owner ETA, Partner State & Chat Reproduction Tests', ()
     expect(screen.getByText('Older history message from DB')).toBeInTheDocument();
     expect(screen.getByText('Live message arrived during HTTP fetch!')).toBeInTheDocument();
   });
+
+  it('LiveDeliveryTracker remaining route starts at courier location for pickup leg and customer leg', async () => {
+    let locCallback: any = null;
+    let statusCallback: any = null;
+    vi.spyOn(socketService, 'onDeliveryLocation').mockImplementation((cb) => {
+      locCallback = cb;
+    });
+    vi.spyOn(socketService, 'onDeliveryStatus').mockImplementation((cb) => {
+      statusCallback = cb;
+    });
+    vi.spyOn(socketService, 'onDeliveryAssigned').mockImplementation(() => {});
+    vi.spyOn(socketService, 'onOrderChatMessage').mockImplementation(() => {});
+    vi.spyOn(socketService, 'joinOrderRoom').mockImplementation(() => {});
+    vi.spyOn(socketService, 'unsubscribeFromOrder').mockImplementation(() => {});
+
+    const store = configureStore({
+      reducer: {
+        orders: orderReducer,
+        deliveryPartner: deliveryPartnerReducer,
+        auth: (state = { user: { id: 'user-1', role: ['user'] } }) => state,
+      }
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <LiveDeliveryTracker
+            orderId="order-route-1"
+            orderStatus="partner_assigned"
+            deliveryStatus="partner_assigned"
+            restaurantLocation={{ lat: 12.9716, lng: 77.5946 }}
+            customerLocation={{ lat: 12.9916, lng: 77.6146 }}
+            initialPartner={{ id: 'p-1', name: 'Rahul Mehta', phone: '9876543210' }}
+            initialLocation={{ lat: 12.9680, lng: 77.5900 }}
+            initialEtaSeconds={300}
+            initialDistance={1500}
+          />
+        </MemoryRouter>
+      </Provider>
+    );
+
+    const mapEl = screen.getByTestId('mock-map');
+    const leg1Coords = JSON.parse(mapEl.getAttribute('data-route-coords') || '[]');
+    expect(leg1Coords.length).toBeGreaterThanOrEqual(2);
+    // Leg 1: courier heading to restaurant (12.9680 -> 12.9716)
+    expect(leg1Coords[0].lat).toBeCloseTo(12.9680, 3);
+    expect(leg1Coords[leg1Coords.length - 1].lat).toBeCloseTo(12.9716, 3);
+
+    // Transition to picked_up with new courier position via live socket event
+    act(() => {
+      locCallback?.({
+        orderId: 'order-route-1',
+        location: { lat: 12.9750, lng: 77.5980 },
+        status: 'picked_up',
+        etaSeconds: 200,
+        distanceRemainingMeters: 800,
+      });
+      statusCallback?.({
+        orderId: 'order-route-1',
+        status: 'picked_up',
+        location: { lat: 12.9750, lng: 77.5980 },
+      });
+    });
+
+    const leg2Coords = JSON.parse(mapEl.getAttribute('data-route-coords') || '[]');
+    expect(leg2Coords.length).toBeGreaterThanOrEqual(2);
+    // Leg 2: starts at courier position (12.9750), destination is customer (12.9916)
+    expect(leg2Coords[0].lat).toBeCloseTo(12.9750, 3);
+    expect(leg2Coords[leg2Coords.length - 1].lat).toBeCloseTo(12.9916, 3);
+
+    // Terminal delivered event
+    act(() => {
+      statusCallback?.({
+        orderId: 'order-route-1',
+        status: 'delivered',
+        location: { lat: 12.9916, lng: 77.6146 },
+      });
+    });
+
+    const deliveredCoords = JSON.parse(mapEl.getAttribute('data-route-coords') || '[]');
+    expect(deliveredCoords).toHaveLength(0);
+    expect(mapEl.getAttribute('data-route-status')).toBe('none');
+  });
 });
+

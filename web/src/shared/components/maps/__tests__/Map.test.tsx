@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import Map, { decodePolyline, isValidCoord } from '../Map';
+import { smoothRouteOrigin } from '../../../../core/utils/location';
 import type { Coordinates, MapMarker } from '../../../../data/types/location';
 
 // Mock Leaflet and React-Leaflet to isolate coordinate & polyline logic
@@ -200,4 +201,64 @@ describe('Map Component: Route Refinement & Travelled Trail Invariants', () => {
     expect(decoded[0].lat).toBeCloseTo(38.5, 3);
     expect(decoded[0].lng).toBeCloseTo(-120.2, 3);
   });
+
+  it('8. smoothRouteOrigin cleanly anchors 2-point direct fallback route to current courier coordinates', () => {
+    const directFallback: Coordinates[] = [
+      { lat: 12.9716, lng: 77.5946 }, // old restaurant pos
+      { lat: 12.9866, lng: 77.6096 }, // customer destination
+    ];
+    const liveCourier: Coordinates = { lat: 12.9750, lng: 77.5980 };
+
+    const smoothed = smoothRouteOrigin(directFallback, liveCourier);
+    expect(smoothed).toHaveLength(2);
+    expect(smoothed[0]).toEqual(liveCourier);
+    expect(smoothed[1]).toEqual(directFallback[1]);
+  });
+
+  it('9. smoothRouteOrigin slices off traversed waypoints on multi-point road polyline without backtracking', () => {
+    const roadRoute: Coordinates[] = [
+      { lat: 12.9710, lng: 77.5910 }, // P0
+      { lat: 12.9720, lng: 77.5920 }, // P1
+      { lat: 12.9730, lng: 77.5930 }, // P2
+      { lat: 12.9740, lng: 77.5940 }, // P3
+      { lat: 12.9750, lng: 77.5950 }, // P4
+    ];
+
+    // Courier is slightly past P1, closest to P1
+    const liveCourier: Coordinates = { lat: 12.9721, lng: 77.5921 };
+    const smoothed = smoothRouteOrigin(roadRoute, liveCourier);
+
+    // Origin is attached directly to liveCourier
+    expect(smoothed[0]).toEqual(liveCourier);
+    // Traversed points (P0, P1) are pruned; upcoming points (P2, P3, P4) remain
+    expect(smoothed[1]).toEqual({ lat: 12.9730, lng: 77.5930 });
+    expect(smoothed[smoothed.length - 1]).toEqual({ lat: 12.9750, lng: 77.5950 });
+    expect(smoothed.length).toBe(4);
+  });
+
+  it('10. smoothRouteOrigin safely handles invalid courier or edge-case coordinates without crashing', () => {
+    const route: Coordinates[] = [{ lat: 12.9716, lng: 77.5946 }, { lat: 12.9866, lng: 77.6096 }];
+    expect(smoothRouteOrigin(route, null as any)).toEqual(route);
+    expect(smoothRouteOrigin(route, { lat: 0, lng: 0 })).toEqual(route);
+    expect(smoothRouteOrigin([], { lat: 12.9716, lng: 77.5946 })).toEqual([{ lat: 12.9716, lng: 77.5946 }]);
+  });
+
+  it('11. Direct fallback line is rendered with truthful direct status immediately', () => {
+    render(
+      <Map
+        routeCoordinates={[
+          { lat: 12.9716, lng: 77.5946 },
+          { lat: 12.9866, lng: 77.6096 },
+        ]}
+        routeStatus="direct"
+        center={{ lat: 12.9716, lng: 77.5946 }}
+      />
+    );
+
+    const polyline = screen.getByTestId('map-polyline');
+    expect(polyline).toHaveAttribute('data-color', '#ff9800');
+    expect(polyline).toHaveAttribute('data-dasharray', '8, 8');
+    expect(screen.getByText('Direct Path (Road Routing Offline)')).toBeInTheDocument();
+  });
 });
+
