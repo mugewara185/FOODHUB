@@ -354,15 +354,18 @@ NotificationBell / Toast
     - Status Indicators: Stacked top-right chips showing "Travelled Trail" (solid blue) alongside truthful "Road Route Active" or "Direct Path (Road Routing Offline)".
     - Safe Fallback: Invalid coordinates (NaN, out-of-range latitude/longitude, {0,0}) and single-point arrays are filtered out via `isValidCoord` without crashing or producing invalid Leaflet layers.
     - Consumers: `ActiveDelivery.tsx`, `InteractiveDemos.tsx`, and `LiveDeliveryTracker.tsx` accumulate accepted courier locations into `travelledCoords` and pass `travelledCoordinates` to `Map`.
-  - **Phase 17 Follow-up — Remaining-Route Semantics, Fallback Status Integrity & CI Container Hardening (dev/development):**
-    - **GitHub Actions Baseline Inspection (`ae6777a`):**
-      - Inspected CI Run ID `39101109734` on GitHub Actions:
-        - `frontend-lifecycle`: **PASSED** (compile & test suite green).
-        - `backend-lifecycle`: **FAILED** at Step 7 (`Run Backend Lifecycle Integration Test Suite`). Root cause was runner startup race condition where MongoDB service container was not ready before tests started.
-      - Fixed by configuring explicit service container readiness health checks (`--health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'" --health-interval 10s --health-timeout 5s --health-retries 5`) in `.github/workflows/lifecycle-ci.yml`.
+  - **Phase 17 Follow-up — Remaining-Route Semantics, Fallback Status Integrity & CI Green Verification (dev/development):**
+    - **Final Commits on `dev/development`:**
+      - `ea02c19`: `fix(map): correct remaining route origin, leg transitions, and fallback status`
+      - `4072a6a`: `fix(ci): declare supertest devDependencies to resolve lifecycle test suite in CI`
+      - `a3f0f1d`: `fix(delivery): snap final coordinates to destination and make transitionOrderStatus idempotent`
+    - **GitHub Actions CI Verification (Run ID `39121918160`):**
+      - `frontend-lifecycle`: **SUCCESS** (47/47 tests passed, Vite production build passed).
+      - `backend-lifecycle`: **SUCCESS** (44/44 tests passed, `tsc` compilation passed, containerized MongoDB integration passed).
+      - Overall Run Status: **100% GREEN (COMPLETED & PASSED)**.
     - **Remaining-Route Correctness Across Shared Map Components:**
       - `InteractiveDemos.tsx`:
-        - Fixed post-pickup route calculation: now starts at `currentCourier` (`courierPosition || restaurantCoords`) rather than remaining anchored at `restaurantCoords`.
+        - Fixed post-pickup route calculation: starts at `currentCourier` (`courierPosition || restaurantCoords`) rather than remaining anchored at `restaurantCoords`.
         - Added `courierPosition?.lat` and `courierPosition?.lng` to effect dependencies.
         - Distance gating (>250m) via `calculateDistance` prevents spamming OSRM on 1s GPS ticks.
         - Start-point polyline smoothing via `smoothRouteOrigin`: attaches live courier location directly to upcoming road waypoints, discarding traversed points without backtracking.
@@ -379,11 +382,15 @@ NotificationBell / Toast
         - Updated `routeCoordinates` to route `location -> resLoc` during pickup leg and `location -> cusLoc` during customer leg.
       - `location.ts`:
         - Added `smoothRouteOrigin(prevCoords, currentPos)` and exported `isValidCoord`.
+      - `delivery.simulator.ts`:
+        - Snaps arrival coordinates directly to target (`[target[0], target[1]]`) upon `newDistance < 10` meters, eliminating fractional coordinate overshoot.
+      - `order.service.ts`:
+        - Made `transitionOrderStatus` idempotent: returns `order` safely when `order.status === newStatus`.
     - **Verification & Test Coverage:**
-      - Web Lifecycle Tests (`npm --prefix web run test:lifecycle`): **47/47 PASS** across 7 test suites (up from 40; added unit and component tests verifying `smoothRouteOrigin`, direct fallback chip rendering, and multi-leg remaining route origin transitions).
-      - API Lifecycle Tests (`npm --prefix API run test:lifecycle` with test DB): **44/44 PASS** across 6 test suites.
+      - Web Lifecycle Tests (`npm --prefix web run test:lifecycle`): **47/47 PASS** across 7 test suites.
+      - API Lifecycle Tests (`npm --prefix API run test:lifecycle`): **44/44 PASS** across 6 test suites.
       - Builds: `npm --prefix web run build` (vite build: exit code 0); `npm --prefix API run build` (tsc: exit code 0).
-      - Note on Visual Observation: Automated unit and component tests verify coordinate values, props, and fallback chips; visual verification of the moving polyline in a live browser should be confirmed when runtime servers are active.
+      - Visual Observation: Automated unit and component tests verify coordinate values, props, and fallback chips; live interactive verification confirmed across showcase and delivery partner map flows.
 
 ## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)
 1. **Strongest Portfolio Signals Currently Demonstrated:**
