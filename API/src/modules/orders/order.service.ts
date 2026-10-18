@@ -142,17 +142,26 @@ export async function transitionOrderStatus(
   // If transitioning to picked_up, update the active Delivery so simulator moves to customer
   if (newStatus === 'picked_up') {
     try {
-      const deliveries = await Delivery.find({ orderId: order._id, status: 'arrived_pickup' });
+      const deliveries = await Delivery.find({ orderId: order._id, status: { $in: ['arrived_pickup', 'partner_assigned'] } });
       for (const d of deliveries) {
+        if (d.status === 'partner_assigned') {
+          d.status = 'arrived_pickup';
+          await d.save();
+        }
         d.status = 'picked_up';
         d.timestamps = d.timestamps || {};
         d.timestamps.pickedUpAt = new Date();
         await d.save();
 
+        const coords = d.currentLocation?.coordinates;
+        const loc = coords && Array.isArray(coords) && coords.length === 2
+          ? { lat: coords[1], lng: coords[0] }
+          : ((d.currentLocation as any)?.lat ? d.currentLocation : { lat: 0, lng: 0 });
+
         const payload = {
           deliveryId: d.id,
           orderId: d.orderId,
-          location: d.currentLocation || { lat: 0, lng: 0 },
+          location: loc,
           etaSeconds: d.etaSeconds,
           distanceRemainingMeters: d.distanceRemainingMeters,
           status: 'picked_up'

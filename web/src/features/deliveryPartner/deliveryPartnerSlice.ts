@@ -277,7 +277,9 @@ const deliveryPartnerSlice = createSlice({
   extraReducers: (builder) => {
     // fetchPartnerStateThunk
     builder.addCase(fetchPartnerStateThunk.pending, (state) => {
-      state.isLoading = true;
+      if (!state.activeAssignment && !state.name) {
+        state.isLoading = true;
+      }
     });
     builder.addCase(fetchPartnerStateThunk.fulfilled, (state, action) => {
       state.isLoading = false;

@@ -5,11 +5,10 @@ import { orderStatusChanged, orderReceived, deliveryStatusChanged } from '../own
 
 export function useOwnerSocket() {
   const dispatch = useAppDispatch();
-  const [isConnected, setIsConnected] = useState(false);
+  const [, setIsConnected] = useState(false);
   
   useEffect(() => {
     setIsConnected(socketService.isConnected);
-    console.log('[useOwnerSocket] mounting. isConnected =', socketService.isConnected);
     const handleConnection = (status: string) => {
       setIsConnected(status === 'connected');
     };
@@ -18,8 +17,6 @@ export function useOwnerSocket() {
   }, []);
 
   useEffect(() => {
-    if (!isConnected) return;
-
     const handleChanged = (payload: any) => {
       dispatch(orderStatusChanged(payload));
     };
@@ -39,5 +36,5 @@ export function useOwnerSocket() {
       socketService.offOrderNew(handleNew);
       socketService.offDeliveryStatusChanged(handleDeliveryStatus);
     };
-  }, [dispatch, isConnected]);
+  }, [dispatch]);
 }

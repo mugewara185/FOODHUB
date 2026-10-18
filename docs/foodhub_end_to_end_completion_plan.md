@@ -18,6 +18,7 @@
 - Phase 13 — Definitive Fix for Owner ETA (`arrived_pickup`), Partner Origin Near Restaurant, Partner Active-Delivery Synchronization & Full 6-Direction Cross-Role Chat: Build, Unit/Integration, Backend Multi-Actor & Browser E2E-verified on `dev/development`.
 - Phase 14 — One-Click Live-Order Demo: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Prominent recruiter launch CTA on `/showcase` executing legitimate server-authoritative multi-actor state transitions (MongoDB persistence, Socket.IO broadcasts to order, kitchen, and partner rooms, simulated courier road traversal across Bangalore streets, manual/auto-handoff at `arrived_pickup`, deep links to Customer/Owner/Courier dashboards, and strict P0 test/dev data isolation preserving ordinary database records).
 - Phase 15 — Delivery Simulator Recovery & Synchronization Across Live Order Demo and Partner Active Delivery: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Shared idempotent simulation entry point (`startDeliverySimulation`), process restart recovery on API boot (`recoverActiveDeliveries`), request-level recovery in `dev.controller.ts` and `delivery.partner.routes.ts`, auto-handoff progression for persisted `arrived_pickup` demo orders, reconnect reconciliation, and bounded fallback polling in Partner Active Delivery and Showcase pages.
+- Phase 16 — Order Lifecycle Stabilization, Owner Order Rendering, Delivery Simulation Handoff & Cross-Role Chat: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Definitive resolution of 4 core defects: cross-role socket chat authorization & message routing, owner dashboard new-order socket listener registration & ID normalization, simulation handoff state machine compliance (`partner_assigned -> arrived_pickup -> picked_up`) and non-cardinal bearing updates, and delivery partner polling loop elimination when socket is connected.
 
 ## EVIDENCE
 **API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
@@ -282,6 +283,43 @@ NotificationBell / Toast
     - Web Delivery Partner Suite: `7/7 PASS` (`deliveryBugs.test.tsx` 7/7).
     - Total Frontend Matrix: `29/29 PASS` across 4 test suites.
     - Build Matrix: `npm --prefix API run build` (tsc) PASS (exit code 0), `npm --prefix web run build` (vite build) PASS (exit code 0).
+
+- **Order Lifecycle Stabilization, Owner Order Rendering, Delivery Simulation Handoff & Cross-Role Chat (Phase 16 - dev/development):**
+  - **Root Causes Diagnosed from Code:**
+    - *1. Cross-Role Chat Authorization Failure & Message Routing Bleed:*
+      - In `API/src/socket.ts` and `API/src/modules/orders/order.controller.ts`, authorization required restaurant owners to have `owner` in their JWT `roles` array even if `restaurant.ownerId === user.id`. For delivery partners, `isUserAuthorizedForOrder` compared `delivery.partnerId.toString() === user.id`, which failed when `user.id` is the partner's User record ID rather than the DeliveryPartner document ID.
+      - In `web/src/services/socket.ts`, `sendOrderChatMessage` omitted the `auth` payload, causing message rejects in dev bypass scenarios. In `web/src/shared/components/OrderChat/OrderChat.tsx`, messages without explicit recipients or target roles were not properly scoped, leaking across role tabs.
+    - *2. Owner Dashboard Missing Socket Order Rendering:*
+      - In `web/src/features/orders/hooks/useOwnerSocket.ts`, an eager guard (`if (!isConnected) return;`) prevented registration of `onOrderStatusChanged`, `onOrderNew`, and `onDeliveryStatusChanged` until after initial connection events had fired. New orders arriving during setup were dropped.
+      - In `web/src/features/orders/api/orderApi.ts` and `web/src/pages/_ownerPages/DashBoard.tsx`, order normalization threw errors or skipped entries when `order.id` was missing or nested in unexpected API envelope structures.
+    - *3. Showcase Delivery Simulator Stopping After Kitchen Handoff:*
+      - In `API/src/modules/orders/order.service.ts`, advancing an order from `ready_for_pickup` to `picked_up` directly transitioned delivery status from `partner_assigned` to `picked_up`, violating the canonical Mongoose state machine (`partner_assigned -> arrived_pickup -> picked_up`) and throwing an `InvalidStateTransitionError` that killed the simulation runner.
+      - In `API/src/modules/delivery/delivery.simulator.ts`, `computeInitialPartnerOrigin` used cardinal bearings (including 270°), causing `cos(270°) = 0` and leaving courier longitude unchanged, failing step progression assertions.
+      - In `API/src/modules/orders/order.service.ts` and `web/src/features/showcase/components/InteractiveDemos.tsx`, `delivery:status` payloads emitted GeoJSON coordinates while client listeners expected `{ lat, lng }`.
+    - *4. Delivery Partner `/me` Endless Request Storms:*
+      - In `web/src/pages/_deliveryPartner/ActiveDelivery.tsx`, a fallback `setInterval` polled `fetchPartnerStateThunk()` every 6 seconds unconditionally, even while the WebSocket connection was active and healthy.
+      - In `web/src/features/deliveryPartner/deliveryPartnerSlice.ts`, `fetchPartnerStateThunk.pending` unconditionally set `state.isLoading = true`, causing continuous UI flicker and re-render loops.
+  - **Architectural Solutions Implemented:**
+    - *1. Dual-Identifier & Ownership Authorization (`API/src/socket.ts`, `API/src/modules/orders/order.controller.ts`):*
+      - Decoupled owner authorization from explicit `roles` array check if `restaurant.ownerId.toString() === user.id`.
+      - Expanded partner authorization to resolve both User ID and DeliveryPartner ID (`delivery.partnerId === user.id`, `partner.userId === user.id`, `partner._id === user.id`, and `DeliveryPartner.findOne({ userId })`).
+      - In `socket.ts`, extracted `auth` credentials from `order:chat:send` and resolved the assigned partner's User room for reliable socket delivery.
+      - In `OrderChat.tsx`, tightened role tab filtering so untargeted customer/owner/partner messages don't bleed across role contexts.
+    - *2. Immediate Socket Listener Registration & Defensive Order Parsing (`useOwnerSocket.ts`, `orderApi.ts`, `DashBoard.tsx`):*
+      - Removed the `!isConnected` short-circuit in `useOwnerSocket.ts` so socket event listeners are stored in `registeredListeners` immediately upon hook mount.
+      - In `orderApi.ts`, hardened `normalizeOrder`, `extractRestaurantId`, and `extractRestaurantLocation` with safe fallbacks.
+      - In `DashBoard.tsx`, guarded `order.id.slice(0, 6)` against `undefined`.
+    - *3. State Machine Transition Guard & Simulator Bearing Hardening (`order.service.ts`, `delivery.simulator.ts`, `InteractiveDemos.tsx`):*
+      - In `order.service.ts`: When transitioning to `picked_up`, if delivery status is `partner_assigned`, sequentially steps through `arrived_pickup` first to satisfy `VALID_DELIVERY_TRANSITIONS` before persisting `picked_up`. Emitted `location` in `delivery:status` converted to `{ lat, lng }`.
+      - In `delivery.simulator.ts`: Replaced cardinal bearings with non-cardinal bearings `[120, 150, 190, 210, 240, 260, 300, 330]`.
+      - In `InteractiveDemos.tsx`: Added GeoJSON array parsing to `handleLocation` and `handleStatus`.
+    - *4. Gated Polling & Smooth Loading State (`ActiveDelivery.tsx`, `deliveryPartnerSlice.ts`):*
+      - Gated the reconciliation interval in `ActiveDelivery.tsx` to only run when `!socketService.isConnected`.
+      - In `deliveryPartnerSlice.ts`, set `state.isLoading = true` only during initial load when no active assignment or partner name exists.
+  - **Verification Suites:**
+    - Full Backend Integration Matrix: `41/41 PASS` across 5 test suites (`road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `demo-launch.integration.test.ts` 10/10).
+    - Web Test Matrix: `27/27 PASS` across relevant test files (`liveOrderDemo.test.tsx` 4/4, `demoRecoverySynchronization.test.tsx` 8/8, `deliveryBugs.test.tsx` 7/7, `liveDeliveryAndChatFixes.test.tsx` 3/3, `orderSliceState.test.ts` 5/5).
+    - Production Builds: `API` build (tsc) PASS (exit code 0); `web` build (vite build) PASS (exit code 0).
 
 ## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)
 1. **Strongest Portfolio Signals Currently Demonstrated:**

@@ -215,7 +215,7 @@ const OwnerDashboard: React.FC = () => {
                       <ListItemText
                         primary={
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="subtitle2" fontWeight={600}>Order #{order.id.slice(0, 6)}</Typography>
+                            <Typography variant="subtitle2" fontWeight={600}>Order #{(order.id || '').slice(0, 6) || 'N/A'}</Typography>
                             <Chip label={order.status} size="small" color={getStatusChipColor(order.status) as any} />
                           </Box>
                         }
@@ -251,7 +251,7 @@ const OwnerDashboard: React.FC = () => {
                       <ListItemText
                         primary={
                           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="subtitle2" fontWeight={600}>Order #{order.id.slice(0, 6)}</Typography>
+                            <Typography variant="subtitle2" fontWeight={600}>Order #{(order.id || '').slice(0, 6) || 'N/A'}</Typography>
                             <Chip label={order.status} size="small" color={getStatusChipColor(order.status) as any} />
                           </Box>
                         }

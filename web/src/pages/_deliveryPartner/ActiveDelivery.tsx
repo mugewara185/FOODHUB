@@ -78,13 +78,15 @@ const ActiveDelivery: React.FC = () => {
     };
   }, [dispatch]);
 
-  // Bounded fallback reconciliation poll while delivery is active
+  // Bounded fallback reconciliation poll while delivery is active (only if socket is not connected)
   useEffect(() => {
     if (!activeAssignment || activeAssignment.status === 'delivered') return;
 
     const interval = setInterval(() => {
-      dispatch(fetchPartnerStateThunk());
-    }, 6000);
+      if (!socketService.isConnected) {
+        dispatch(fetchPartnerStateThunk());
+      }
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [dispatch, activeAssignment?.deliveryId, activeAssignment?.status]);

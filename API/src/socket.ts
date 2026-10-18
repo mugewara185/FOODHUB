@@ -119,7 +119,7 @@ export async function isUserAuthorizedForOrder(user: SocketUser | null, orderId:
     if (order.userId?.toString() === user.id) return true;
 
     // Restaurant owner check
-    if (roles.includes('owner') || roles.includes('restaurant_owner')) {
+    if (order.restaurantId) {
       const restaurant = await Restaurant.findById(order.restaurantId).select('ownerId');
       if (restaurant?.ownerId?.toString() === user.id) return true;
     }
@@ -128,8 +128,11 @@ export async function isUserAuthorizedForOrder(user: SocketUser | null, orderId:
     // Any partner assigned to the delivery for this order is authorized
     const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
     if (delivery && delivery.partnerId) {
+      if (delivery.partnerId.toString() === user.id) return true;
       const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
-      if (partner?.userId?.toString() === user.id) return true;
+      if (partner && (partner.userId?.toString() === user.id || partner._id.toString() === user.id)) return true;
+      const userPartner = await DeliveryPartner.findOne({ userId: user.id }).select('_id');
+      if (userPartner && delivery.partnerId.toString() === userPartner._id.toString()) return true;
     }
 
     return false;
@@ -171,7 +174,7 @@ export const initSocket = (server: HttpServer) => {
 
     // Clients can join rooms based on their user ID to receive private notifications
     socket.on('join_user_room', async (userId) => {
-      const user = socket.data.user || await resolveSocketUser(socket);
+      const user = socket.data.user || await resolveSocketUser(socket, typeof userId === 'string' ? { userId } : userId);
       if (user) socket.data.user = user;
 
       if (!user) {
@@ -237,7 +240,7 @@ export const initSocket = (server: HttpServer) => {
           return;
         }
 
-        const user = socket.data.user || await resolveSocketUser(socket, payload.auth);
+        const user = socket.data.user || await resolveSocketUser(socket, payload.auth || { userId: payload.senderId, role: payload.senderRole });
         if (user) socket.data.user = user;
 
         if (!user) {
@@ -260,11 +263,25 @@ export const initSocket = (server: HttpServer) => {
         let assignedPartnerUserId: string | undefined;
         const delivery = await Delivery.findOne({ orderId: payload.orderId }).select('partnerId');
         if (delivery && delivery.partnerId) {
-          const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
-          if (partner?.userId) {
-            assignedPartnerUserId = partner.userId.toString();
-            if (assignedPartnerUserId === user.id) {
+          if (delivery.partnerId.toString() === user.id) {
+            isAssignedPartner = true;
+            assignedPartnerUserId = user.id;
+          } else {
+            const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
+            if (partner?.userId) {
+              assignedPartnerUserId = partner.userId.toString();
+              if (assignedPartnerUserId === user.id) {
+                isAssignedPartner = true;
+              }
+            } else if (partner?._id.toString() === user.id) {
               isAssignedPartner = true;
+              assignedPartnerUserId = user.id;
+            } else {
+              const userPartner = await DeliveryPartner.findOne({ userId: user.id }).select('_id');
+              if (userPartner && delivery.partnerId.toString() === userPartner._id.toString()) {
+                isAssignedPartner = true;
+                assignedPartnerUserId = user.id;
+              }
             }
           }
         }

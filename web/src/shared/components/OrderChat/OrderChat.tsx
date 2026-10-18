@@ -119,7 +119,16 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole: rawCurr
       return (msgSenderRole === currentUserRole && msgTargetRole === selectedTargetRole) ||
              (msgSenderRole === selectedTargetRole && msgTargetRole === currentUserRole);
     }
-    return msgSenderRole === currentUserRole || msgSenderRole === selectedTargetRole;
+    // Fallback for legacy messages without targetRole:
+    if (
+      (currentUserRole === 'user' && selectedTargetRole === 'owner' && (msgSenderRole === 'user' || msgSenderRole === 'owner')) ||
+      (currentUserRole === 'owner' && selectedTargetRole === 'user' && (msgSenderRole === 'user' || msgSenderRole === 'owner')) ||
+      (currentUserRole === 'partner' && selectedTargetRole === 'user' && (msgSenderRole === 'partner' || msgSenderRole === 'user')) ||
+      (currentUserRole === 'user' && selectedTargetRole === 'partner' && msgSenderRole === 'partner')
+    ) {
+      return true;
+    }
+    return false;
   });
 
   useEffect(() => {

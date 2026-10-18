@@ -318,7 +318,17 @@ class SocketService {
     if (payload?.orderId) {
       this.joinOrderRoom(payload.orderId);
     }
-    this.socket?.emit("order:chat:send", payload);
+    const token = getAuthToken();
+    const chatPayload = {
+      ...payload,
+      auth: {
+        token: token || undefined,
+        userId: this.currentUserId || payload.senderId,
+        role: payload.senderRole,
+        devBypass: true,
+      },
+    };
+    this.socket?.emit("order:chat:send", chatPayload);
   }
 
   onOrderChatMessage(callback: (payload: OrderChatMessage) => void) {

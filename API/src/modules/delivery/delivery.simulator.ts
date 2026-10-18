@@ -180,8 +180,8 @@ export function computeInitialPartnerOrigin(
     hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
   }
 
-  // Choose from 8 distinct bearings (excluding 45 deg where customer +0.02,+0.02 sits)
-  const bearingsDeg = [120, 150, 180, 210, 240, 270, 300, 330];
+  // Choose from 8 distinct bearings (excluding 45 deg where customer +0.02,+0.02 sits, and non-cardinal so both lat and lng move)
+  const bearingsDeg = [120, 150, 190, 210, 240, 260, 300, 330];
   const angleRad = (bearingsDeg[hash % bearingsDeg.length] * Math.PI) / 180;
 
   // Radius between 0.0042 and 0.0064 degrees (~470m to ~710m)

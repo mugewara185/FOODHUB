@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import mongoose from 'mongoose';
 import { createServer } from 'http';
 import request from 'supertest';
@@ -23,6 +23,7 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
   let regularOrder: any;
 
   beforeAll(async () => {
+    vi.useRealTimers();
     const rawUri = process.env.TEST_MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/FOODHUB3_TEST';
     const uri = /test|e2e/i.test(rawUri) ? rawUri : 'mongodb://127.0.0.1:27017/FOODHUB3_TEST';
 
@@ -40,6 +41,9 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     await new Promise<void>((resolve) => {
       server.listen(0, () => resolve());
     });
+
+    await Order.deleteMany({ isDemo: true });
+    await Delivery.deleteMany({ isDemo: true });
 
     // 1. Create ordinary non-demo Customer User
     regularUser = await User.create({

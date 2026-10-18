@@ -214,8 +214,11 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
 
     const handleLocation = (payload: any) => {
       if (payload.orderId === orderId || payload.deliveryId === activeDelivery?._id) {
-        if (payload.location && typeof payload.location.lat === 'number') {
-          setCourierPosition({ lat: payload.location.lat, lng: payload.location.lng });
+        const loc = payload.location?.coordinates && Array.isArray(payload.location.coordinates)
+          ? { lat: payload.location.coordinates[1], lng: payload.location.coordinates[0] }
+          : payload.location;
+        if (loc && typeof loc.lat === 'number') {
+          setCourierPosition({ lat: loc.lat, lng: loc.lng });
         }
         if (typeof payload.etaSeconds === 'number') setEtaSeconds(payload.etaSeconds);
         if (typeof payload.distanceRemainingMeters === 'number') setDistanceRemainingMeters(payload.distanceRemainingMeters);
@@ -240,6 +243,12 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
 
     const handleStatus = (payload: any) => {
       if (payload.orderId === orderId) {
+        const loc = payload.location?.coordinates && Array.isArray(payload.location.coordinates)
+          ? { lat: payload.location.coordinates[1], lng: payload.location.coordinates[0] }
+          : payload.location;
+        if (loc && typeof loc.lat === 'number') {
+          setCourierPosition({ lat: loc.lat, lng: loc.lng });
+        }
         if (payload.status) {
           setCurrentStatus((prev) => {
             const curIdx = getStageIndex(prev);

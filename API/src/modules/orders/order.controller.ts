@@ -245,9 +245,18 @@ export async function getOrderChat(req: AuthRequest, res: Response, next: NextFu
     if (!isAuthorized && userId) {
       const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
       if (delivery?.partnerId) {
-        const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
-        if (partner?.userId?.toString() === userId) {
+        if (delivery.partnerId.toString() === userId) {
           isAuthorized = true;
+        } else {
+          const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
+          if (partner && (partner.userId?.toString() === userId || partner._id.toString() === userId)) {
+            isAuthorized = true;
+          } else {
+            const userPartner = await DeliveryPartner.findOne({ userId }).select('_id');
+            if (userPartner && delivery.partnerId.toString() === userPartner._id.toString()) {
+              isAuthorized = true;
+            }
+          }
         }
       }
     }
