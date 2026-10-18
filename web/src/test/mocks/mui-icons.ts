@@ -76,5 +76,12 @@ export const HourglassEmpty = 'div';
 export const FlashOn = 'div';
 export const Wifi = 'div';
 export const WifiOff = 'div';
+export const Key = 'div';
+export const ContentCopy = 'div';
+export const SwapHoriz = 'div';
+export const Lock = 'div';
+export const Email = 'div';
+export const InfoOutlined = 'div';
+export const Logout = 'div';
 
 export default 'div';

@@ -288,12 +288,14 @@ export const DEMO_FIXTURE_IDS = {
   CUSTOMER_USER: '64e8e50f3c5f4a1b8c1a9901',
   PARTNER_USER: '64e8e50f3c5f4a1b8c1a9903',
   DELIVERY_PARTNER: '64e8e50f3c5f4a1b8c1a9907',
+  ADMIN_USER: '64e8e50f3c5f4a1b8c1a9904',
 };
 
 export const DEMO_FIXTURE_EMAILS = {
   OWNER: 'demo-owner@foodhub.test',
   CUSTOMER: 'demo-customer@foodhub.test',
   PARTNER: 'demo-partner@foodhub.test',
+  ADMIN: 'demo-admin@foodhub.test',
 };
 
 // In-memory sliding rate limiter for public demo launch protection
@@ -325,7 +327,7 @@ let isLaunchingDemo = false;
  * Resolves or safely creates dedicated demo participants.
  * Invariant: Never mutates, hijacks, reassigns, or resets ordinary application records.
  */
-async function resolveDedicatedDemoParticipants() {
+export async function resolveDedicatedDemoParticipants() {
   // 1. Dedicated Demo Owner User
   let ownerUser = await User.findById(DEMO_FIXTURE_IDS.OWNER_USER);
   if (!ownerUser) {
@@ -344,12 +346,16 @@ async function resolveDedicatedDemoParticipants() {
       ownerUser.isDemo = true;
       await ownerUser.save();
     }
+    if (!(await ownerUser.comparePassword('devdev'))) {
+      ownerUser.password = 'devdev';
+      await ownerUser.save();
+    }
   } else {
     ownerUser = await User.create({
       _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.OWNER_USER),
       name: 'Showcase Kitchen Manager',
       email: DEMO_FIXTURE_EMAILS.OWNER,
-      password: await bcrypt.hash('devdev', 10),
+      password: 'devdev',
       roles: ['owner'],
       phone: '9888888881',
       address: '100 Indiranagar 100ft Road, Bangalore',
@@ -433,12 +439,16 @@ async function resolveDedicatedDemoParticipants() {
       customerUser.isDemo = true;
       await customerUser.save();
     }
+    if (!(await customerUser.comparePassword('devdev'))) {
+      customerUser.password = 'devdev';
+      await customerUser.save();
+    }
   } else {
     customerUser = await User.create({
       _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.CUSTOMER_USER),
       name: 'Showcase Customer',
       email: DEMO_FIXTURE_EMAILS.CUSTOMER,
-      password: await bcrypt.hash('devdev', 10),
+      password: 'devdev',
       roles: ['user'],
       phone: '9888888882',
       address: 'Flat 402, Showcase Heights, Bangalore',
@@ -463,12 +473,16 @@ async function resolveDedicatedDemoParticipants() {
       partnerUser.isDemo = true;
       await partnerUser.save();
     }
+    if (!(await partnerUser.comparePassword('devdev'))) {
+      partnerUser.password = 'devdev';
+      await partnerUser.save();
+    }
   } else {
     partnerUser = await User.create({
       _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.PARTNER_USER),
       name: 'Ramesh Rider',
       email: DEMO_FIXTURE_EMAILS.PARTNER,
-      password: await bcrypt.hash('devdev', 10),
+      password: 'devdev',
       roles: ['partner'],
       phone: '9888888883',
       address: 'Fleet Hub 1, Bangalore',
@@ -505,7 +519,41 @@ async function resolveDedicatedDemoParticipants() {
     });
   }
 
-  return { ownerUser, restaurant, customerUser, partnerUser, partner };
+  // 5. Dedicated Demo Admin User
+  let adminUser = await User.findById(DEMO_FIXTURE_IDS.ADMIN_USER);
+  if (!adminUser) {
+    adminUser = await User.findOne({ email: DEMO_FIXTURE_EMAILS.ADMIN });
+  }
+
+  if (adminUser) {
+    if (!adminUser.isDemo && adminUser.email !== DEMO_FIXTURE_EMAILS.ADMIN) {
+      throw new AppError(
+        'Conflict detected: An ordinary non-demo user exists with the demo admin identity. Demo launch aborted to protect application participants.',
+        409
+      );
+    }
+    if (!adminUser.isDemo) {
+      adminUser.isDemo = true;
+      await adminUser.save();
+    }
+    if (!(await adminUser.comparePassword('devdev'))) {
+      adminUser.password = 'devdev';
+      await adminUser.save();
+    }
+  } else {
+    adminUser = await User.create({
+      _id: new mongoose.Types.ObjectId(DEMO_FIXTURE_IDS.ADMIN_USER),
+      name: 'Showcase Platform Administrator',
+      email: DEMO_FIXTURE_EMAILS.ADMIN,
+      password: 'devdev',
+      roles: ['admin', 'user'],
+      phone: '9888888884',
+      address: 'Platform Operations Center, Bangalore',
+      isDemo: true,
+    });
+  }
+
+  return { ownerUser, restaurant, customerUser, partnerUser, partner, adminUser };
 }
 
 export async function getActiveDemoOrder(req: Request, res: Response, next: NextFunction) {

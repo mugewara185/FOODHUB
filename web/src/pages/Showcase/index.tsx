@@ -17,6 +17,7 @@ import { ArchitectureMap } from '../../features/showcase/components/Architecture
 import { InteractiveDemos } from '../../features/showcase/components/InteractiveDemos';
 import { DomainShowcaseCards } from '../../features/showcase/components/DomainShowcaseCards';
 import { EngineeringTradeoffs } from '../../features/showcase/components/EngineeringTradeoffs';
+import { DemoAccessSection } from '../../features/showcase/components/DemoAccessSection';
 
 const ShowcasePage: React.FC = () => {
   useHideGlobalSearch();
@@ -102,13 +103,16 @@ const ShowcasePage: React.FC = () => {
         {/* 3. Interactive Demos (Always visible or in deep-dive) */}
         <InteractiveDemos launchTrigger={launchTrigger} />
 
-        {/* 4. Distributed Architecture Map */}
+        {/* 4. Demo Account Access & Persona Exploration */}
+        <DemoAccessSection />
+
+        {/* 5. Distributed Architecture Map */}
         <ArchitectureMap />
 
-        {/* 5. Domain Deep Dives */}
+        {/* 6. Domain Deep Dives */}
         <DomainShowcaseCards />
 
-        {/* 6. Engineering Decisions & Trade-Offs */}
+        {/* 7. Engineering Decisions & Trade-Offs */}
         <EngineeringTradeoffs />
 
         {/* 7. Bottom Navigation CTA */}

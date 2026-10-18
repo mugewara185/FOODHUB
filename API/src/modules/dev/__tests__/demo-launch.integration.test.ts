@@ -341,4 +341,74 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     expect(verifyRegularUser).not.toBeNull();
     expect(verifyRegularUser!.isDemo).toBe(false);
   });
+
+  describe('Demo Account Public Access & Authentication Integrity', () => {
+    it('authenticates Customer demo account and validates legitimate role tokens', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'demo-customer@foodhub.test', password: 'devdev' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.email).toBe('demo-customer@foodhub.test');
+      expect(res.body.data.user.roles).toContain('user');
+      expect(res.body.data.token).toBeDefined();
+    });
+
+    it('authenticates Restaurant Owner demo account and validates legitimate role tokens', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'demo-owner@foodhub.test', password: 'devdev' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.email).toBe('demo-owner@foodhub.test');
+      expect(res.body.data.user.roles).toContain('owner');
+      expect(res.body.data.token).toBeDefined();
+    });
+
+    it('authenticates Delivery Partner demo account and validates legitimate role tokens', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'demo-partner@foodhub.test', password: 'devdev' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.email).toBe('demo-partner@foodhub.test');
+      expect(res.body.data.user.roles).toContain('partner');
+      expect(res.body.data.token).toBeDefined();
+    });
+
+    it('authenticates Platform Administrator demo account and validates legitimate role tokens', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'demo-admin@foodhub.test', password: 'devdev' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.email).toBe('demo-admin@foodhub.test');
+      expect(res.body.data.user.roles).toContain('admin');
+      expect(res.body.data.token).toBeDefined();
+    });
+
+    it('rejects demo account login when invalid credentials are provided', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'demo-customer@foodhub.test', password: 'wrongpassword' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/invalid password/i);
+    });
+
+    it('rejects non-existent non-demo accounts without bypass', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'unknown-intruder@attacker.dev', password: 'devdev' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/invalid email/i);
+    });
+  });
 });

@@ -63,3 +63,18 @@ export interface ArchitectureNode {
   color: string;
   portsOrChannels: string[];
 }
+
+export interface DemoAccountCard {
+  roleId: 'user' | 'owner' | 'partner' | 'admin';
+  roleName: string;
+  roleBadge: string;
+  tagline: string;
+  email: string;
+  password: string;
+  dashboardPath: string;
+  accentColor: string;
+  gradient: string;
+  status: VerificationStatus;
+  capabilities: string[];
+  limitations: string;
+}
