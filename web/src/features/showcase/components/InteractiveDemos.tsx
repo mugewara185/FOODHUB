@@ -201,6 +201,13 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
     };
     socketService.onConnectionChange(handleConn);
 
+    return () => {
+      socketService.offConnectionChange(handleConn);
+    };
+  }, [fetchActiveOrderState]);
+
+  // Order room subscription and delivery event listeners
+  useEffect(() => {
     if (!activeOrder?._id) return;
     const orderId = activeOrder._id.toString();
     socketService.joinOrderRoom(orderId);
@@ -276,8 +283,9 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
     return () => {
       socketService.offDeliveryLocation(handleLocation);
       socketService.offDeliveryStatus(handleStatus);
+      socketService.offOrderStatusUpdate(handleOrderUpdate);
     };
-  }, [activeOrder?._id, activeDelivery?._id, fetchActiveOrderState, isDelivered]);
+  }, [activeOrder?._id, activeDelivery?._id, isDelivered]);
 
   // Launch live order demo handler
   const handleLaunchLiveDemo = useCallback(async () => {

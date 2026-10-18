@@ -16,6 +16,7 @@ import { transitionOrderStatus } from '../orders/order.service';
 import {
   startDeliverySimulation,
   stopDeliverySimulation,
+  clearPendingHandoff,
   computeInitialPartnerOrigin,
   calculateDistanceMeters,
 } from '../delivery/delivery.simulator';
@@ -587,6 +588,23 @@ export async function confirmDemoHandoff(req: Request, res: Response, next: Next
       });
     }
 
+    // Idempotency: If order or delivery has already been transitioned to picked_up or beyond
+    if (order.status === 'picked_up' || ['out_for_delivery', 'nearby', 'delivered'].includes(order.status)) {
+      const existingDelivery = await Delivery.findOne({ orderId: order._id, isDemo: true });
+      if (existingDelivery) {
+        clearPendingHandoff(existingDelivery._id.toString());
+      }
+      return res.json({
+        success: true,
+        message: 'Kitchen handoff already confirmed; courier is now en route to customer',
+        data: {
+          order,
+          delivery: existingDelivery,
+          alreadyHandedOff: true,
+        },
+      });
+    }
+
     if (order.status !== 'partner_assigned') {
       return res.status(400).json({
         success: false,
@@ -602,6 +620,29 @@ export async function confirmDemoHandoff(req: Request, res: Response, next: Next
         success: false,
         message: 'Associated demo delivery not found for this order',
       });
+    }
+
+    if (delivery.status === 'picked_up' || ['out_for_delivery', 'nearby', 'delivered'].includes(delivery.status)) {
+      clearPendingHandoff(delivery._id.toString());
+      return res.json({
+        success: true,
+        message: 'Kitchen handoff already confirmed; courier is now en route to customer',
+        data: {
+          order,
+          delivery,
+          alreadyHandedOff: true,
+        },
+      });
+    }
+
+    // Clear server-side pending handoff timer so redundant auto-handoff does not fire
+    clearPendingHandoff(delivery._id.toString());
+
+    // If delivery is still marked partner_assigned (e.g. direct test invocation before arrival),
+    // align to arrived_pickup so order.service transitionOrderStatus finds and updates it
+    if (delivery.status === 'partner_assigned') {
+      delivery.status = 'arrived_pickup';
+      await delivery.save();
     }
 
     // Server-authoritative transition to picked_up using canonical order service

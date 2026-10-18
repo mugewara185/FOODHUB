@@ -288,6 +288,24 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     stopDeliverySimulation(updatedDelivery!._id.toString());
   });
 
+  it('Automatic & Manual Handoff Concurrency: duplicate or repeated confirm-handoff is idempotent and returns 200 without corrupting state', async () => {
+    const activeDemo = await Order.findOne({ isDemo: true, status: 'picked_up' });
+    expect(activeDemo).not.toBeNull();
+
+    // Call confirm-handoff again when already picked_up
+    const duplicateRes = await request(app)
+      .post('/api/dev/demo/confirm-handoff')
+      .send({ orderId: activeDemo!._id.toString() });
+
+    expect(duplicateRes.status).toBe(200);
+    expect(duplicateRes.body.success).toBe(true);
+    expect(duplicateRes.body.data.alreadyHandedOff).toBe(true);
+    expect(duplicateRes.body.data.order.status).toBe('picked_up');
+
+    const checkOrder = await Order.findById(activeDemo!._id);
+    expect(checkOrder!.status).toBe('picked_up');
+  });
+
   it('Rate Limiting: blocks abusive repeated requests with 429 Too Many Requests', async () => {
     // Fill the rate limit bucket (10 requests)
     for (let i = 0; i < 10; i++) {

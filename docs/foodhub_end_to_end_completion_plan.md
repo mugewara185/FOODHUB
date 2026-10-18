@@ -270,12 +270,17 @@ NotificationBell / Toast
       - In `InteractiveDemos.tsx`: Implemented `fetchActiveOrderState`, safe forward stage progression (preventing out-of-order stage regression), reconnect refetch, and bounded 5s fallback polling.
     - *7. Concurrency & Ownership Constraints:*
       - Documented single-instance Node.js architecture with in-memory timer maps and compare-and-set MongoDB status transitions (`status: { $in: [...] }`).
+    - *8. Handoff Idempotency & Clean Event Teardown (Refinement):*
+      - Exported `clearPendingHandoff(deliveryId)` in `delivery.simulator.ts`.
+      - In `confirmDemoHandoff`: If order or delivery is already in `picked_up` or subsequent states, returns HTTP 200 with `{ alreadyHandedOff: true }` without throwing or corrupting state. Clears server-side pending handoff timer so manual confirmation and auto-handoff never issue competing transitions.
+      - Refactored `InteractiveDemos.tsx` to isolate the socket connection lifecycle from the order room listeners, properly calling `socketService.offConnectionChange` on unmount to eliminate listener memory leaks.
   - **Verification Suites:**
     - Simulator Recovery Integration Suite: `API/src/modules/delivery/__tests__/simulator-recovery.integration.test.ts` (9/9 tests PASS) verifying single-timer idempotency, absent timer resumption, terminal delivery rejection, error handling, intermediate state preservation, `recoverActiveDeliveries` database scan, authenticated partner `/me` recovery, and partner isolation.
-    - Dev Demo Launch Regression Suite: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (9/9 tests PASS) verifying simulation resumption on duplicate launch and full payload return.
-    - Full Delivery Test Matrix: `43/43 PASS` (`simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `simulator-concurrency.integration.test.ts` 3/3, `road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `demo-launch.integration.test.ts` 9/9).
-    - Web Showcase Suite: `14/14 PASS` (`liveOrderDemo.test.tsx` 4/4, `showcase.test.tsx` 10/10).
-    - Web Delivery Partner Suite: `7/7 PASS` (`deliveryBugs.test.tsx`).
+    - Dev Demo Launch Regression Suite: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (10/10 tests PASS) verifying simulation resumption on duplicate launch, full payload return, and idempotent duplicate kitchen handoff confirmation.
+    - Full Delivery Test Matrix: `44/44 PASS` (`simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `simulator-concurrency.integration.test.ts` 3/3, `road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `demo-launch.integration.test.ts` 10/10).
+    - Web Showcase Suite: `22/22 PASS` (`liveOrderDemo.test.tsx` 4/4, `showcase.test.tsx` 10/10, `demoRecoverySynchronization.test.tsx` 8/8).
+    - Web Delivery Partner Suite: `7/7 PASS` (`deliveryBugs.test.tsx` 7/7).
+    - Total Frontend Matrix: `29/29 PASS` across 4 test suites.
     - Build Matrix: `npm --prefix API run build` (tsc) PASS (exit code 0), `npm --prefix web run build` (vite build) PASS (exit code 0).
 
 ## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)

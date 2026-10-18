@@ -32,6 +32,16 @@ export function isHandoffPending(deliveryId: string): boolean {
   return pendingHandoffTimers.has(deliveryId);
 }
 
+export function clearPendingHandoff(deliveryId: string): boolean {
+  const timer = pendingHandoffTimers.get(deliveryId);
+  if (timer) {
+    clearTimeout(timer);
+    pendingHandoffTimers.delete(deliveryId);
+    return true;
+  }
+  return false;
+}
+
 /**
  * Bounded waypoint fetcher for road routes (OSRM with 2.5s timeout and straight-line fallback).
  * In test environment, immediately returns fallback straight line to avoid stalling fake timers.
