@@ -14,6 +14,16 @@ vi.mock('../../../shared/components/maps/Map', () => ({
   default: () => <div data-testid="mock-map">Mock Leaflet Map</div>,
 }));
 
+// Mock API client to avoid unmocked network requests
+vi.mock('../../../core/utils/api', () => ({
+  default: {
+    request: vi.fn().mockResolvedValue({ order: null, delivery: null, isTerminal: false }),
+  },
+  api: {
+    request: vi.fn().mockResolvedValue({ order: null, delivery: null, isTerminal: false }),
+  },
+}));
+
 const createTestStore = () =>
   configureStore({
     reducer: {
