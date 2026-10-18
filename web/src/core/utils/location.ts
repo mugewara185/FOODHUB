@@ -158,3 +158,62 @@ export const fetchRoadRoute = async (
     return { coordinates: fallback, isRoadRoute: false };
   }
 };
+
+export const isValidCoord = (c: any): c is Coordinates => {
+  return (
+    c !== null &&
+    typeof c === 'object' &&
+    typeof c.lat === 'number' &&
+    typeof c.lng === 'number' &&
+    !isNaN(c.lat) &&
+    !isNaN(c.lng) &&
+    c.lat >= -90 &&
+    c.lat <= 90 &&
+    c.lng >= -180 &&
+    c.lng <= 180 &&
+    (c.lat !== 0 || c.lng !== 0)
+  );
+};
+
+/**
+ * Smooths the remaining route by connecting the courier's live position
+ * to upcoming route waypoints without requiring full network rerouting.
+ * Discards traversed waypoints ahead of the courier.
+ */
+export const smoothRouteOrigin = (
+  prevCoords: Coordinates[],
+  currentPos: Coordinates
+): Coordinates[] => {
+  if (!isValidCoord(currentPos)) {
+    return prevCoords || [];
+  }
+  if (!prevCoords || prevCoords.length === 0) {
+    return [currentPos];
+  }
+  if (prevCoords.length === 1) {
+    return [currentPos, prevCoords[0]];
+  }
+  if (prevCoords.length === 2) {
+    return [currentPos, prevCoords[1]];
+  }
+
+  let closestIdx = 0;
+  let minDist = Infinity;
+  const searchLimit = Math.min(prevCoords.length - 1, 15);
+  for (let i = 0; i < searchLimit; i++) {
+    const pt = prevCoords[i];
+    if (isValidCoord(pt)) {
+      const d = calculateDistance(currentPos, pt);
+      if (d < minDist) {
+        minDist = d;
+        closestIdx = i;
+      }
+    }
+  }
+
+  const remainder = prevCoords.slice(closestIdx + 1);
+  if (remainder.length > 0) {
+    return [currentPos, ...remainder];
+  }
+  return [currentPos, prevCoords[prevCoords.length - 1]];
+};

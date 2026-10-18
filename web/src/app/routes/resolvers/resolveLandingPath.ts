@@ -22,13 +22,18 @@ const ROLE_PATH_MAP: Record<UserRole, string> = {
  * 5. user   → /user
  *
  * Fallbacks:
- * - Unauthenticated users landing at root → /user (customer landing)
+ * - Unauthenticated users (no user logged in) → /showcase (default showcase landing)
  * - Authenticated users with no recognized roles → /unauthorized
  */
 export const resolveLandingPath = (
   roles: readonly UserRole[],
   isAuthenticated: boolean = false
 ): string => {
+  // If no user is logged in, default to /showcase
+  if (!isAuthenticated) {
+    return ROUTE_PATHS.SHOWCASE;
+  }
+
   const roleSet = new Set(roles);
 
   for (const role of ROLE_PRIORITY) {
@@ -38,10 +43,5 @@ export const resolveLandingPath = (
   }
 
   // If user is authenticated but possesses no recognized roles
-  if (isAuthenticated) {
-    return ROUTE_PATHS.UNAUTHORIZED;
-  }
-
-  // Default landing for visitors / unauthenticated users
-  return ROUTE_PATHS.USER_LANDING;
+  return ROUTE_PATHS.UNAUTHORIZED;
 };

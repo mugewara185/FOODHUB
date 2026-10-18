@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -43,7 +43,7 @@ import {
 } from '@features/deliveryPartner/deliveryPartnerSlice';
 import { socketService } from '../../services/socket';
 import { useDeliverySocket } from '../../features/deliveryPartner/hooks/useDeliverySocket';
-import { fetchRoadRoute } from '../../core/utils/location';
+import { fetchRoadRoute, calculateDistance, smoothRouteOrigin } from '../../core/utils/location';
 import type { Coordinates } from '../../data/types/location';
 
 interface DeliveryStep {
@@ -63,12 +63,35 @@ const ActiveDelivery: React.FC = () => {
   const [recenterTrigger, setRecenterTrigger] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
   const [routeCoords, setRouteCoords] = useState<Coordinates[]>([]);
+  const [travelledCoords, setTravelledCoords] = useState<Coordinates[]>([]);
   const [routeStatus, setRouteStatus] = useState<'road' | 'direct' | 'none'>('direct');
+  const lastRoutedPosRef = useRef<{ lat: number; lng: number; isCustomerLeg: boolean; orderId?: string } | null>(null);
 
-  // Fetch partner state (active delivery + location + status) on mount.
+  // Fetch partner state (active delivery + location + status) on mount and socket reconnect.
   useEffect(() => {
     dispatch(fetchPartnerStateThunk());
+    const unsubscribe = socketService.onStatusChange?.((connStatus) => {
+      if (connStatus === 'connected') {
+        dispatch(fetchPartnerStateThunk());
+      }
+    });
+    return () => {
+      unsubscribe?.();
+    };
   }, [dispatch]);
+
+  // Bounded fallback reconciliation poll while delivery is active (only if socket is not connected)
+  useEffect(() => {
+    if (!activeAssignment || activeAssignment.status === 'delivered') return;
+
+    const interval = setInterval(() => {
+      if (!socketService.isConnected) {
+        dispatch(fetchPartnerStateThunk());
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [dispatch, activeAssignment?.deliveryId, activeAssignment?.status]);
 
   // Compute positions
   const pickupPos = activeAssignment?.pickupLocation && (activeAssignment.pickupLocation.lat !== 0 || activeAssignment.pickupLocation.lng !== 0)
@@ -85,6 +108,26 @@ const ActiveDelivery: React.FC = () => {
       ? activeAssignment.currentLocation
       : pickupPos);
 
+  // Reset travelled coordinates when order changes
+  useEffect(() => {
+    setTravelledCoords([]);
+  }, [activeAssignment?.orderId]);
+
+  // Accumulate courier positions into travelled trail
+  useEffect(() => {
+    if (partnerPos && partnerPos.lat && partnerPos.lng && (partnerPos.lat !== 0 || partnerPos.lng !== 0)) {
+      setTravelledCoords((prev) => {
+        if (prev.length > 0) {
+          const last = prev[prev.length - 1];
+          if (Math.abs(last.lat - partnerPos.lat) < 1e-6 && Math.abs(last.lng - partnerPos.lng) < 1e-6) {
+            return prev;
+          }
+        }
+        return [...prev, partnerPos];
+      });
+    }
+  }, [partnerPos.lat, partnerPos.lng]);
+
   // Subscribe to order room
   useEffect(() => {
     if (!activeAssignment?.orderId) return;
@@ -98,18 +141,45 @@ const ActiveDelivery: React.FC = () => {
   // Socket event listeners
   useDeliverySocket('partner', {
     onLocation: (payload) => {
-      if (activeAssignment && String(payload.orderId) === String(activeAssignment.orderId)) {
-        dispatch(partnerLocationReceived({ lat: payload.location.lat, lng: payload.location.lng }));
+      if (
+        activeAssignment &&
+        (String(payload.orderId) === String(activeAssignment.orderId) ||
+          String(payload.deliveryId) === String(activeAssignment.deliveryId))
+      ) {
+        dispatch(
+          partnerLocationReceived({
+            lat: payload.location.lat,
+            lng: payload.location.lng,
+            etaSeconds: payload.etaSeconds,
+            distanceRemainingMeters: payload.distanceRemainingMeters,
+            status: payload.status as any,
+          })
+        );
+        if (payload.status && payload.status !== activeAssignment.status) {
+          dispatch(
+            deliveryStatusChangedReceived({
+              deliveryId: payload.deliveryId || payload.orderId || activeAssignment.deliveryId,
+              status: payload.status as any,
+            })
+          );
+        }
       }
     },
     onStatus: (payload) => {
-      if (activeAssignment && (
-        String(payload.deliveryId) === String(activeAssignment.deliveryId) ||
-        String(payload.orderId) === String(activeAssignment.orderId)
-      )) {
-        dispatch(deliveryStatusChangedReceived({ deliveryId: payload.deliveryId, status: payload.status as any }));
+      if (
+        activeAssignment &&
+        (String(payload.deliveryId) === String(activeAssignment.deliveryId) ||
+          String(payload.orderId) === String(activeAssignment.orderId) ||
+          String(payload.deliveryId) === String(activeAssignment.orderId))
+      ) {
+        dispatch(
+          deliveryStatusChangedReceived({
+            deliveryId: payload.deliveryId || payload.orderId || activeAssignment.deliveryId,
+            status: payload.status as any,
+          })
+        );
       }
-    }
+    },
   });
 
   const getStepIndex = () => {
@@ -128,37 +198,70 @@ const ActiveDelivery: React.FC = () => {
   const activeStep = getStepIndex();
 
   // Bounded road route calculation (immediate fallback line + non-blocking road fetch)
+  const isCustomerLeg = activeStep >= 2;
   useEffect(() => {
-    if (!activeAssignment) return;
+    if (!activeAssignment || activeAssignment.status === 'delivered') {
+      setRouteCoords([]);
+      setRouteStatus('none');
+      lastRoutedPosRef.current = null;
+      return;
+    }
 
     let isCancelled = false;
-    const startPoint = activeStep >= 2 ? partnerPos : pickupPos;
-    const endPoint = dropoffPos;
+    const startPoint = partnerPos;
+    const endPoint = isCustomerLeg ? dropoffPos : pickupPos;
 
-    // Immediate direct fallback line
-    setRouteCoords([startPoint, endPoint]);
-    setRouteStatus('direct');
+    const orderChanged = !lastRoutedPosRef.current || lastRoutedPosRef.current.orderId !== activeAssignment.orderId;
+    const legChanged = lastRoutedPosRef.current?.isCustomerLeg !== isCustomerLeg;
+    const distanceMoved = lastRoutedPosRef.current
+      ? calculateDistance(partnerPos, { lat: lastRoutedPosRef.current.lat, lng: lastRoutedPosRef.current.lng })
+      : Infinity;
 
-    // Bounded fetch: max 2.5s timeout, never hangs
-    fetchRoadRoute(startPoint, endPoint, 2500)
-      .then((res) => {
-        if (!isCancelled && res.coordinates.length > 1) {
-          setRouteCoords(res.coordinates);
-          setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setRouteStatus('direct');
-        }
-      });
+    if (orderChanged || legChanged || distanceMoved > 250) {
+      // Set immediate direct fallback line for current leg with truthful direct status
+      setRouteCoords([startPoint, endPoint]);
+      setRouteStatus('direct');
+      lastRoutedPosRef.current = {
+        lat: partnerPos.lat,
+        lng: partnerPos.lng,
+        isCustomerLeg,
+        orderId: activeAssignment.orderId,
+      };
+
+      // Bounded fetch: max 2.5s timeout, never hangs
+      fetchRoadRoute(startPoint, endPoint, 2500)
+        .then((res) => {
+          if (!isCancelled && res.coordinates.length > 1) {
+            setRouteCoords(res.coordinates);
+            setRouteStatus(res.isRoadRoute ? 'road' : 'direct');
+          }
+        })
+        .catch(() => {
+          if (!isCancelled) {
+            setRouteStatus('direct');
+          }
+        });
+    } else {
+      // Intermediate GPS tick (<= 250m): smooth route start point to partnerPos without network call
+      setRouteCoords((prev) => smoothRouteOrigin(prev, partnerPos));
+    }
 
     return () => {
       isCancelled = true;
     };
-  }, [activeAssignment?.orderId, activeStep, partnerPos.lat, partnerPos.lng]);
+  }, [
+    activeAssignment?.orderId,
+    activeAssignment?.status,
+    isCustomerLeg,
+    partnerPos.lat,
+    partnerPos.lng,
+    pickupPos.lat,
+    pickupPos.lng,
+    dropoffPos.lat,
+    dropoffPos.lng,
+  ]);
 
-  if (isLoading) {
+  if (isLoading && !activeAssignment) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
         <Typography variant="h6" color="text.secondary">Loading delivery details...</Typography>
@@ -282,6 +385,7 @@ const ActiveDelivery: React.FC = () => {
               zoom={14}
               markers={markers}
               routeCoordinates={routeCoords}
+              travelledCoordinates={travelledCoords}
               isFallbackRoute={routeStatus === 'direct'}
               routeStatus={routeStatus}
               recenterTrigger={recenterTrigger}
@@ -422,12 +526,30 @@ const ActiveDelivery: React.FC = () => {
                 <Typography variant="body2" color="text.secondary">Estimated Time</Typography>
                 <Stack direction="row" spacing={0.5} alignItems="center">
                   <AccessTime fontSize="small" color="action" />
-                  <Typography variant="body2" fontWeight={600}>{activeAssignment.estimatedTime || '15 mins'}</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {activeAssignment.status === 'delivered'
+                      ? 'Delivered'
+                      : activeAssignment.status === 'arrived_pickup'
+                      ? 'At restaurant (awaiting handoff)'
+                      : activeAssignment.estimatedTime || '15 mins'}
+                  </Typography>
                 </Stack>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2" color="text.secondary">Distance</Typography>
-                <Typography variant="body2" fontWeight={600}>{activeAssignment.distance || '2.5 km'}</Typography>
+                <Typography variant="body2" fontWeight={600}>
+                  {activeAssignment.status === 'delivered'
+                    ? '0.0 km'
+                    : activeAssignment.status === 'arrived_pickup'
+                    ? '0m (At restaurant)'
+                    : activeAssignment.distance || '2.5 km'}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body2" color="text.secondary">Live Position</Typography>
+                <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                  {partnerPos.lat.toFixed(4)}, {partnerPos.lng.toFixed(4)}
+                </Typography>
               </Box>
             </Stack>
 
@@ -472,7 +594,6 @@ const ActiveDelivery: React.FC = () => {
               currentUserId={user.id}
               currentUserRole="partner"
               currentUserName={user.name || 'Delivery Partner'}
-              targetRole="user"
             />
           )}
         </DialogContent>

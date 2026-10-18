@@ -24,6 +24,8 @@ export interface IOrderItem {
 }
 
 export interface IOrderChatMessage {
+  _id?: Types.ObjectId;
+  clientMessageId?: string;
   senderId: string;
   senderRole: string;
   senderName: string;
@@ -44,7 +46,14 @@ export interface IOrder extends Document {
   paymentStatus: 'pending' | 'completed' | 'failed';
   note?: string;
   chatMessages: IOrderChatMessage[];
+  timestamps?: {
+    assignedAt?: Date;
+    pickedUpAt?: Date;
+    deliveredAt?: Date;
+  };
+  isDemo?: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const orderItemSchema = new Schema<IOrderItem>({
@@ -55,13 +64,14 @@ const orderItemSchema = new Schema<IOrderItem>({
 });
 
 const chatMessageSchema = new Schema<IOrderChatMessage>({
+  clientMessageId: { type: String },
   senderId: { type: String, required: true },
   senderRole: { type: String, required: true },
   senderName: { type: String, required: true },
   targetRole: { type: String, required: true },
   message: { type: String, required: true },
   timestamp: { type: String, required: true },
-}, { _id: false });
+}, { _id: true });
 
 const orderSchema = new Schema<IOrder>(
   {
@@ -95,6 +105,12 @@ const orderSchema = new Schema<IOrder>(
     paymentStatus: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
     note: { type: String },
     chatMessages: [chatMessageSchema],
+    timestamps: {
+      assignedAt: { type: Date },
+      pickedUpAt: { type: Date },
+      deliveredAt: { type: Date },
+    },
+    isDemo: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

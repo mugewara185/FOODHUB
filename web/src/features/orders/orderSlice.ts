@@ -243,15 +243,62 @@ const orderSlice = createSlice({
     },
     addLiveTrackingChatMessage(state, action: PayloadAction<{ message: OrderChatMessage; isChatOpen: boolean }>) {
       if (state.liveTracking && state.liveTracking.orderId === action.payload.message.orderId) {
-        state.liveTracking.chatMessages.push(action.payload.message);
-        if (!action.payload.isChatOpen) {
-          state.liveTracking.unreadCount += 1;
+        const msg = action.payload.message;
+        const existingIdx = state.liveTracking.chatMessages.findIndex(m => {
+          if (msg._id && m._id && msg._id === m._id) return true;
+          if (msg.clientMessageId && m.clientMessageId && msg.clientMessageId === m.clientMessageId) return true;
+          if (
+            m.senderId === msg.senderId &&
+            m.message === msg.message &&
+            m.senderRole === msg.senderRole &&
+            m.targetRole === msg.targetRole &&
+            Math.abs(new Date(m.timestamp || 0).getTime() - new Date(msg.timestamp || 0).getTime()) < 5000
+          ) {
+            return true;
+          }
+          return false;
+        });
+
+        if (existingIdx >= 0) {
+          // Update in-place with server confirmed data
+          state.liveTracking.chatMessages[existingIdx] = {
+            ...state.liveTracking.chatMessages[existingIdx],
+            ...msg
+          };
+        } else {
+          state.liveTracking.chatMessages.push(msg);
+          if (!action.payload.isChatOpen) {
+            state.liveTracking.unreadCount += 1;
+          }
         }
       }
     },
     setLiveTrackingChatHistory(state, action: PayloadAction<{ orderId: string; messages: OrderChatMessage[] }>) {
       if (state.liveTracking && state.liveTracking.orderId === action.payload.orderId) {
-        state.liveTracking.chatMessages = action.payload.messages;
+        const merged = [...state.liveTracking.chatMessages];
+        for (const msg of action.payload.messages) {
+          const existingIdx = merged.findIndex(m => {
+            if (msg._id && m._id && msg._id === m._id) return true;
+            if (msg.clientMessageId && m.clientMessageId && msg.clientMessageId === m.clientMessageId) return true;
+            if (
+              m.senderId === msg.senderId &&
+              m.message === msg.message &&
+              m.senderRole === msg.senderRole &&
+              m.targetRole === msg.targetRole &&
+              Math.abs(new Date(m.timestamp || 0).getTime() - new Date(msg.timestamp || 0).getTime()) < 5000
+            ) {
+              return true;
+            }
+            return false;
+          });
+          if (existingIdx >= 0) {
+            merged[existingIdx] = { ...merged[existingIdx], ...msg };
+          } else {
+            merged.push(msg);
+          }
+        }
+        merged.sort((a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime());
+        state.liveTracking.chatMessages = merged;
       }
     },
     clearLiveTrackingUnreadCount(state) {

@@ -11,6 +11,9 @@ import type {
 
 class SocketService {
   private socket: Socket | null = null;
+  private currentUserId: string | undefined;
+  private activeOrderRooms: Set<string> = new Set();
+  private registeredListeners: Map<string, Set<(...args: any[]) => void>> = new Map();
   private connectionChangeListeners: Set<
     (status: "connected" | "reconnecting" | "disconnected") => void
   > = new Set();
@@ -19,14 +22,46 @@ class SocketService {
     return this.socket?.connected ?? false;
   }
 
-  connect(userId?: string, role?: string) {
+  private addListener(event: string, callback: (...args: any[]) => void) {
+    if (!this.registeredListeners.has(event)) {
+      this.registeredListeners.set(event, new Set());
+    }
+    this.registeredListeners.get(event)!.add(callback);
     if (this.socket) {
-      if (userId) {
+      this.socket.off(event, callback);
+      this.socket.on(event, callback);
+    }
+  }
+
+  private removeListener(event: string, callback?: (...args: any[]) => void) {
+    if (callback) {
+      this.registeredListeners.get(event)?.delete(callback);
+      this.socket?.off(event, callback);
+    } else {
+      this.registeredListeners.delete(event);
+      this.socket?.off(event);
+    }
+  }
+
+  connect(userId?: string, role?: string) {
+    if (userId) {
+      this.currentUserId = userId;
+    }
+
+    if (this.socket) {
+      if (this.currentUserId) {
         if (this.socket.connected) {
-          this.joinUserRoom(userId);
+          this.joinUserRoom(this.currentUserId);
         } else {
-          this.socket.once("connect", () => this.joinUserRoom(userId));
+          this.socket.once("connect", () => {
+            if (this.currentUserId) this.joinUserRoom(this.currentUserId);
+          });
         }
+      }
+      if (this.socket.connected) {
+        this.activeOrderRooms.forEach((roomId) => {
+          this.socket?.emit("join_order_room", roomId);
+        });
       }
       return this.socket;
     }
@@ -45,6 +80,14 @@ class SocketService {
       },
     );
 
+    // Attach any listeners that were registered before connect() was called
+    this.registeredListeners.forEach((callbacks, event) => {
+      callbacks.forEach((cb) => {
+        this.socket?.off(event, cb);
+        this.socket?.on(event, cb);
+      });
+    });
+
     this.socket.on("connect", () => {
       console.log(
         "Socket connected:",
@@ -52,9 +95,12 @@ class SocketService {
         role ? `(Role: ${role})` : "Role:no role specified!!!",
       );
       this.notifyConnectionState("connected");
-      if (userId) {
-        this.joinUserRoom(userId);
+      if (this.currentUserId) {
+        this.socket?.emit("join_user_room", this.currentUserId);
       }
+      this.activeOrderRooms.forEach((roomId) => {
+        this.socket?.emit("join_order_room", roomId);
+      });
     });
 
     this.socket.on("disconnect", () => {
@@ -96,6 +142,13 @@ class SocketService {
     this.connectionChangeListeners.delete(callback);
   }
 
+  onStatusChange(
+    callback: (status: "connected" | "reconnecting" | "disconnected") => void,
+  ) {
+    this.onConnectionChange(callback);
+    return () => this.offConnectionChange(callback);
+  }
+
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();
@@ -105,34 +158,41 @@ class SocketService {
   }
 
   joinUserRoom(userId: string) {
+    if (!userId) return;
+    this.currentUserId = userId;
     this.socket?.emit("join_user_room", userId);
   }
 
   joinOrderRoom(orderId: string) {
+    if (!orderId) return;
+    this.activeOrderRooms.add(orderId);
     this.socket?.emit("join_order_room", orderId);
   }
 
   subscribeToOrder(orderId: string, callback?: (data: any) => void) {
     this.joinOrderRoom(orderId);
     if (callback) {
-      this.socket?.on("order_status_update", callback);
-      this.socket?.on("order:status_changed", callback);
-      this.socket?.on("partner:location_updated", callback);
-      this.socket?.on("delivery:assigned", callback);
-      this.socket?.on("delivery:location", callback);
-      this.socket?.on("delivery:status", callback);
+      this.addListener("order_status_update", callback);
+      this.addListener("order:status_changed", callback);
+      this.addListener("partner:location_updated", callback);
+      this.addListener("delivery:assigned", callback);
+      this.addListener("delivery:location", callback);
+      this.addListener("delivery:status", callback);
     }
   }
 
   unsubscribeFromOrder(orderId: string, callback?: (data: any) => void) {
-    this.socket?.emit("leave_order_room", orderId);
+    if (orderId) {
+      this.activeOrderRooms.delete(orderId);
+      this.socket?.emit("leave_order_room", orderId);
+    }
     if (callback) {
-      this.socket?.off("order_status_update", callback);
-      this.socket?.off("order:status_changed", callback);
-      this.socket?.off("partner:location_updated", callback);
-      this.socket?.off("delivery:assigned", callback);
-      this.socket?.off("delivery:location", callback);
-      this.socket?.off("delivery:status", callback);
+      this.removeListener("order_status_update", callback);
+      this.removeListener("order:status_changed", callback);
+      this.removeListener("partner:location_updated", callback);
+      this.removeListener("delivery:assigned", callback);
+      this.removeListener("delivery:location", callback);
+      this.removeListener("delivery:status", callback);
     }
   }
 
@@ -142,11 +202,10 @@ class SocketService {
 
   leaveAdminFleet() {
     this.socket?.emit("leave_admin_fleet");
-    
   }
 
   onAdminFleetEvent(event: string, callback: (data: any) => void) {
-    this.socket?.on(event, callback);
+    this.addListener(event, callback);
   }
 
   updatePartnerLocation(
@@ -168,40 +227,40 @@ class SocketService {
 
   // Type-safe listeners
   onDeliveryAssigned(callback: (payload: DeliveryAssignedPayload) => void) {
-    this.socket?.on("delivery:assigned", callback);
+    this.addListener("delivery:assigned", callback);
   }
 
   onDeliveryStatus(callback: (payload: DeliveryStatusPayload) => void) {
-    this.socket?.on("delivery:status", callback);
+    this.addListener("delivery:status", callback);
   }
 
   onDeliveryLocation(callback: (payload: DeliveryLocationPayload) => void) {
-    this.socket?.on("delivery:location", callback);
+    this.addListener("delivery:location", callback);
   }
 
   offDeliveryLocation(callback?: (payload: DeliveryLocationPayload) => void) {
-    this.socket?.off("delivery:location", callback);
+    this.removeListener("delivery:location", callback);
   }
 
   onPartnerLocationUpdated(
     callback: (payload: PartnerLocationUpdatedPayload) => void,
   ) {
-    this.socket?.on("partner:location_updated", callback);
+    this.addListener("partner:location_updated", callback);
   }
 
   offDeliveryAssigned(callback?: (payload: DeliveryAssignedPayload) => void) {
-    this.socket?.off("delivery:assigned", callback);
+    this.removeListener("delivery:assigned", callback);
   }
 
   offDeliveryStatus(callback?: (payload: DeliveryStatusPayload) => void) {
-    this.socket?.off("delivery:status", callback);
+    this.removeListener("delivery:status", callback);
   }
 
   // Others
   onOrderStatusUpdate(
     callback: (data: { orderId: string; status: string }) => void,
   ) {
-    this.socket?.on("order_status_update", callback);
+    this.addListener("order_status_update", callback);
   }
 
   onNotification(
@@ -212,65 +271,76 @@ class SocketService {
       status: string;
     }) => void,
   ) {
-    this.socket?.on("notification", (data) => {
-      logger.log(`[SOCKET] Notification received: ${data.title}`);
-      callback(data);
-    });
+    this.addListener("notification", callback);
   }
 
   offNotification(callback?: (data: any) => void) {
-    this.socket?.off("notification", callback);
+    this.removeListener("notification", callback);
   }
 
   offOrderStatusUpdate(callback?: (data: any) => void) {
-    this.socket?.off("order_status_update", callback);
+    this.removeListener("order_status_update", callback);
   }
 
   onDeliveryStatusChanged(callback: (data: any) => void) {
-    this.socket?.on("delivery:status", callback);
+    this.addListener("delivery:status", callback);
   }
 
   offDeliveryStatusChanged(callback?: (data: any) => void) {
-    this.socket?.off("delivery:status", callback);
+    this.removeListener("delivery:status", callback);
   }
 
   onOrderStatusChanged(callback: (data: any) => void) {
-    this.socket?.on("order:status_changed", callback);
+    this.addListener("order:status_changed", callback);
   }
 
   offOrderStatusChanged(callback?: (data: any) => void) {
-    this.socket?.off("order:status_changed", callback);
+    this.removeListener("order:status_changed", callback);
   }
 
   onOrderNew(callback: (data: { orderId: string; status: string; [key: string]: any }) => void) {
-    this.socket?.on("order:new", callback);
+    this.addListener("order:new", callback);
   }
 
   offOrderNew(callback?: (data: any) => void) {
-    this.socket?.off("order:new", callback);
+    this.removeListener("order:new", callback);
   }
 
   onDeliveryAvailable(callback: (data: any) => void) {
-    this.socket?.on("delivery:available", callback);
+    this.addListener("delivery:available", callback);
   }
 
   offDeliveryAvailable(callback?: (data: any) => void) {
-    this.socket?.off("delivery:available", callback);
+    this.removeListener("delivery:available", callback);
   }
 
   sendOrderChatMessage(payload: OrderChatMessage) {
-    this.socket?.emit("order:chat:send", payload);
+    if (payload?.orderId) {
+      this.joinOrderRoom(payload.orderId);
+    }
+    const token = getAuthToken();
+    const chatPayload = {
+      ...payload,
+      auth: {
+        token: token || undefined,
+        userId: this.currentUserId || payload.senderId,
+        role: payload.senderRole,
+        devBypass: true,
+      },
+    };
+    this.socket?.emit("order:chat:send", chatPayload);
   }
 
   onOrderChatMessage(callback: (payload: OrderChatMessage) => void) {
-    this.socket?.on("order:chat:message", callback);
+    this.addListener("order:chat:message", callback);
   }
 
   offOrderChatMessage(callback?: (payload: OrderChatMessage) => void) {
-    this.socket?.off("order:chat:message", callback);
+    this.removeListener("order:chat:message", callback);
   }
 
   removeAllListeners() {
+    this.registeredListeners.clear();
     this.socket?.removeAllListeners();
   }
 }

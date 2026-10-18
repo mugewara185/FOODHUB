@@ -233,10 +233,35 @@ const deliveryPartnerSlice = createSlice({
       }
     },
 
-    partnerLocationReceived: (state, action: PayloadAction<{ lat: number; lng: number }>) => {
-      state.currentLocation = action.payload;
-      if (state.activeAssignment) {
-        state.activeAssignment.currentLocation = action.payload;
+    partnerLocationReceived: (
+      state,
+      action: PayloadAction<
+        | { lat: number; lng: number; etaSeconds?: number; distanceRemainingMeters?: number; status?: DeliveryAssignment['status'] }
+        | { location: { lat: number; lng: number }; etaSeconds?: number; distanceRemainingMeters?: number; status?: DeliveryAssignment['status'] }
+      >
+    ) => {
+      const payload = action.payload as any;
+      const loc = payload.location && typeof payload.location.lat === 'number'
+        ? { lat: payload.location.lat, lng: payload.location.lng }
+        : { lat: payload.lat, lng: payload.lng };
+      if (typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+        state.currentLocation = loc;
+        if (state.activeAssignment) {
+          state.activeAssignment.currentLocation = loc;
+          if (typeof payload.etaSeconds === 'number') {
+            state.activeAssignment.etaSeconds = payload.etaSeconds;
+            if (payload.etaSeconds > 0) {
+              state.activeAssignment.estimatedTime = `${Math.max(1, Math.ceil(payload.etaSeconds / 60))} mins`;
+            }
+          }
+          if (typeof payload.distanceRemainingMeters === 'number') {
+            state.activeAssignment.distanceRemainingMeters = payload.distanceRemainingMeters;
+            state.activeAssignment.distance = `${(payload.distanceRemainingMeters / 1000).toFixed(1)} km`;
+          }
+          if (payload.status && payload.status !== state.activeAssignment.status) {
+            state.activeAssignment.status = payload.status;
+          }
+        }
       }
     },
 
@@ -252,7 +277,9 @@ const deliveryPartnerSlice = createSlice({
   extraReducers: (builder) => {
     // fetchPartnerStateThunk
     builder.addCase(fetchPartnerStateThunk.pending, (state) => {
-      state.isLoading = true;
+      if (!state.activeAssignment && !state.name) {
+        state.isLoading = true;
+      }
     });
     builder.addCase(fetchPartnerStateThunk.fulfilled, (state, action) => {
       state.isLoading = false;
@@ -265,10 +292,28 @@ const deliveryPartnerSlice = createSlice({
       if (typeof p.rating === 'number') state.rating = p.rating;
       if (typeof p.completedDeliveries === 'number') state.completedDeliveries = p.completedDeliveries;
       
-      if (p.status) state.status = p.status === 'available' ? 'ONLINE' : p.status === 'on_delivery' ? 'ON_DELIVERY' : 'OFFLINE';
+      if (p.status) {
+        state.status = p.status === 'available'
+          ? 'ONLINE'
+          : (p.status === 'on_delivery' || p.status === 'assigned')
+          ? 'ON_DELIVERY'
+          : 'OFFLINE';
+      }
       if (typeof p.isOnline === 'boolean') state.isOnline = p.isOnline;
-      if (p.currentLocation) state.currentLocation = p.currentLocation;
-      if (p.activeAssignment !== undefined) state.activeAssignment = p.activeAssignment;
+      if (p.activeAssignment !== undefined) {
+        state.activeAssignment = p.activeAssignment;
+        if (p.activeAssignment) {
+          state.status = 'ON_DELIVERY';
+        }
+      }
+      if (p.currentLocation && (p.currentLocation.lat !== 0 || p.currentLocation.lng !== 0)) {
+        state.currentLocation = p.currentLocation;
+      } else if (
+        p.activeAssignment?.currentLocation &&
+        (p.activeAssignment.currentLocation.lat !== 0 || p.activeAssignment.currentLocation.lng !== 0)
+      ) {
+        state.currentLocation = p.activeAssignment.currentLocation;
+      }
       if (Array.isArray(p.availableAssignments)) {
         state.availableAssignments = p.availableAssignments.map((ap: any) => ({
           deliveryId: ap.orderId,
@@ -276,8 +321,8 @@ const deliveryPartnerSlice = createSlice({
           restaurant: ap.restaurantName || 'Restaurant',
           restaurantImage: '',
           customer: ap.customerName || 'Customer',
-          pickupLocation: { lat: 0, lng: 0 },
-          dropoffLocation: { lat: 0, lng: 0 },
+          pickupLocation: ap.pickupLocation || { lat: 0, lng: 0 },
+          dropoffLocation: ap.dropoffLocation || { lat: 0, lng: 0 },
           pickupAddress: ap.restaurantAddress || 'Restaurant Address',
           dropAddress: typeof ap.deliveryAddress === 'string' ? ap.deliveryAddress : (ap.deliveryAddress?.street || 'Delivery Address'),
           distance: '3 km',
@@ -305,9 +350,9 @@ const deliveryPartnerSlice = createSlice({
         ? action.payload.data
         : (action.payload ?? {});
       const serverStatus = p.status ?? (p.isOnline ? 'available' : 'offline');
-      state.isOnline = serverStatus === 'available' || serverStatus === 'on_delivery';
+      state.isOnline = serverStatus === 'available' || serverStatus === 'on_delivery' || serverStatus === 'assigned';
       state.status =
-        serverStatus === 'on_delivery' ? 'ON_DELIVERY'
+        (serverStatus === 'on_delivery' || serverStatus === 'assigned') ? 'ON_DELIVERY'
         : serverStatus === 'available' ? 'ONLINE'
         : 'OFFLINE';
     });
@@ -341,7 +386,13 @@ const deliveryPartnerSlice = createSlice({
       }
       // Backend may return the canonical updated delivery. Trust it if present.
       if (delivery?.currentLocation) {
-        state.currentLocation = delivery.currentLocation.coordinates ? { lat: delivery.currentLocation.coordinates[1], lng: delivery.currentLocation.coordinates[0] } : delivery.currentLocation;
+        const loc = delivery.currentLocation.coordinates
+          ? { lat: delivery.currentLocation.coordinates[1], lng: delivery.currentLocation.coordinates[0] }
+          : delivery.currentLocation;
+        state.currentLocation = loc;
+        if (state.activeAssignment) {
+          state.activeAssignment.currentLocation = loc;
+        }
       }
     });
     builder.addCase(updateAssignmentStatusThunk.rejected, (state) => {
@@ -362,23 +413,45 @@ const deliveryPartnerSlice = createSlice({
       const orderId = action.meta.arg.orderId;
       const matched = state.availableAssignments.find(a => a.orderId === orderId);
 
+      const extractCoords = (loc: any, fallback: { lat: number; lng: number }) => {
+        if (!loc) return fallback;
+        if (Array.isArray(loc.coordinates) && loc.coordinates.length >= 2) {
+          return { lat: Number(loc.coordinates[1]), lng: Number(loc.coordinates[0]) };
+        }
+        if (typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+          return { lat: loc.lat, lng: loc.lng };
+        }
+        return fallback;
+      };
+
+      const pickupLoc = extractCoords(d.pickupLocation, matched?.pickupLocation || { lat: 0, lng: 0 });
+      const dropoffLoc = extractCoords(d.destinationLocation || d.dropoffLocation, matched?.dropoffLocation || { lat: 0, lng: 0 });
+      const currentLoc = extractCoords(d.currentLocation, pickupLoc);
+
+      if (currentLoc.lat !== 0 || currentLoc.lng !== 0) {
+        state.currentLocation = currentLoc;
+      }
+
       state.activeAssignment = {
         deliveryId: d._id || d.deliveryId,
         orderId: d.orderId || orderId,
         partnerId: d.partnerId || '',
-        restaurant: matched?.restaurant || 'Restaurant',
+        restaurant: d.restaurantName || matched?.restaurant || 'Restaurant',
         restaurantImage: '',
-        customer: 'Customer',
-        pickupLocation: d.pickupLocation?.coordinates ? { lat: d.pickupLocation.coordinates[1], lng: d.pickupLocation.coordinates[0] } : (matched?.pickupLocation || { lat: 0, lng: 0 }),
-        dropoffLocation: d.destinationLocation?.coordinates ? { lat: d.destinationLocation.coordinates[1], lng: d.destinationLocation.coordinates[0] } : (matched?.dropoffLocation || { lat: 0, lng: 0 }),
-        pickupAddress: matched?.pickupAddress || 'Pickup',
-        dropAddress: matched?.dropAddress || 'Dropoff',
-        distance: matched?.distance || '0 km',
-        estimatedTime: matched?.estimatedTime || '0 mins',
-        amount: matched?.amount || 0,
+        customer: d.customerName || matched?.customer || 'Customer',
+        pickupLocation: pickupLoc,
+        dropoffLocation: dropoffLoc,
+        currentLocation: currentLoc,
+        pickupAddress: d.pickupAddress || matched?.pickupAddress || 'Pickup',
+        dropAddress: d.dropAddress || matched?.dropAddress || 'Dropoff',
+        distance: d.distance || (typeof d.distanceRemainingMeters === 'number' ? `${(d.distanceRemainingMeters / 1000).toFixed(1)} km` : matched?.distance || '2.5 km'),
+        estimatedTime: d.estimatedTime || (typeof d.etaSeconds === 'number' && d.etaSeconds > 0 ? `${Math.max(1, Math.ceil(d.etaSeconds / 60))} mins` : matched?.estimatedTime || '15 mins'),
+        etaSeconds: d.etaSeconds,
+        distanceRemainingMeters: d.distanceRemainingMeters,
+        amount: d.amount ?? matched?.amount ?? 0,
         priority: 'medium',
         status: d.status || 'partner_assigned',
-        items: []
+        items: Array.isArray(d.items) && d.items.length > 0 ? d.items : (matched?.items || [])
       };
 
       state.availableAssignments = state.availableAssignments.filter(

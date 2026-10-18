@@ -70,6 +70,59 @@ export class ApiSimulator {
         });
       }
 
+      // --- DEV LIVE ORDER DEMO ---
+      if (path.endsWith('/dev/demo/active-order') && method === 'GET') {
+        return createJsonResponse({
+          success: true,
+          data: null,
+        });
+      }
+      if (path.endsWith('/dev/demo/launch-live-order') && method === 'POST') {
+        return createJsonResponse({
+          success: true,
+          message: 'Live order demo launched successfully (Simulator)',
+          data: {
+            order: {
+              _id: '64e8e50f3c5f4a1b8c1a9908',
+              status: 'partner_assigned',
+              restaurantName: 'Showcase Spice Kitchen',
+              deliveryAddress: 'Flat 402, Showcase Heights, Bangalore',
+            },
+            delivery: {
+              _id: '64e8e50f3c5f4a1b8c1a990a',
+              status: 'partner_assigned',
+              distanceRemainingMeters: 650,
+              etaSeconds: 95,
+              currentLocation: { type: 'Point', coordinates: [77.5900, 12.9680] },
+            },
+            restaurant: {
+              id: '64e8e50f3c5f4a1b8c1a9905',
+              name: 'Showcase Spice Kitchen',
+              location: { lat: 12.9716, lng: 77.5946 },
+            },
+            customer: {
+              id: '64e8e50f3c5f4a1b8c1a9901',
+              name: 'Showcase Customer',
+              destinationLocation: { lat: 12.9866, lng: 77.6096 },
+            },
+            partner: {
+              id: '64e8e50f3c5f4a1b8c1a9907',
+              name: 'Ramesh Rider',
+              currentLocation: { lat: 12.9680, lng: 77.5900 },
+            },
+          },
+        }, 201);
+      }
+      if (path.endsWith('/dev/demo/confirm-handoff') && method === 'POST') {
+        return createJsonResponse({
+          success: true,
+          message: 'Kitchen handoff confirmed (Simulator)',
+          data: {
+            order: { _id: '64e8e50f3c5f4a1b8c1a9908', status: 'picked_up' },
+          },
+        });
+      }
+
       // --- AUTHENTICATION ---
       if (path.includes('/api/auth/login') && method === 'POST') {
         const body = typeof config.body === 'string' ? JSON.parse(config.body) : config.body;

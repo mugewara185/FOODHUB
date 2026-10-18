@@ -2,6 +2,7 @@ import { config } from './config/env';
 import { connectDB } from './config/db';
 import app from './app';
 import { initSocket } from './socket';
+import { recoverActiveDeliveries } from './modules/delivery/delivery.simulator';
 
 async function bootstrap(): Promise<void> {
   await connectDB();
@@ -12,6 +13,11 @@ async function bootstrap(): Promise<void> {
 
   // Initialize socket.io
   initSocket(server);
+
+  // Recover active deliveries from MongoDB after startup/restart
+  recoverActiveDeliveries().catch((err) => {
+    console.error('[server] Active delivery recovery failed:', err);
+  });
 
   // Graceful shutdown
   const shutdown = (signal: string) => {

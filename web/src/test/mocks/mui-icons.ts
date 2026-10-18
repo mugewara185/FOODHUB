@@ -66,5 +66,15 @@ export const ArrowBack = 'div';
 export const Router = 'div';
 export const SyncAlt = 'div';
 export const HelpOutline = 'div';
+export const AttachMoney = 'div';
+export const RadioButtonUnchecked = 'div';
+export const RadioButtonChecked = 'div';
+export const Cancel = 'div';
+export const Phone = 'div';
+export const Message = 'div';
+export const HourglassEmpty = 'div';
+export const FlashOn = 'div';
+export const Wifi = 'div';
+export const WifiOff = 'div';
 
 export default 'div';

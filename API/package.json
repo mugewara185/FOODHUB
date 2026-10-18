@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run --no-file-parallelism",
-    "test:integration": "vitest run --no-file-parallelism"
+    "test:integration": "vitest run --no-file-parallelism",
+    "test:lifecycle": "vitest run --no-file-parallelism src/modules/orders/__tests__/lifecycle-invariants.integration.test.ts src/modules/delivery/__tests__/road-simulator-chat.integration.test.ts src/modules/delivery/__tests__/socket-authorization.integration.test.ts src/modules/delivery/__tests__/simulator-recovery.integration.test.ts src/modules/delivery/__tests__/simulator-handoff.integration.test.ts src/modules/dev/__tests__/demo-launch.integration.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.22.0",
@@ -31,8 +32,10 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.14.2",
+    "@types/supertest": "^7.2.1",
     "nodemon": "^3.1.14",
     "socket.io-client": "^4.8.3",
+    "supertest": "^7.3.1",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5",

@@ -5,6 +5,7 @@ export const ROUTE_PATHS = {
   OWNER_LANDING: '/owner',
   PARTNER_LANDING: '/partner',
   DEV_LANDING: '/dev',
+  SHOWCASE: '/showcase',
 
   // Auth paths
   LOGIN: '/login',

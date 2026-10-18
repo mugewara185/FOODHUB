@@ -15,34 +15,85 @@ interface OrderChatProps {
   targetRole?: 'user' | 'owner' | 'partner' | 'admin';
 }
 
-const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, currentUserId, currentUserName, targetRole }) => {
-  const [localMessages, setLocalMessages] = useState<OrderChatMessage[]>([]);
+const normalizeRole = (role?: string): 'user' | 'owner' | 'partner' | 'admin' => {
+  if (!role) return 'user';
+  const r = role.toLowerCase();
+  if (r === 'customer' || r === 'user') return 'user';
+  if (r === 'restaurant' || r === 'restaurant_owner' || r === 'owner') return 'owner';
+  if (r === 'driver' || r === 'delivery_partner' || r === 'partner') return 'partner';
+  if (r === 'admin') return 'admin';
+  return 'user';
+};
+
+const mergeChatMessages = (existing: OrderChatMessage[], incoming: OrderChatMessage[]): OrderChatMessage[] => {
+  const merged = [...existing];
+  for (const msg of incoming) {
+    if (!msg || !msg.message) continue;
+    const normalizedMsg: OrderChatMessage = {
+      ...msg,
+      senderRole: normalizeRole(msg.senderRole),
+      targetRole: msg.targetRole ? normalizeRole(msg.targetRole) : undefined,
+    };
+    const existingIdx = merged.findIndex((m) => {
+      if (normalizedMsg._id && m._id && normalizedMsg._id === m._id) return true;
+      if (normalizedMsg.clientMessageId && m.clientMessageId && normalizedMsg.clientMessageId === m.clientMessageId) return true;
+      if (
+        String(m.senderId) === String(normalizedMsg.senderId) &&
+        m.message === normalizedMsg.message &&
+        normalizeRole(m.senderRole) === normalizedMsg.senderRole &&
+        normalizeRole(m.targetRole) === normalizeRole(normalizedMsg.targetRole) &&
+        Math.abs(new Date(m.timestamp || 0).getTime() - new Date(normalizedMsg.timestamp || 0).getTime()) < 5000
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (existingIdx >= 0) {
+      merged[existingIdx] = { ...merged[existingIdx], ...normalizedMsg };
+    } else {
+      merged.push(normalizedMsg);
+    }
+  }
+  return merged.sort((a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime());
+};
+
+const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole: rawCurrentUserRole, currentUserId, currentUserName, targetRole }) => {
+  const currentUserRole = normalizeRole(rawCurrentUserRole);
+  const dispatch = useAppDispatch();
+  const liveTracking = useAppSelector(selectLiveTracking);
+  const isCustomerReduxActive = currentUserRole === 'user' && liveTracking?.orderId === orderId;
+
+  const [localMessages, setLocalMessages] = useState<OrderChatMessage[]>(() =>
+    isCustomerReduxActive && liveTracking?.chatMessages?.length
+      ? mergeChatMessages([], liveTracking.chatMessages)
+      : []
+  );
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const defaultTarget: 'user' | 'owner' | 'partner' = targetRole === 'admin'
-    ? 'user'
-    : (targetRole || (currentUserRole === 'user' ? 'owner' : 'user'));
+  const normalizedTargetProp = targetRole ? normalizeRole(targetRole) : undefined;
+  const defaultTarget: 'user' | 'owner' | 'partner' =
+    normalizedTargetProp && normalizedTargetProp !== 'admin'
+      ? normalizedTargetProp
+      : currentUserRole === 'user'
+      ? 'owner'
+      : 'user';
 
   const [selectedTargetRole, setSelectedTargetRole] = useState<'user' | 'owner' | 'partner'>(defaultTarget);
 
   useEffect(() => {
-    if (targetRole && targetRole !== 'admin') {
-      setSelectedTargetRole(targetRole);
+    if (normalizedTargetProp && normalizedTargetProp !== 'admin') {
+      setSelectedTargetRole(normalizedTargetProp);
     }
-  }, [targetRole]);
+  }, [normalizedTargetProp]);
 
-  const dispatch = useAppDispatch();
-  const liveTracking = useAppSelector(selectLiveTracking);
-
-  const isCustomerReduxActive = currentUserRole === 'user' && liveTracking?.orderId === orderId;
-
-  useEffect(() => {
-    // Fetch chat history on mount
+  const fetchHistory = React.useCallback(() => {
+    if (!orderId) return;
     api.get<any>(`/orders/${orderId}/chat`)
       .then(res => {
-        const history = Array.isArray(res) ? res : (res?.data || []);
-        setLocalMessages(history);
+        const history: OrderChatMessage[] = Array.isArray(res) ? res : (res?.data || []);
+        setLocalMessages(prev => mergeChatMessages(prev, history));
         if (currentUserRole === 'user') {
           dispatch(setLiveTrackingChatHistory({ orderId, messages: history }));
         }
@@ -50,56 +101,79 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
       .catch(err => console.error('Failed to fetch chat history', err));
   }, [orderId, currentUserRole, dispatch]);
 
-  // Use Redux messages if active and populated, otherwise fallback to local state
-  const messages = isCustomerReduxActive && liveTracking && liveTracking.chatMessages.length > 0 
-    ? liveTracking.chatMessages 
-    : localMessages;
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
-  const filteredMessages = messages.filter(msg => {
-    if (msg.targetRole) {
-      return (msg.senderRole === currentUserRole && msg.targetRole === selectedTargetRole) || 
-             (msg.senderRole === selectedTargetRole && msg.targetRole === currentUserRole);
+  // Also sync any new messages from Redux liveTracking into localMessages
+  useEffect(() => {
+    if (isCustomerReduxActive && liveTracking?.chatMessages?.length) {
+      setLocalMessages(prev => mergeChatMessages(prev, liveTracking.chatMessages));
     }
-    return true;
+  }, [isCustomerReduxActive, liveTracking?.chatMessages]);
+
+  const filteredMessages = localMessages.filter(msg => {
+    const msgSenderRole = normalizeRole(msg.senderRole);
+    const msgTargetRole = msg.targetRole ? normalizeRole(msg.targetRole) : undefined;
+    if (msgTargetRole) {
+      return (msgSenderRole === currentUserRole && msgTargetRole === selectedTargetRole) ||
+             (msgSenderRole === selectedTargetRole && msgTargetRole === currentUserRole);
+    }
+    // Fallback for legacy messages without targetRole:
+    if (
+      (currentUserRole === 'user' && selectedTargetRole === 'owner' && (msgSenderRole === 'user' || msgSenderRole === 'owner')) ||
+      (currentUserRole === 'owner' && selectedTargetRole === 'user' && (msgSenderRole === 'user' || msgSenderRole === 'owner')) ||
+      (currentUserRole === 'partner' && selectedTargetRole === 'user' && (msgSenderRole === 'partner' || msgSenderRole === 'user')) ||
+      (currentUserRole === 'user' && selectedTargetRole === 'partner' && msgSenderRole === 'partner')
+    ) {
+      return true;
+    }
+    return false;
   });
 
   useEffect(() => {
     if (isCustomerReduxActive) {
       dispatch(clearLiveTrackingUnreadCount());
     }
-  }, [isCustomerReduxActive, dispatch, messages.length]);
+  }, [isCustomerReduxActive, dispatch, localMessages.length]);
 
   useEffect(() => {
+    if (!orderId) return;
     socketService.joinOrderRoom(orderId);
 
     const handleNewMessage = (msg: OrderChatMessage) => {
-      if (msg.orderId !== orderId) return;
-      setLocalMessages((prev) => {
-        const exists = prev.some(
-          m => m.timestamp === msg.timestamp && m.message === msg.message && m.senderId === msg.senderId
-        );
-        return exists ? prev : [...prev, msg];
-      });
+      if (!msg || String(msg.orderId) !== String(orderId)) return;
+      setLocalMessages((prev) => mergeChatMessages(prev, [msg]));
+
       if (isCustomerReduxActive) {
         dispatch(addLiveTrackingChatMessage({ message: msg, isChatOpen: true }));
       }
     };
 
     socketService.onOrderChatMessage(handleNewMessage);
+    const unsubscribeStatus = socketService.onStatusChange?.((status) => {
+      if (status === 'connected') {
+        socketService.joinOrderRoom(orderId);
+        fetchHistory();
+      }
+    });
 
     return () => {
       socketService.offOrderChatMessage(handleNewMessage);
+      unsubscribeStatus?.();
     };
-  }, [orderId, isCustomerReduxActive, dispatch]);
+  }, [orderId, isCustomerReduxActive, dispatch, fetchHistory]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [filteredMessages.length]);
 
   const handleSend = () => {
     if (!inputText.trim()) return;
 
+    const clientMessageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const payload: OrderChatMessage = {
+      clientMessageId,
       orderId,
       senderId: currentUserId,
       senderRole: currentUserRole,
@@ -110,7 +184,7 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
     };
 
     socketService.sendOrderChatMessage(payload);
-    setLocalMessages((prev) => [...prev, payload]);
+    setLocalMessages((prev) => mergeChatMessages(prev, [payload]));
     if (isCustomerReduxActive) {
       dispatch(addLiveTrackingChatMessage({ message: payload, isChatOpen: true }));
     }
@@ -195,7 +269,7 @@ const OrderChat: React.FC<OrderChatProps> = ({ orderId, currentUserRole, current
           filteredMessages.map((msg, i) => {
             const isMe = msg.senderId === currentUserId && msg.senderRole === currentUserRole;
             return (
-              <Box key={i} sx={{ display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 1 }}>
+              <Box key={msg._id || msg.clientMessageId || `${msg.timestamp}-${i}`} sx={{ display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 1 }}>
                 <Avatar sx={{ width: 28, height: 28, bgcolor: isMe ? 'primary.main' : 'grey.400' }}>
                   {getRoleIcon(msg.senderRole)}
                 </Avatar>

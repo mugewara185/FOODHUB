@@ -1,6 +1,6 @@
 import { Delivery } from './delivery.model';
 import { DeliveryPartner } from './delivery-partner.model';
-import { startDeliverySimulation } from './delivery.simulator';
+import { startDeliverySimulation, computeInitialPartnerOrigin, calculateDistanceMeters } from './delivery.simulator';
 import { Order } from '../orders/order.model';
 import { transitionOrderStatus } from '../orders/order.service';
 import { Types } from 'mongoose';
@@ -17,7 +17,9 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
     return null;
   }
 
-  const partnerStart: [number, number] = [restaurantLocation[0] - 0.005, restaurantLocation[1] - 0.005];
+  const partnerStart: [number, number] = computeInitialPartnerOrigin(restaurantLocation, orderId);
+  const initialDistance = calculateDistanceMeters(partnerStart, restaurantLocation);
+  const initialEta = Math.max(1, Math.round(initialDistance / 6.9));
   
   partner.status = 'assigned';
   partner.currentLocation = { type: 'Point', coordinates: partnerStart };
@@ -28,6 +30,8 @@ export async function assignDelivery(orderId: string, restaurantLocation: [numbe
     pickupLocation: { type: 'Point', coordinates: restaurantLocation },
     destinationLocation: { type: 'Point', coordinates: customerLocation },
     currentLocation: { type: 'Point', coordinates: partnerStart },
+    distanceRemainingMeters: initialDistance,
+    etaSeconds: initialEta,
     status: 'partner_assigned',
     timestamps: { assignedAt: new Date() }
   });

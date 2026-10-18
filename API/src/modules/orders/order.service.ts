@@ -17,6 +17,11 @@ export async function transitionOrderStatus(
     throw new AppError('Order not found', 404);
   }
 
+  // Idempotent: If order is already in the target status, return it safely without error
+  if (order.status === newStatus) {
+    return order;
+  }
+
   // 3. Validate transition
   const validTransitions: Record<string, string[]> = {
     'pending_owner': ['confirmed', 'rejected'],
@@ -62,6 +67,16 @@ export async function transitionOrderStatus(
   const prevStatus = order.status;
   order.status = newStatus;
   
+  order.timestamps = order.timestamps || {};
+  const now = new Date();
+  if (newStatus === 'partner_assigned') {
+    order.timestamps.assignedAt = now;
+  } else if (newStatus === 'picked_up') {
+    order.timestamps.pickedUpAt = now;
+  } else if (newStatus === 'delivered') {
+    order.timestamps.deliveredAt = now;
+  }
+
   // 6. Saves the order
   await order.save();
 
@@ -97,30 +112,32 @@ export async function transitionOrderStatus(
   }
 
   const io = getIO();
+  const pickedUpAt = order.timestamps?.pickedUpAt;
+  const transitMinutes = (newStatus === 'delivered' && pickedUpAt)
+    ? Math.max(1, Math.round((now.getTime() - new Date(pickedUpAt).getTime()) / 60000))
+    : (newStatus === 'delivered' ? Math.max(1, Math.round((now.getTime() - new Date(order.createdAt).getTime()) / 60000)) : undefined);
+
+  const statusPayload = {
+    orderId: order.id,
+    status: newStatus,
+    actorRole: actor.role,
+    timestamps: order.timestamps,
+    actualTransitMinutes: transitMinutes,
+    estimatedMinutes: 15
+  };
+
   // 7. Emits order_status_update to the order room (existing pattern)
-  io.to(order.id).emit('order_status_update', { orderId: order.id, status: newStatus });
+  io.to(order.id).emit('order_status_update', statusPayload);
   
   // 8. Emits order:status_changed to owner room, admin_fleet, and customer user room
   if (restaurant?.ownerId) {
-    io.to(restaurant.ownerId.toString()).emit('order:status_changed', {
-      orderId: order.id,
-      status: newStatus,
-      actorRole: actor.role,
-    });
+    io.to(restaurant.ownerId.toString()).emit('order:status_changed', statusPayload);
   }
   
   // Emit to customer's user room
-  io.to(order.userId.toString()).emit('order:status_changed', {
-    orderId: order.id,
-    status: newStatus,
-    actorRole: actor.role,
-  });
+  io.to(order.userId.toString()).emit('order:status_changed', statusPayload);
 
-  io.to('admin_fleet').emit('order:status_changed', {
-    orderId: order.id,
-    status: newStatus,
-    actorRole: actor.role,
-  });
+  io.to('admin_fleet').emit('order:status_changed', statusPayload);
 
   // If transitioning to ready_for_pickup, automatically transition to awaiting_partner
   if (newStatus === 'ready_for_pickup') {
@@ -130,17 +147,26 @@ export async function transitionOrderStatus(
   // If transitioning to picked_up, update the active Delivery so simulator moves to customer
   if (newStatus === 'picked_up') {
     try {
-      const deliveries = await Delivery.find({ orderId: order._id, status: 'arrived_pickup' });
+      const deliveries = await Delivery.find({ orderId: order._id, status: { $in: ['arrived_pickup', 'partner_assigned'] } });
       for (const d of deliveries) {
+        if (d.status === 'partner_assigned') {
+          d.status = 'arrived_pickup';
+          await d.save();
+        }
         d.status = 'picked_up';
         d.timestamps = d.timestamps || {};
         d.timestamps.pickedUpAt = new Date();
         await d.save();
 
+        const coords = d.currentLocation?.coordinates;
+        const loc = coords && Array.isArray(coords) && coords.length === 2
+          ? { lat: coords[1], lng: coords[0] }
+          : ((d.currentLocation as any)?.lat ? d.currentLocation : { lat: 0, lng: 0 });
+
         const payload = {
           deliveryId: d.id,
           orderId: d.orderId,
-          location: d.currentLocation || { lat: 0, lng: 0 },
+          location: loc,
           etaSeconds: d.etaSeconds,
           distanceRemainingMeters: d.distanceRemainingMeters,
           status: 'picked_up'

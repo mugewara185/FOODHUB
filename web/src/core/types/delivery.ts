@@ -18,10 +18,13 @@ export interface DeliveryAssignment {
   customer: string;
   pickupLocation: Coordinates;
   dropoffLocation: Coordinates;
+  currentLocation?: Coordinates;
   pickupAddress: string;
   dropAddress: string;
   distance: string | number; // in kilometers
   estimatedTime: string | number; // in minutes
+  etaSeconds?: number;
+  distanceRemainingMeters?: number;
   amount: number;
   priority: 'high' | 'medium' | 'low';
   status: DeliveryStatus;

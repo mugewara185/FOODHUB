@@ -25,6 +25,7 @@ interface PopulatedRestaurantDTO {
   city?: string;
   address?: string;
   phone?: string;
+  location?: { lat: number; lng: number };
 }
 
 interface OrderApiDTO {
@@ -41,17 +42,36 @@ interface OrderApiDTO {
   chatMessages?: OrderChatMessage[];
   createdAt: string;
   updatedAt?: string;
+  deliveryId?: string;
   deliveryStatus?: string;
-  partner?: { id: string; name: string; phone: string; };
+  partner?: { id: string; name: string; phone: string; vehicle?: string; rating?: number };
+  currentLocation?: { lat: number; lng: number };
+  pickupLocation?: { lat: number; lng: number };
+  dropoffLocation?: { lat: number; lng: number };
+  etaSeconds?: number;
+  distanceRemainingMeters?: number;
+  timestamps?: {
+    assignedAt?: string;
+    pickedUpAt?: string;
+    deliveredAt?: string;
+  };
 }
 
 // Normalization helpers
-const extractRestaurantId = (rid: string | PopulatedRestaurantDTO): string =>
-  typeof rid === 'string' ? rid : rid._id;
+const extractRestaurantId = (rid?: string | PopulatedRestaurantDTO): string => {
+  if (!rid) return '';
+  return typeof rid === 'string' ? rid : (rid._id ? String(rid._id) : '');
+};
+
+const extractRestaurantLocation = (rid?: string | PopulatedRestaurantDTO): { lat: number; lng: number } | undefined =>
+  typeof rid === 'object' && rid !== null && rid.location && typeof rid.location.lat === 'number' && typeof rid.location.lng === 'number'
+    ? rid.location
+    : undefined;
 
 const normalizePaymentMethod = (
-  method: string,
+  method?: string,
 ): PaymentMethod => {
+  if (!method) return 'cash_on_delivery';
   if (method === 'cash' || method === 'cod' || method === 'cash_on_delivery') {
     return 'cash_on_delivery';
   }
@@ -61,33 +81,48 @@ const normalizePaymentMethod = (
   return 'cash_on_delivery';
 };
 
-export const normalizeOrder = (dto: OrderApiDTO): Order => ({
-  id: dto._id,
-  userId: dto.userId,
-  restaurantId: extractRestaurantId(dto.restaurantId),
-  restaurantName: dto.restaurantName,
-  items: dto.items.map((item) => ({
-    foodItemId: item.menuItemId,
-    name: item.name,
-    price: item.price,
-    quantity: item.quantity,
-  })),
-  subtotal: dto.totalAmount,
-  deliveryFee: 0,
-  tax: 0,
-  discount: 0,
-  total: dto.totalAmount,
-  status: dto.status,
-  paymentMethod: normalizePaymentMethod(dto.paymentMethod),
-  paymentStatus: 'pending',
-  deliveryInfo: {
-    address: dto.deliveryAddress,
-  },
-  createdAt: dto.createdAt,
-  updatedAt: dto.updatedAt ?? dto.createdAt,
+export const normalizeOrder = (rawDto: any): Order => {
+  const dto = rawDto?.order || rawDto?.data || rawDto || {};
+  const orderId = String(dto.id || dto._id || dto.orderId || '');
+  const restLoc = dto.pickupLocation || extractRestaurantLocation(dto.restaurantId);
+  const items = Array.isArray(dto.items) ? dto.items : [];
+
+  return {
+    id: orderId,
+    userId: String(dto.userId || ''),
+    restaurantId: extractRestaurantId(dto.restaurantId || dto.restaurant),
+    restaurantName: dto.restaurantName || dto.restaurant?.name || 'Restaurant',
+    items: items.map((item: any) => ({
+      foodItemId: String(item.menuItemId || item.foodItemId || item._id || ''),
+      name: item.name || 'Item',
+      price: Number(item.price || 0),
+      quantity: Number(item.quantity || 1),
+    })),
+    subtotal: Number(dto.subtotal ?? dto.totalAmount ?? 0),
+    deliveryFee: Number(dto.deliveryFee ?? 0),
+    tax: Number(dto.tax ?? 0),
+    discount: Number(dto.discount ?? 0),
+    total: Number(dto.total ?? dto.totalAmount ?? 0),
+    status: dto.status || 'pending_owner',
+    paymentMethod: normalizePaymentMethod(dto.paymentMethod),
+    paymentStatus: dto.paymentStatus || 'pending',
+    deliveryInfo: {
+      address: dto.deliveryInfo?.address || dto.deliveryAddress || '',
+      coordinates: dto.deliveryInfo?.coordinates || dto.dropoffLocation,
+    },
+    createdAt: dto.createdAt || new Date().toISOString(),
+    updatedAt: dto.updatedAt ?? dto.createdAt ?? new Date().toISOString(),
+    deliveryId: dto.deliveryId,
     deliveryStatus: dto.deliveryStatus,
     partner: dto.partner,
-});
+    currentLocation: dto.currentLocation,
+    pickupLocation: restLoc,
+    dropoffLocation: dto.dropoffLocation,
+    etaSeconds: dto.etaSeconds,
+    distanceRemainingMeters: dto.distanceRemainingMeters,
+    timestamps: dto.timestamps,
+  };
+};
 
 // Request mapping
 export interface CreateOrderPayload {

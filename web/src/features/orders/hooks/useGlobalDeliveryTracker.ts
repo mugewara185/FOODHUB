@@ -86,17 +86,24 @@ export const useGlobalDeliveryTracker = () => {
     };
 
     const handleStatus = (payload: DeliveryStatusPayload) => {
-      if (payload.orderId === orderId) {
+      if (String(payload.orderId) === String(orderId)) {
         dispatch(setLiveTrackingOrder({ orderId, status: payload.status }));
       }
     };
 
     const handleLocation = (payload: DeliveryLocationPayload) => {
-      if (payload.orderId === orderId) {
+      if (String(payload.orderId) === String(orderId)) {
         const targetLoc = currentOrder?.deliveryInfo?.coordinates || FALLBACK_CUSTOMER;
-        const eta = estimateStraightLineETA(payload.location, targetLoc);
-        const dist = calculateDistance(payload.location, targetLoc);
+        const eta = typeof payload.etaSeconds === 'number'
+          ? payload.etaSeconds
+          : estimateStraightLineETA(payload.location, targetLoc);
+        const dist = typeof payload.distanceRemainingMeters === 'number'
+          ? payload.distanceRemainingMeters
+          : calculateDistance(payload.location, targetLoc);
         dispatch(updateLiveTrackingLocation({ location: payload.location, etaSeconds: eta, distance: dist }));
+        if (payload.status) {
+          dispatch(setLiveTrackingOrder({ orderId, status: payload.status }));
+        }
       }
     };
 

@@ -9,6 +9,7 @@ import { sendSuccess } from '../../shared/utils/response';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
 import { getIO } from '../../socket';
 import { Delivery } from '../delivery/delivery.model';
+import { DeliveryPartner } from '../delivery/delivery-partner.model';
 
 import { assignDelivery, releaseDeliveryForOrder } from '../delivery/delivery.service';
 
@@ -86,13 +87,74 @@ export async function createOrder(req: AuthRequest, res: Response, next: NextFun
   }
 }
 
+async function enrichOrdersWithDeliveryData(orders: any[]): Promise<any[]> {
+  if (!orders || orders.length === 0) return orders;
+  const orderIds = orders.map((o: any) => o._id);
+  const deliveries = await Delivery.find({ orderId: { $in: orderIds } }).sort({ createdAt: -1 }).lean();
+  if (deliveries.length === 0) return orders;
+
+  const partnerIds = deliveries.map((d: any) => d.partnerId).filter(Boolean);
+  const partners = partnerIds.length > 0
+    ? await DeliveryPartner.find({ _id: { $in: partnerIds } }).lean()
+    : [];
+
+  return orders.map((order: any) => {
+    const plainOrder = typeof order.toObject === 'function' ? order.toObject() : order;
+    const delivery = deliveries.find((d: any) => d.orderId.toString() === plainOrder._id.toString());
+    if (!delivery) return plainOrder;
+
+    const partner = delivery.partnerId
+      ? partners.find((p: any) => p._id.toString() === delivery.partnerId.toString())
+      : undefined;
+
+    const currentLocation =
+      delivery.currentLocation?.coordinates?.length === 2
+        ? { lat: delivery.currentLocation.coordinates[1], lng: delivery.currentLocation.coordinates[0] }
+        : undefined;
+    const pickupLocation =
+      delivery.pickupLocation?.coordinates?.length === 2
+        ? { lat: delivery.pickupLocation.coordinates[1], lng: delivery.pickupLocation.coordinates[0] }
+        : undefined;
+    const dropoffLocation =
+      delivery.destinationLocation?.coordinates?.length === 2
+        ? { lat: delivery.destinationLocation.coordinates[1], lng: delivery.destinationLocation.coordinates[0] }
+        : undefined;
+
+    return {
+      ...plainOrder,
+      deliveryId: String(delivery._id),
+      deliveryStatus: delivery.status,
+      partner: partner
+        ? {
+            id: String(partner._id),
+            name: partner.name,
+            phone: partner.phone,
+            vehicle: partner.vehicle,
+            rating: partner.rating,
+          }
+        : undefined,
+      currentLocation,
+      pickupLocation,
+      dropoffLocation,
+      etaSeconds: delivery.etaSeconds,
+      distanceRemainingMeters: delivery.distanceRemainingMeters,
+      timestamps: {
+        ...(plainOrder.timestamps || {}),
+        ...(delivery.timestamps || {}),
+      },
+    };
+  });
+}
+
 export async function getUserOrders(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
     const orders = await Order.find({ userId: req.user!.id })
       .sort({ createdAt: -1 })
-      .populate('restaurantId', 'name imageUrl city');
+      .populate('restaurantId', 'name imageUrl city location')
+      .lean();
 
-    sendSuccess({ res, message: 'Orders fetched', data: orders });
+    const enriched = await enrichOrdersWithDeliveryData(orders);
+    sendSuccess({ res, message: 'Orders fetched', data: enriched });
   } catch (err) {
     next(err);
   }
@@ -125,29 +187,7 @@ export async function getOwnerOrders(req: AuthRequest, res: Response, next: Next
       .sort({ createdAt: -1 })
       .lean();
 
-    // Attach active delivery micro-state to order DTOs
-    const activeOrderIds = orders.filter((o: any) => ['partner_assigned', 'picked_up', 'out_for_delivery'].includes(o.status)).map((o: any) => o._id);
-    if (activeOrderIds.length > 0) {
-      const { Delivery } = require('../delivery/delivery.model');
-      const { DeliveryPartner } = require('../delivery/delivery-partner.model');
-      const deliveries = await Delivery.find({ orderId: { $in: activeOrderIds }, status: { $ne: 'delivered' } }).lean();
-      
-      const partnerIds = deliveries.map((d: any) => d.partnerId);
-      const partners = await DeliveryPartner.find({ _id: { $in: partnerIds } }).lean();
-
-      orders = orders.map((order: any) => {
-        const delivery = deliveries.find((d: any) => d.orderId.toString() === order._id.toString());
-        if (delivery) {
-          const partner = partners.find((p: any) => p._id.toString() === delivery.partnerId.toString());
-          return {
-            ...order,
-            deliveryStatus: delivery.status,
-            partner: partner ? { id: partner._id, name: partner.name, phone: partner.phone } : undefined
-          };
-        }
-        return order;
-      });
-    }
+    orders = await enrichOrdersWithDeliveryData(orders);
 
     sendSuccess({ res, message: 'Owner orders fetched', data: orders });
   } catch (err) {
@@ -169,14 +209,15 @@ export async function getAllOrders(req: AuthRequest, res: Response, next: NextFu
 
 export async function getOrderById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    const order = await Order.findById(req.params.id).populate('restaurantId', 'name imageUrl address phone');
+    const order = await Order.findById(req.params.id).populate('restaurantId', 'name imageUrl address phone location');
     if (!order) throw new AppError('Order not found', 404);
 
     if (order.userId.toString() !== req.user!.id && !req.user!.roles.includes('admin') && !req.user!.roles.includes('owner') && !req.user!.roles.includes('partner')) {
       throw new AppError('Not authorized to view this order', 403);
     }
 
-    sendSuccess({ res, message: 'Order fetched', data: order });
+    const [enriched] = await enrichOrdersWithDeliveryData([order]);
+    sendSuccess({ res, message: 'Order fetched', data: enriched });
   } catch (err) {
     next(err);
   }
@@ -187,27 +228,40 @@ export async function getOrderChat(req: AuthRequest, res: Response, next: NextFu
     const order = await Order.findById(req.params.id).select('chatMessages userId restaurantId');
     if (!order) throw new AppError('Order not found', 404);
 
-    const isCustomer = order.userId.toString() === req.user!.id;
-    const isAdmin = req.user!.roles.includes('admin');
+    const roles = req.user?.roles || [];
+    const userId = req.user?.id;
+    const isCustomer = userId && order.userId.toString() === userId;
+    const isAdmin = roles.includes('admin');
 
-    let isOwnerOfRestaurant = false;
-    if (req.user!.roles.includes('owner')) {
+    let isAuthorized = Boolean(isCustomer || isAdmin);
+
+    if (!isAuthorized && userId) {
       const restaurant = await Restaurant.findById(order.restaurantId).select('ownerId');
-      isOwnerOfRestaurant = restaurant?.ownerId?.toString() === req.user!.id;
-    }
-
-    let isAssignedPartner = false;
-    if (req.user!.roles.includes('partner')) {
-      const { Delivery } = require('../delivery/delivery.model');
-      const { DeliveryPartner } = require('../delivery/delivery-partner.model');
-      const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
-      if (delivery && delivery.partnerId) {
-        const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
-        isAssignedPartner = partner?.userId?.toString() === req.user!.id;
+      if (restaurant?.ownerId?.toString() === userId) {
+        isAuthorized = true;
       }
     }
 
-    if (!isCustomer && !isAdmin && !isOwnerOfRestaurant && !isAssignedPartner) {
+    if (!isAuthorized && userId) {
+      const delivery = await Delivery.findOne({ orderId: order._id }).select('partnerId');
+      if (delivery?.partnerId) {
+        if (delivery.partnerId.toString() === userId) {
+          isAuthorized = true;
+        } else {
+          const partner = await DeliveryPartner.findById(delivery.partnerId).select('userId');
+          if (partner && (partner.userId?.toString() === userId || partner._id.toString() === userId)) {
+            isAuthorized = true;
+          } else {
+            const userPartner = await DeliveryPartner.findOne({ userId }).select('_id');
+            if (userPartner && delivery.partnerId.toString() === userPartner._id.toString()) {
+              isAuthorized = true;
+            }
+          }
+        }
+      }
+    }
+
+    if (!isAuthorized) {
       throw new AppError('Not authorized to view this chat', 403);
     }
 
