@@ -142,6 +142,13 @@ class SocketService {
     this.connectionChangeListeners.delete(callback);
   }
 
+  onStatusChange(
+    callback: (status: "connected" | "reconnecting" | "disconnected") => void,
+  ) {
+    this.onConnectionChange(callback);
+    return () => this.offConnectionChange(callback);
+  }
+
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();

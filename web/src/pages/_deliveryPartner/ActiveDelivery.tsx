@@ -78,6 +78,17 @@ const ActiveDelivery: React.FC = () => {
     };
   }, [dispatch]);
 
+  // Bounded fallback reconciliation poll while delivery is active
+  useEffect(() => {
+    if (!activeAssignment || activeAssignment.status === 'delivered') return;
+
+    const interval = setInterval(() => {
+      dispatch(fetchPartnerStateThunk());
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [dispatch, activeAssignment?.deliveryId, activeAssignment?.status]);
+
   // Compute positions
   const pickupPos = activeAssignment?.pickupLocation && (activeAssignment.pickupLocation.lat !== 0 || activeAssignment.pickupLocation.lng !== 0)
     ? activeAssignment.pickupLocation

@@ -114,13 +114,12 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
     lng: restaurantCoords.lng - 0.005,
   };
 
-  // Inspect existing active demo order on mount
-  useEffect(() => {
-    let isMounted = true;
-    api.request<any>('/dev/demo/active-order')
+  // Authoritative demo state fetcher
+  const fetchActiveOrderState = useCallback(() => {
+    return api.request<any>('/dev/demo/active-order')
       .then((res) => {
         const payload = (res && 'data' in res && res.data) ? res.data : res;
-        if (!isMounted || !payload?.order) return;
+        if (!payload?.order) return;
         const { order, delivery, isTerminal } = payload;
         setActiveOrder(order);
         setActiveDelivery(delivery);
@@ -146,7 +145,11 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
             phone: delivery.partnerId.phone,
           });
         }
-        setCurrentStatus(order.status);
+        setCurrentStatus((prev) => {
+          const curIdx = getStageIndex(prev);
+          const newIdx = getStageIndex(order.status);
+          return newIdx >= curIdx ? order.status : prev;
+        });
         if (delivery?.currentLocation?.coordinates) {
           setCourierPosition({
             lat: delivery.currentLocation.coordinates[1],
@@ -164,22 +167,37 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
         }
         if (delivery?.status === 'arrived_pickup') {
           setIsHandoffPending(true);
+        } else if (['picked_up', 'out_for_delivery', 'delivered'].includes(delivery?.status)) {
+          setIsHandoffPending(false);
         }
       })
       .catch(() => {
         // Dev endpoints unavailable in production
       });
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
+
+  // Inspect existing active demo order on mount
+  useEffect(() => {
+    fetchActiveOrderState();
+  }, [fetchActiveOrderState]);
+
+  // Bounded fallback reconciliation poll while demo is active
+  useEffect(() => {
+    if (!activeOrder || isDelivered) return;
+    const timer = setInterval(() => {
+      fetchActiveOrderState();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [activeOrder, isDelivered, fetchActiveOrderState]);
 
   // Socket connection and room subscription for active order
   useEffect(() => {
     socketService.connect(undefined, 'customer');
     const handleConn = (status: 'connected' | 'reconnecting' | 'disconnected') => {
       setSocketStatus(status);
+      if (status === 'connected') {
+        fetchActiveOrderState();
+      }
     };
     socketService.onConnectionChange(handleConn);
 
@@ -195,7 +213,11 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
         if (typeof payload.etaSeconds === 'number') setEtaSeconds(payload.etaSeconds);
         if (typeof payload.distanceRemainingMeters === 'number') setDistanceRemainingMeters(payload.distanceRemainingMeters);
         if (payload.status) {
-          setCurrentStatus(payload.status);
+          setCurrentStatus((prev) => {
+            const curIdx = getStageIndex(prev);
+            const newIdx = getStageIndex(payload.status);
+            return newIdx >= curIdx ? payload.status : prev;
+          });
           if (payload.status === 'arrived_pickup') {
             setIsHandoffPending(true);
           } else if (['picked_up', 'out_for_delivery', 'delivered'].includes(payload.status)) {
@@ -212,7 +234,11 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
     const handleStatus = (payload: any) => {
       if (payload.orderId === orderId) {
         if (payload.status) {
-          setCurrentStatus(payload.status);
+          setCurrentStatus((prev) => {
+            const curIdx = getStageIndex(prev);
+            const newIdx = getStageIndex(payload.status);
+            return newIdx >= curIdx ? payload.status : prev;
+          });
           if (payload.status === 'arrived_pickup') {
             setIsHandoffPending(true);
           } else if (['picked_up', 'out_for_delivery', 'delivered'].includes(payload.status)) {
@@ -230,7 +256,11 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
       const pId = payload.orderId || payload.id;
       if (pId === orderId) {
         if (payload.status) {
-          setCurrentStatus(payload.status);
+          setCurrentStatus((prev) => {
+            const curIdx = getStageIndex(prev);
+            const newIdx = getStageIndex(payload.status);
+            return newIdx >= curIdx ? payload.status : prev;
+          });
           if (payload.status === 'delivered') {
             setIsDelivered(true);
             if (payload.actualTransitMinutes) setTransitMinutes(payload.actualTransitMinutes);
@@ -247,7 +277,7 @@ export const InteractiveDemos: React.FC<InteractiveDemosProps> = ({ launchTrigge
       socketService.offDeliveryLocation(handleLocation);
       socketService.offDeliveryStatus(handleStatus);
     };
-  }, [activeOrder?._id, activeDelivery?._id]);
+  }, [activeOrder?._id, activeDelivery?._id, fetchActiveOrderState, isDelivered]);
 
   // Launch live order demo handler
   const handleLaunchLiveDemo = useCallback(async () => {

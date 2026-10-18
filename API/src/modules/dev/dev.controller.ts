@@ -529,6 +529,12 @@ export async function getActiveDemoOrder(req: Request, res: Response, next: Next
 
     const isTerminal = ['delivered', 'cancelled', 'rejected'].includes(demoOrder.status);
 
+    if (delivery && !isTerminal && ['partner_assigned', 'arrived_pickup', 'picked_up', 'out_for_delivery', 'nearby'].includes(delivery.status)) {
+      startDeliverySimulation(delivery._id.toString()).catch((err) => {
+        console.error('[dev] Failed to ensure simulation for active demo order:', err);
+      });
+    }
+
     return res.json({
       success: true,
       data: {
@@ -650,12 +656,45 @@ export async function launchLiveOrderDemo(req: Request, res: Response, next: Nex
 
     if (existingActiveOrder) {
       const existingDelivery = await Delivery.findOne({ orderId: existingActiveOrder._id, isDemo: true });
+
+      if (existingDelivery && ['partner_assigned', 'arrived_pickup', 'picked_up', 'out_for_delivery', 'nearby'].includes(existingDelivery.status)) {
+        await startDeliverySimulation(existingDelivery._id.toString());
+      }
+
+      const restaurant = await Restaurant.findById(existingActiveOrder.restaurantId);
+      const customerUser = await User.findById(existingActiveOrder.userId);
+      const partner = existingDelivery?.partnerId ? await DeliveryPartner.findById(existingDelivery.partnerId) : null;
+
       return res.json({
         success: true,
         message: 'An active demo order is already running',
         data: {
           order: existingActiveOrder,
           delivery: existingDelivery,
+          restaurant: restaurant ? {
+            id: restaurant._id,
+            name: restaurant.name,
+            location: restaurant.location,
+            address: restaurant.address,
+          } : undefined,
+          customer: customerUser ? {
+            id: customerUser._id,
+            name: customerUser.name,
+            address: existingActiveOrder.deliveryAddress,
+            destinationLocation: existingDelivery?.destinationLocation ? {
+              lat: existingDelivery.destinationLocation.coordinates[1],
+              lng: existingDelivery.destinationLocation.coordinates[0],
+            } : undefined,
+          } : undefined,
+          partner: partner ? {
+            id: partner._id,
+            name: partner.name,
+            phone: partner.phone,
+            currentLocation: existingDelivery?.currentLocation ? {
+              lat: existingDelivery.currentLocation.coordinates[1],
+              lng: existingDelivery.currentLocation.coordinates[0],
+            } : undefined,
+          } : undefined,
           alreadyRunning: true,
         },
       });

@@ -37,6 +37,12 @@ router.get(
           populate: { path: 'restaurantId', select: 'name address location' }
         });
 
+      if (activeDelivery && ['partner_assigned', 'arrived_pickup', 'picked_up', 'out_for_delivery', 'nearby'].includes(activeDelivery.status)) {
+        startDeliverySimulation(activeDelivery._id.toString()).catch((err) => {
+          console.error('[partner:me] Failed to ensure simulation for active delivery:', err);
+        });
+      }
+
       let availableAssignments: any[] = [];
       if (partner.status === 'available') {
         const orders = await Order.find({ status: 'awaiting_partner' }).populate('restaurantId', 'name');

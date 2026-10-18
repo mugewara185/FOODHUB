@@ -17,6 +17,7 @@
 - Phase 12 — Partner Delivery UI, Live Route Map, Progress State & Chat Hardening: Build, Runtime & Integration-verified on `dev/development`. Clean OpenStreetMap tiles, bounded OSRM road routing with instant straight-line fallback, canonical progress stepper, multi-actor tabbed chat with authorization, and fail-closed database safety.
 - Phase 13 — Definitive Fix for Owner ETA (`arrived_pickup`), Partner Origin Near Restaurant, Partner Active-Delivery Synchronization & Full 6-Direction Cross-Role Chat: Build, Unit/Integration, Backend Multi-Actor & Browser E2E-verified on `dev/development`.
 - Phase 14 — One-Click Live-Order Demo: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Prominent recruiter launch CTA on `/showcase` executing legitimate server-authoritative multi-actor state transitions (MongoDB persistence, Socket.IO broadcasts to order, kitchen, and partner rooms, simulated courier road traversal across Bangalore streets, manual/auto-handoff at `arrived_pickup`, deep links to Customer/Owner/Courier dashboards, and strict P0 test/dev data isolation preserving ordinary database records).
+- Phase 15 — Delivery Simulator Recovery & Synchronization Across Live Order Demo and Partner Active Delivery: Build, Backend Integration, Frontend Component & Vitest-verified on `dev/development`. Shared idempotent simulation entry point (`startDeliverySimulation`), process restart recovery on API boot (`recoverActiveDeliveries`), request-level recovery in `dev.controller.ts` and `delivery.partner.routes.ts`, auto-handoff progression for persisted `arrived_pickup` demo orders, reconnect reconciliation, and bounded fallback polling in Partner Active Delivery and Showcase pages.
 
 ## EVIDENCE
 **API Contract Integrity & Order State Verification (Workstream A & B Cycle)**
@@ -234,6 +235,47 @@ NotificationBell / Toast
       9. Ordinary Customer/Owner/Partner Data Preservation (ordinary records untouched across demo lifecycle)
     - Delivery Simulator Integration Tests: `25/25 PASS` with isolated `FOODHUB3_TEST` DB (`simulator-handoff.integration.test.ts`, `simulator-concurrency.integration.test.ts`, `road-simulator-chat.integration.test.ts`, `socket-authorization.integration.test.ts`).
     - Frontend Component & Showcase Tests: `web/src/features/showcase/__tests__/liveOrderDemo.test.tsx` (4/4 tests PASS) and `web/src/features/showcase/__tests__/showcase.test.tsx` (10/10 tests PASS) verifying idle state, demo launch, telemetry rendering, stage stepper, deep link attributes, kitchen handoff banner/interaction, socket delivery status updates, and delivered completion banner.
+    - Build Matrix: `npm --prefix API run build` (tsc) PASS (exit code 0), `npm --prefix web run build` (vite build) PASS (exit code 0).
+
+- **Delivery Simulator Recovery & Synchronization Across Live Order Demo and Partner Active Delivery (Phase 15 - dev/development):**
+  - **Root Cause Confirmed from Code:**
+    - *Loss of In-Memory Simulator Timers on Restart:* Simulator timers were stored strictly in process memory (`Map<string, NodeJS.Timeout>`). Whenever the API server restarted or hot-reloaded, persisted MongoDB deliveries remained in `partner_assigned`, `arrived_pickup`, `picked_up`, or `out_for_delivery`, but their timers were gone, permanently freezing courier progress.
+    - *Demo Early Return Path Omission:* When `launchLiveOrderDemo` detected an active demo order, it returned the existing order and delivery immediately without invoking `startDeliverySimulation` and omitted `restaurant`, `customer`, and `partner` objects, leaving the showcase demo frozen at Stage 5.
+    - *Partner Page Missing Recovery Trigger:* The partner active delivery endpoint (`GET /api/delivery/partner/me`) fetched the partner's active delivery but never checked or resumed simulation timers.
+    - *Stuck `arrived_pickup` State on Resume:* The simulator's auto-handoff progression for demo orders was only scheduled when transitioning from `partner_assigned` into `arrived_pickup`. If an API restart occurred while persisted at `arrived_pickup`, the handoff timer was lost and never re-scheduled.
+    - *Missing Frontend Reconnection Trigger:* `socketService.onStatusChange` was missing in `web/src/services/socket.ts`, causing `ActiveDelivery.tsx` and `OrderChat.tsx` to silently fail to register reconnect listeners.
+  - **Architectural Recovery Solutions Implemented:**
+    - *1. Authoritative Shared Entry Point (`API/src/modules/delivery/delivery.simulator.ts`):*
+      - `startDeliverySimulation(deliveryId)` hardened as an idempotent start/resume entry point.
+      - Concurrency mutex (`startingSimulators`) blocks start races; `activeSimulators` prevents duplicate timers.
+      - Refuses to start terminal deliveries (`delivered`, `cancelled`) or ineligible states.
+      - Resumes seamlessly from existing persisted location waypoints for intermediate states (`picked_up`, `out_for_delivery`, `nearby`).
+      - Safely handles missing deliveries or missing partner records without throwing unhandled exceptions.
+      - Safe event emission prevents non-socket test suites from crashing on `getIO()`.
+    - *2. Server Startup Recovery (`API/src/server.ts`):*
+      - Invokes `recoverActiveDeliveries()` on API startup after database connection and Socket.IO initialization.
+      - Scans for all non-terminal active deliveries (`status: { $in: ['partner_assigned', 'arrived_pickup', 'picked_up', 'out_for_delivery', 'nearby'] }`) and safely resumes simulations.
+    - *3. Live Order Demo Path Hardening (`API/src/modules/dev/dev.controller.ts`):*
+      - In `launchLiveOrderDemo`: When reusing an existing active demo order, invokes `await startDeliverySimulation(...)` and populates complete display metadata (`restaurant`, `customer`, `partner`).
+      - In `getActiveDemoOrder`: Validates non-terminal state and calls `startDeliverySimulation(...)` as a resilient safety net.
+    - *4. Delivery Partner Path Hardening (`API/src/modules/delivery/delivery.partner.routes.ts`):*
+      - In `GET /me`: When resolving the authenticated partner's active assignment, safely ensures the simulation is running via `startDeliverySimulation(...)`.
+      - Unauthorized partners cannot see or resume another partner's delivery (strictly scoped to authenticated JWT partner ID).
+    - *5. Auto-Handoff Recovery at `arrived_pickup`:*
+      - Implemented `scheduleDemoHandoffIfEligible(deliveryId, orderId)`.
+      - When simulation resumes while a demo delivery is already persisted at `arrived_pickup`, schedules the 3s auto-handoff progression to `picked_up`.
+    - *6. Frontend Reconnection & Authoritative State Reconciliation:*
+      - Added `onStatusChange` alias on `SocketService` (`web/src/services/socket.ts`) returning an unsubscribe callback.
+      - In `ActiveDelivery.tsx`: Re-fetches partner state on socket reconnect, with a bounded 6s fallback reconciliation interval while delivery is active.
+      - In `InteractiveDemos.tsx`: Implemented `fetchActiveOrderState`, safe forward stage progression (preventing out-of-order stage regression), reconnect refetch, and bounded 5s fallback polling.
+    - *7. Concurrency & Ownership Constraints:*
+      - Documented single-instance Node.js architecture with in-memory timer maps and compare-and-set MongoDB status transitions (`status: { $in: [...] }`).
+  - **Verification Suites:**
+    - Simulator Recovery Integration Suite: `API/src/modules/delivery/__tests__/simulator-recovery.integration.test.ts` (9/9 tests PASS) verifying single-timer idempotency, absent timer resumption, terminal delivery rejection, error handling, intermediate state preservation, `recoverActiveDeliveries` database scan, authenticated partner `/me` recovery, and partner isolation.
+    - Dev Demo Launch Regression Suite: `API/src/modules/dev/__tests__/demo-launch.integration.test.ts` (9/9 tests PASS) verifying simulation resumption on duplicate launch and full payload return.
+    - Full Delivery Test Matrix: `43/43 PASS` (`simulator-recovery.integration.test.ts` 9/9, `simulator-handoff.integration.test.ts` 4/4, `simulator-concurrency.integration.test.ts` 3/3, `road-simulator-chat.integration.test.ts` 10/10, `socket-authorization.integration.test.ts` 8/8, `demo-launch.integration.test.ts` 9/9).
+    - Web Showcase Suite: `14/14 PASS` (`liveOrderDemo.test.tsx` 4/4, `showcase.test.tsx` 10/10).
+    - Web Delivery Partner Suite: `7/7 PASS` (`deliveryBugs.test.tsx`).
     - Build Matrix: `npm --prefix API run build` (tsc) PASS (exit code 0), `npm --prefix web run build` (vite build) PASS (exit code 0).
 
 ## PORTFOLIO SHOWCASE READINESS EVALUATION (EMBEDDED REVIEW)

@@ -9,7 +9,7 @@ import { Order } from '../../orders/order.model';
 import { Restaurant } from '../../restaurants/restaurant.model';
 import { DeliveryPartner } from '../../delivery/delivery-partner.model';
 import { Delivery } from '../../delivery/delivery.model';
-import { stopDeliverySimulation } from '../../delivery/delivery.simulator';
+import { stopDeliverySimulation, stopAllDeliverySimulations, isSimulationActive } from '../../delivery/delivery.simulator';
 import { config } from '../../../config/env';
 import { resetDemoRateLimitsForTest } from '../dev.controller';
 
@@ -202,17 +202,27 @@ describe('One-Click Live-Order Demo Integration Tests', () => {
     expect(postPartner!.isDemo).toBe(false);
   });
 
-  it('Idempotency & Mutex: handles duplicate / repeat launch while demo order is active', async () => {
+  it('Idempotency & Mutex: handles duplicate / repeat launch while demo order is active and resumes simulation', async () => {
+    // Simulate API process restart by stopping all in-memory timers
+    stopAllDeliverySimulations();
+
     const res = await request(app)
       .post('/api/dev/demo/launch-live-order')
       .send();
 
-    // Should return existing active demo order safely
+    // Should return existing active demo order safely AND resume its simulation
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.alreadyRunning).toBe(true);
     expect(res.body.data.order.isDemo).toBe(true);
+    expect(res.body.data.restaurant).toBeDefined();
+    expect(res.body.data.restaurant.name).toBeDefined();
+    expect(res.body.data.customer).toBeDefined();
+    expect(res.body.data.customer.name).toBeDefined();
+    expect(res.body.data.partner).toBeDefined();
+    expect(res.body.data.partner.name).toBeDefined();
     expect(res.body.message).toContain('already running');
+    expect(isSimulationActive(res.body.data.delivery._id)).toBe(true);
   });
 
   it('Privacy & Sanitization: active-demo endpoint does NOT expose unrelated customer data or passwords', async () => {

@@ -8,6 +8,8 @@ import { evaluateRisk } from './risk.engine';
 import { config } from '../../config/env';
 
 const activeSimulators = new Map<string, NodeJS.Timeout>();
+const startingSimulators = new Set<string>();
+const pendingHandoffTimers = new Map<string, NodeJS.Timeout>();
 
 export interface SimulationRouteState {
   currentLeg: 'to_pickup' | 'to_destination';
@@ -17,6 +19,18 @@ export interface SimulationRouteState {
 
 const activeRoutes = new Map<string, SimulationRouteState>();
 const waypointsCache = new Map<string, [number, number][]>();
+
+export function isSimulationActive(deliveryId: string): boolean {
+  return activeSimulators.has(deliveryId);
+}
+
+export function getActiveSimulationsCount(): number {
+  return activeSimulators.size;
+}
+
+export function isHandoffPending(deliveryId: string): boolean {
+  return pendingHandoffTimers.has(deliveryId);
+}
 
 /**
  * Bounded waypoint fetcher for road routes (OSRM with 2.5s timeout and straight-line fallback).
@@ -168,260 +182,311 @@ export function computeInitialPartnerOrigin(
   return [startLng, startLat];
 }
 
-export async function startDeliverySimulation(deliveryId: string) {
-  if (activeSimulators.has(deliveryId)) {
-    return; // Already running
-  }
+function scheduleDemoHandoffIfEligible(deliveryId: string, orderId: string) {
+  if (pendingHandoffTimers.has(deliveryId)) return;
 
-  let timer = setInterval(async () => {
-    try {
-      const delivery = await Delivery.findById(deliveryId);
-      if (!delivery || delivery.status === 'delivered' || delivery.status === 'cancelled') {
-        stopDeliverySimulation(deliveryId);
-        return;
-      }
-
-      if (!delivery.partnerId) return;
-      const partner = await DeliveryPartner.findById(delivery.partnerId);
-      if (!partner) return;
-
-      const pickup = delivery.pickupLocation.coordinates as [number, number]; // [lng, lat]
-      const dest = delivery.destinationLocation.coordinates as [number, number];
-      let current = (delivery.currentLocation?.coordinates || partner.currentLocation?.coordinates) as [number, number];
-
-      if (
-        !current ||
-        current.length !== 2 ||
-        (current[0] === 0 && current[1] === 0)
-      ) {
-        current = computeInitialPartnerOrigin(pickup, delivery.orderId?.toString() || deliveryId);
-      }
-
-      const isPickedUp = ['picked_up', 'out_for_delivery', 'nearby'].includes(delivery.status);
-      const target = isPickedUp ? dest : pickup;
-      const targetLeg: 'to_pickup' | 'to_destination' = isPickedUp ? 'to_destination' : 'to_pickup';
-
-      const directDistanceToTarget = getDistance(
-        { latitude: current[1], longitude: current[0] },
-        { latitude: target[1], longitude: target[0] }
-      );
-
-      const stepMeters = config.deliverySimulator.stepMeters;
-      let nextLng = current[0];
-      let nextLat = current[1];
-      let newDistance = directDistanceToTarget;
-
-      if (directDistanceToTarget < 10) {
-        nextLng = target[0];
-        nextLat = target[1];
-        newDistance = 0;
-      } else {
-        let routeState = activeRoutes.get(deliveryId);
-        if (!routeState || routeState.currentLeg !== targetLeg) {
-          const legStart: [number, number] = current;
-          const legEnd: [number, number] = target;
-          const waypoints = await fetchRoadWaypoints(legStart, legEnd);
-          routeState = {
-            currentLeg: targetLeg,
-            waypoints,
-            waypointIndex: 0
-          };
-          activeRoutes.set(deliveryId, routeState);
-        }
-
-        if (routeState && routeState.waypoints && routeState.waypoints.length > 2) {
-          const res = advanceAlongWaypoints(current, routeState.waypoints, routeState.waypointIndex, stepMeters);
-          routeState.waypointIndex = res.nextIndex;
-          nextLng = res.nextCoord[0];
-          nextLat = res.nextCoord[1];
-          newDistance = res.distanceRemainingMeters;
-        } else {
-          // Standard linear interpolation
-          if (directDistanceToTarget > stepMeters) {
-            const fraction = stepMeters / directDistanceToTarget;
-            nextLng = current[0] + (target[0] - current[0]) * fraction;
-            nextLat = current[1] + (target[1] - current[1]) * fraction;
-            newDistance = directDistanceToTarget - stepMeters;
-          } else {
-            nextLng = target[0];
-            nextLat = target[1];
-            newDistance = 0;
-          }
-        }
-      }
-
-      // Update location
-      delivery.currentLocation = { type: 'Point', coordinates: [nextLng, nextLat] };
-      partner.currentLocation = { type: 'Point', coordinates: [nextLng, nextLat] };
-      delivery.distanceRemainingMeters = Math.max(0, Math.round(newDistance));
-      delivery.etaSeconds = newDistance < 10 ? 0 : Math.max(1, Math.round(newDistance / 6.9));
-
-      // Status updates
-      let statusChanged = false;
-      const prevStatus = delivery.status;
-
-      if (!isPickedUp && newDistance < 10) {
-        delivery.distanceRemainingMeters = 0;
-        delivery.etaSeconds = 0;
-        if (delivery.status === 'partner_assigned') {
-          delivery.status = 'arrived_pickup';
-          statusChanged = true;
-        }
-      } else if (isPickedUp) {
-        if (newDistance < 10) {
-          const now = new Date();
-          delivery.distanceRemainingMeters = 0;
-          delivery.etaSeconds = 0;
-          // Attempt atomic status transition on Delivery to prevent concurrent ticks from double-completing
-          const updatedDelivery = await Delivery.findOneAndUpdate(
-            { _id: delivery._id, status: { $in: ['picked_up', 'out_for_delivery', 'nearby'] } },
-            { 
-              $set: { 
-                status: 'delivered', 
-                'timestamps.deliveredAt': now,
-                'currentLocation.coordinates': [nextLng, nextLat],
-                distanceRemainingMeters: 0,
-                etaSeconds: 0
-              } 
-            },
-            { new: true }
-          );
-          
-          if (updatedDelivery) {
-            delivery.status = 'delivered';
-            delivery.timestamps = delivery.timestamps || {};
-            delivery.timestamps.deliveredAt = now;
-
-            // Use atomic update to prevent race conditions causing lost increments
-            await DeliveryPartner.updateOne(
-              { _id: partner._id },
-              { 
-                $set: { status: 'available', currentAssignedDelivery: null },
-                $inc: { completedDeliveries: 1 }
-              }
-            );
-            partner.status = 'available';
-            partner.currentAssignedDelivery = undefined;
-            statusChanged = true;
-          } else {
-            stopDeliverySimulation(deliveryId);
-            return;
-          }
-          
-          stopDeliverySimulation(deliveryId);
-        } else if (newDistance < 500 && delivery.status !== 'nearby') {
-          delivery.status = 'nearby';
-          statusChanged = true;
-        } else if (delivery.status === 'picked_up') {
-          delivery.status = 'out_for_delivery';
-          statusChanged = true;
-        }
-      }
-
-      if (delivery.status !== 'delivered') {
-        await delivery.save();
-      }
-      if (delivery.status !== 'delivered') {
-        await partner.save();
-      }
-
-      // Elapsed delivery transit calculation
-      const pickedUpAt = delivery.timestamps?.pickedUpAt || delivery.timestamps?.assignedAt;
-      const transitMinutes = (delivery.status === 'delivered' && pickedUpAt)
-        ? Math.max(1, Math.round(((delivery.timestamps?.deliveredAt || new Date()).getTime() - new Date(pickedUpAt).getTime()) / 60000))
-        : (delivery.status === 'delivered' ? Math.max(1, Math.round(((delivery.timestamps?.deliveredAt || new Date()).getTime() - new Date(delivery.createdAt).getTime()) / 60000)) : undefined);
-
-      // Emit events
-      const io = getIO();
-      const payload = {
-        deliveryId: delivery.id || delivery._id.toString(),
-        orderId: delivery.orderId.toString(),
-        partnerId: delivery.partnerId.toString(),
-        location: { lat: nextLat, lng: nextLng },
-        etaSeconds: delivery.etaSeconds,
-        distanceRemainingMeters: delivery.distanceRemainingMeters,
-        status: delivery.status,
-        timestamp: new Date().toISOString(),
-        deliveredAt: delivery.status === 'delivered' ? (delivery.timestamps?.deliveredAt || new Date()).toISOString() : undefined,
-        pickedUpAt: delivery.timestamps?.pickedUpAt ? new Date(delivery.timestamps.pickedUpAt).toISOString() : undefined,
-        actualTransitMinutes: transitMinutes,
-        estimatedMinutes: 15
-      };
-
-      io.to(delivery.orderId.toString()).emit('delivery:location', payload);
-      io.to('admin_fleet').emit('delivery:location', payload);
-      if (delivery.partnerId) {
+  Order.findById(orderId).then((orderDoc) => {
+    if ((orderDoc as any)?.isDemo && !pendingHandoffTimers.has(deliveryId)) {
+      const timer = setTimeout(async () => {
         try {
-          const partnerDoc = await DeliveryPartner.findById(delivery.partnerId);
-          if (partnerDoc && partnerDoc.userId) {
-            io.to(partnerDoc.userId.toString()).emit('delivery:location', payload);
-          }
-        } catch(e) {}
-      }
-
-      let ownerIdStr = '';
-      try {
-        const order = await Order.findById(delivery.orderId);
-        if (order) {
-          const { Restaurant } = require('../restaurants/restaurant.model');
-          const restaurant = await Restaurant.findById(order.restaurantId);
-          if (restaurant?.ownerId) {
-            ownerIdStr = restaurant.ownerId.toString();
-            io.to(ownerIdStr).emit('delivery:location', payload);
-          }
-        }
-      } catch (e) {
-        // Ignore
-      }
-
-      if (statusChanged) {
-        io.to(delivery.orderId.toString()).emit('delivery:status', { ...payload, prevStatus });
-        io.to('admin_fleet').emit('delivery:status', { ...payload, prevStatus });
-        if (ownerIdStr) {
-          io.to(ownerIdStr).emit('delivery:status', { ...payload, prevStatus });
-        }
-        if (delivery.partnerId) {
-          try {
-            const partnerDoc = await DeliveryPartner.findById(delivery.partnerId);
-            if (partnerDoc && partnerDoc.userId) {
-              io.to(partnerDoc.userId.toString()).emit('delivery:status', { ...payload, prevStatus });
-            }
-          } catch(e) {}
-        }
-        
-        try {
-          const { transitionOrderStatus } = await import('../orders/order.service');
-          if (['picked_up', 'out_for_delivery', 'delivered'].includes(delivery.status)) {
-            await transitionOrderStatus(delivery.orderId.toString(), delivery.status, { id: 'system', role: 'system' });
-          } else if (delivery.status === 'arrived_pickup') {
-            const orderDoc = await Order.findById(delivery.orderId);
-            if ((orderDoc as any)?.isDemo) {
-              setTimeout(async () => {
-                try {
-                  const curDelivery = await Delivery.findById(delivery._id);
-                  if (curDelivery && curDelivery.status === 'arrived_pickup') {
-                    await transitionOrderStatus(delivery.orderId.toString(), 'picked_up', { id: 'system', role: 'system' });
-                  }
-                } catch (e) {
-                  // Ignore if already handed off
-                }
-              }, 3000);
-            }
+          const curDelivery = await Delivery.findById(deliveryId);
+          if (curDelivery && curDelivery.status === 'arrived_pickup') {
+            const { transitionOrderStatus } = await import('../orders/order.service');
+            await transitionOrderStatus(orderId, 'picked_up', { id: 'system', role: 'system' });
           }
         } catch (e) {
-          console.error('[simulator] Failed to transition order status:', e);
+          // Ignore if already handed off or cancelled
+        } finally {
+          pendingHandoffTimers.delete(deliveryId);
         }
-      }
-
-      // Trigger risk evaluation
-      await evaluateRisk(delivery);
-
-    } catch (err) {
-      console.error('Simulator error for delivery', deliveryId, err);
+      }, 3000);
+      pendingHandoffTimers.set(deliveryId, timer);
     }
-  }, config.deliverySimulator.intervalMs);
+  }).catch(() => {});
+}
 
-  activeSimulators.set(deliveryId, timer);
+export async function startDeliverySimulation(deliveryId: string): Promise<{ running: boolean; started: boolean; reason?: string }> {
+  if (activeSimulators.has(deliveryId)) {
+    return { running: true, started: false };
+  }
+
+  if (startingSimulators.has(deliveryId)) {
+    return { running: true, started: false };
+  }
+
+  startingSimulators.add(deliveryId);
+
+  try {
+    const delivery = await Delivery.findById(deliveryId);
+    if (!delivery) {
+      return { running: false, started: false, reason: 'delivery_not_found' };
+    }
+
+    if (delivery.status === 'delivered' || (delivery as any).status === 'cancelled') {
+      return { running: false, started: false, reason: 'terminal_status' };
+    }
+
+    const eligibleStatuses = ['partner_assigned', 'arrived_pickup', 'picked_up', 'out_for_delivery', 'nearby'];
+    if (!eligibleStatuses.includes(delivery.status)) {
+      return { running: false, started: false, reason: `ineligible_status_${delivery.status}` };
+    }
+
+    if (!delivery.partnerId) {
+      return { running: false, started: false, reason: 'missing_partner' };
+    }
+
+    const partner = await DeliveryPartner.findById(delivery.partnerId);
+    if (!partner) {
+      return { running: false, started: false, reason: 'partner_not_found' };
+    }
+
+    if (activeSimulators.has(deliveryId)) {
+      return { running: true, started: false };
+    }
+
+    // If starting/resuming while already at arrived_pickup, ensure demo auto-handoff is scheduled
+    if (delivery.status === 'arrived_pickup') {
+      scheduleDemoHandoffIfEligible(deliveryId, delivery.orderId.toString());
+    }
+
+    const timer = setInterval(async () => {
+      try {
+        const curDelivery = await Delivery.findById(deliveryId);
+        if (!curDelivery || curDelivery.status === 'delivered' || (curDelivery as any).status === 'cancelled') {
+          stopDeliverySimulation(deliveryId);
+          return;
+        }
+
+        if (!curDelivery.partnerId) return;
+        const curPartner = await DeliveryPartner.findById(curDelivery.partnerId);
+        if (!curPartner) return;
+
+        const pickup = curDelivery.pickupLocation.coordinates as [number, number]; // [lng, lat]
+        const dest = curDelivery.destinationLocation.coordinates as [number, number];
+        let current = (curDelivery.currentLocation?.coordinates || curPartner.currentLocation?.coordinates) as [number, number];
+
+        if (
+          !current ||
+          current.length !== 2 ||
+          (current[0] === 0 && current[1] === 0)
+        ) {
+          current = computeInitialPartnerOrigin(pickup, curDelivery.orderId?.toString() || deliveryId);
+        }
+
+        const isPickedUp = ['picked_up', 'out_for_delivery', 'nearby'].includes(curDelivery.status);
+        const target = isPickedUp ? dest : pickup;
+        const targetLeg: 'to_pickup' | 'to_destination' = isPickedUp ? 'to_destination' : 'to_pickup';
+
+        const directDistanceToTarget = getDistance(
+          { latitude: current[1], longitude: current[0] },
+          { latitude: target[1], longitude: target[0] }
+        );
+
+        const stepMeters = config.deliverySimulator.stepMeters;
+        let nextLng = current[0];
+        let nextLat = current[1];
+        let newDistance = directDistanceToTarget;
+
+        if (directDistanceToTarget < 10) {
+          nextLng = target[0];
+          nextLat = target[1];
+          newDistance = 0;
+        } else {
+          let routeState = activeRoutes.get(deliveryId);
+          if (!routeState || routeState.currentLeg !== targetLeg) {
+            const legStart: [number, number] = current;
+            const legEnd: [number, number] = target;
+            const waypoints = await fetchRoadWaypoints(legStart, legEnd);
+            routeState = {
+              currentLeg: targetLeg,
+              waypoints,
+              waypointIndex: 0
+            };
+            activeRoutes.set(deliveryId, routeState);
+          }
+
+          if (routeState && routeState.waypoints && routeState.waypoints.length > 2) {
+            const res = advanceAlongWaypoints(current, routeState.waypoints, routeState.waypointIndex, stepMeters);
+            routeState.waypointIndex = res.nextIndex;
+            nextLng = res.nextCoord[0];
+            nextLat = res.nextCoord[1];
+            newDistance = res.distanceRemainingMeters;
+          } else {
+            // Standard linear interpolation
+            if (directDistanceToTarget > stepMeters) {
+              const fraction = stepMeters / directDistanceToTarget;
+              nextLng = current[0] + (target[0] - current[0]) * fraction;
+              nextLat = current[1] + (target[1] - current[1]) * fraction;
+              newDistance = directDistanceToTarget - stepMeters;
+            } else {
+              nextLng = target[0];
+              nextLat = target[1];
+              newDistance = 0;
+            }
+          }
+        }
+
+        // Update location
+        curDelivery.currentLocation = { type: 'Point', coordinates: [nextLng, nextLat] };
+        curPartner.currentLocation = { type: 'Point', coordinates: [nextLng, nextLat] };
+        curDelivery.distanceRemainingMeters = Math.max(0, Math.round(newDistance));
+        curDelivery.etaSeconds = newDistance < 10 ? 0 : Math.max(1, Math.round(newDistance / 6.9));
+
+        // Status updates
+        let statusChanged = false;
+        const prevStatus = curDelivery.status;
+
+        if (!isPickedUp && newDistance < 10) {
+          curDelivery.distanceRemainingMeters = 0;
+          curDelivery.etaSeconds = 0;
+          if (curDelivery.status === 'partner_assigned') {
+            curDelivery.status = 'arrived_pickup';
+            statusChanged = true;
+          }
+        } else if (isPickedUp) {
+          if (newDistance < 10) {
+            const now = new Date();
+            curDelivery.distanceRemainingMeters = 0;
+            curDelivery.etaSeconds = 0;
+            // Attempt atomic status transition on Delivery to prevent concurrent ticks from double-completing
+            const updatedDelivery = await Delivery.findOneAndUpdate(
+              { _id: curDelivery._id, status: { $in: ['picked_up', 'out_for_delivery', 'nearby'] } },
+              { 
+                $set: { 
+                  status: 'delivered', 
+                  'timestamps.deliveredAt': now,
+                  'currentLocation.coordinates': [nextLng, nextLat],
+                  distanceRemainingMeters: 0,
+                  etaSeconds: 0
+                } 
+              },
+              { new: true }
+            );
+            
+            if (updatedDelivery) {
+              curDelivery.status = 'delivered';
+              curDelivery.timestamps = curDelivery.timestamps || {};
+              curDelivery.timestamps.deliveredAt = now;
+
+              // Use atomic update to prevent race conditions causing lost increments
+              await DeliveryPartner.updateOne(
+                { _id: curPartner._id },
+                { 
+                  $set: { status: 'available', currentAssignedDelivery: null },
+                  $inc: { completedDeliveries: 1 }
+                }
+              );
+              curPartner.status = 'available';
+              curPartner.currentAssignedDelivery = undefined;
+              statusChanged = true;
+            } else {
+              stopDeliverySimulation(deliveryId);
+              return;
+            }
+            
+            stopDeliverySimulation(deliveryId);
+          } else if (newDistance < 500 && curDelivery.status !== 'nearby') {
+            curDelivery.status = 'nearby';
+            statusChanged = true;
+          } else if (curDelivery.status === 'picked_up') {
+            curDelivery.status = 'out_for_delivery';
+            statusChanged = true;
+          }
+        }
+
+        if (curDelivery.status !== 'delivered') {
+          await curDelivery.save();
+          await curPartner.save();
+        }
+
+        // Elapsed delivery transit calculation
+        const pickedUpAt = curDelivery.timestamps?.pickedUpAt || curDelivery.timestamps?.assignedAt;
+        const transitMinutes = (curDelivery.status === 'delivered' && pickedUpAt)
+          ? Math.max(1, Math.round(((curDelivery.timestamps?.deliveredAt || new Date()).getTime() - new Date(pickedUpAt).getTime()) / 60000))
+          : (curDelivery.status === 'delivered' ? Math.max(1, Math.round(((curDelivery.timestamps?.deliveredAt || new Date()).getTime() - new Date(curDelivery.createdAt).getTime()) / 60000)) : undefined);
+
+        // Safe event emission
+        try {
+          const io = getIO();
+          const payload = {
+            deliveryId: curDelivery.id || curDelivery._id.toString(),
+            orderId: curDelivery.orderId.toString(),
+            partnerId: curDelivery.partnerId.toString(),
+            location: { lat: nextLat, lng: nextLng },
+            etaSeconds: curDelivery.etaSeconds,
+            distanceRemainingMeters: curDelivery.distanceRemainingMeters,
+            status: curDelivery.status,
+            timestamp: new Date().toISOString(),
+            deliveredAt: curDelivery.status === 'delivered' ? (curDelivery.timestamps?.deliveredAt || new Date()).toISOString() : undefined,
+            pickedUpAt: curDelivery.timestamps?.pickedUpAt ? new Date(curDelivery.timestamps.pickedUpAt).toISOString() : undefined,
+            actualTransitMinutes: transitMinutes,
+            estimatedMinutes: 15
+          };
+
+          io.to(curDelivery.orderId.toString()).emit('delivery:location', payload);
+          io.to('admin_fleet').emit('delivery:location', payload);
+          if (curDelivery.partnerId && curPartner.userId) {
+            io.to(curPartner.userId.toString()).emit('delivery:location', payload);
+          }
+
+          let ownerIdStr = '';
+          try {
+            const order = await Order.findById(curDelivery.orderId);
+            if (order) {
+              const { Restaurant } = require('../restaurants/restaurant.model');
+              const restaurant = await Restaurant.findById(order.restaurantId);
+              if (restaurant?.ownerId) {
+                ownerIdStr = restaurant.ownerId.toString();
+                io.to(ownerIdStr).emit('delivery:location', payload);
+              }
+            }
+          } catch (e) {
+            // Ignore
+          }
+
+          if (statusChanged) {
+            io.to(curDelivery.orderId.toString()).emit('delivery:status', { ...payload, prevStatus });
+            io.to('admin_fleet').emit('delivery:status', { ...payload, prevStatus });
+            if (ownerIdStr) {
+              io.to(ownerIdStr).emit('delivery:status', { ...payload, prevStatus });
+            }
+            if (curDelivery.partnerId && curPartner.userId) {
+              io.to(curPartner.userId.toString()).emit('delivery:status', { ...payload, prevStatus });
+            }
+          }
+        } catch (ioErr) {
+          // Socket.IO may not be initialized in non-socket test contexts
+        }
+
+        if (statusChanged) {
+          try {
+            const { transitionOrderStatus } = await import('../orders/order.service');
+            if (['picked_up', 'out_for_delivery', 'delivered'].includes(curDelivery.status)) {
+              await transitionOrderStatus(curDelivery.orderId.toString(), curDelivery.status, { id: 'system', role: 'system' });
+            }
+          } catch (e) {
+            console.error('[simulator] Failed to transition order status:', e);
+          }
+        }
+
+        // Schedule demo auto-handoff if newly or currently at arrived_pickup
+        if (curDelivery.status === 'arrived_pickup') {
+          scheduleDemoHandoffIfEligible(deliveryId, curDelivery.orderId.toString());
+        }
+
+        // Trigger risk evaluation
+        await evaluateRisk(curDelivery);
+
+      } catch (err) {
+        console.error('[simulator] Simulator error for delivery', deliveryId, err);
+      }
+    }, config.deliverySimulator.intervalMs);
+
+    activeSimulators.set(deliveryId, timer);
+    return { running: true, started: true };
+  } finally {
+    startingSimulators.delete(deliveryId);
+  }
 }
 
 export function stopDeliverySimulation(deliveryId: string) {
@@ -429,6 +494,60 @@ export function stopDeliverySimulation(deliveryId: string) {
   if (timer) {
     clearInterval(timer);
     activeSimulators.delete(deliveryId);
-    activeRoutes.delete(deliveryId);
   }
+  const handoffTimer = pendingHandoffTimers.get(deliveryId);
+  if (handoffTimer) {
+    clearTimeout(handoffTimer);
+    pendingHandoffTimers.delete(deliveryId);
+  }
+  activeRoutes.delete(deliveryId);
+  startingSimulators.delete(deliveryId);
+}
+
+export function stopAllDeliverySimulations() {
+  for (const deliveryId of Array.from(activeSimulators.keys())) {
+    stopDeliverySimulation(deliveryId);
+  }
+  for (const deliveryId of Array.from(pendingHandoffTimers.keys())) {
+    const ht = pendingHandoffTimers.get(deliveryId);
+    if (ht) clearTimeout(ht);
+    pendingHandoffTimers.delete(deliveryId);
+  }
+  activeSimulators.clear();
+  activeRoutes.clear();
+  startingSimulators.clear();
+}
+
+export async function recoverActiveDeliveries(): Promise<{ recovered: number; errors: number }> {
+  let recovered = 0;
+  let errors = 0;
+
+  try {
+    const eligibleStatuses = ['partner_assigned', 'arrived_pickup', 'picked_up', 'out_for_delivery', 'nearby'];
+    const activeDeliveries = await Delivery.find({
+      status: { $in: eligibleStatuses }
+    });
+
+    for (const delivery of activeDeliveries) {
+      try {
+        if (!activeSimulators.has(delivery._id.toString())) {
+          const res = await startDeliverySimulation(delivery._id.toString());
+          if (res.started) {
+            recovered++;
+          }
+        }
+      } catch (err) {
+        errors++;
+        console.error(`[simulator:recovery] Failed to recover delivery ${delivery._id}:`, err);
+      }
+    }
+
+    if (recovered > 0 || errors > 0) {
+      console.log(`[simulator:recovery] Active deliveries scan: ${recovered} recovered, ${errors} errors.`);
+    }
+  } catch (err) {
+    console.error('[simulator:recovery] Failed to query active deliveries:', err);
+  }
+
+  return { recovered, errors };
 }
